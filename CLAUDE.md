@@ -1,0 +1,1 @@
+Ver @AGENTS.md para las convenciones del proyecto (tickets, commits, PRs, documentación y reglas de código). Este archivo existe solo para que Claude Code lo detecte automáticamente; la fuente de verdad es `AGENTS.md`, compartida con cualquier otra herramienta de IA que use el equipo.

@@ -1,0 +1,35 @@
+Issue Type,Summary,Description,Epic Name,Epic Link,Sprint,Due Date,Labels,Priority
+Epic,1° Entrega - Mocks y flujo de datos,Epic que agrupa todo lo requerido para la primera entrega del TPO: mocks de vistas y flujo de datos.,1ra Entrega,,,16/09/2026,entrega1,Highest
+Epic,2° Entrega - Funcional con integraciones mockeadas,Epic que agrupa el módulo funcional end-to-end con las integraciones a otros módulos mockeadas.,2da Entrega,,,11/11/2026,entrega2,Highest
+Epic,Entrega Final - Integrado,Epic que agrupa la integración real con el resto del sistema y la documentación final.,Entrega Final,,,02/12/2026,entregafinal,Highest
+Epic,Taller Práctico,Taller práctico con materiales robóticos - se evalúa con nota propia (>=4) separada del TPO.,Taller Practico,,,02/09/2026,taller,High
+Story,Definir modelo de dominio,"Definir entidades y atributos: Evento (locación, cupo, fecha/hora inicio-fin, gratuito/pago, precio), Locación, Inscripción, Usuario (rol), Asistencia.",,1ra Entrega,Sprint 1,12/08/2026,dominio,Highest
+Story,Formalizar reglas de negocio - solapamiento de horarios,Definir cómo se detecta el solapamiento de horarios para la misma locación y para el mismo usuario inscripto en dos eventos concurrentes.,,1ra Entrega,Sprint 1,19/08/2026,reglas-negocio,Highest
+Story,Formalizar reglas de negocio - cobro y cancelación,Definir qué pasa si un evento pago se cancela o si falla el cobro a la cuenta institucional.,,1ra Entrega,Sprint 2,19/08/2026,reglas-negocio,High
+Story,Formalizar reglas de negocio - verificación de asistencia,Definir cómo se marca y valida la asistencia a un evento.,,1ra Entrega,Sprint 2,26/08/2026,reglas-negocio,High
+Story,Formalizar reglas de negocio - recordatorio de evento,Definir cuándo y cómo se dispara el recordatorio automático una semana antes del evento al que el usuario está inscripto.,,1ra Entrega,Sprint 2,26/08/2026,reglas-negocio,Medium
+Story,Definir roles y permisos del módulo,Definir qué puede hacer un administrativo (alta/gestión de eventos) vs. un estudiante/docente (consulta/inscripción).,,1ra Entrega,Sprint 1,12/08/2026,permisos,High
+Story,Definir stack tecnológico,Elegir y justificar backend/base de datos/framework de frontend a usar en el módulo.,,1ra Entrega,Sprint 2,26/08/2026,arquitectura,High
+Story,Definir contrato de integración con CORE,"Acordar con el equipo de CORE el contrato de autenticación (login con mail institucional), notificaciones y descuento de saldo para inscripciones pagas.",,1ra Entrega,Sprint 3,02/09/2026,integracion,Highest
+Story,Definir contrato de integración con Analítica Institucional,Acordar qué eventos/datos va a emitir el módulo para que Analítica arme sus estadísticas de frecuencia/concurrencia/presentismo.,,1ra Entrega,Sprint 3,02/09/2026,integracion,High
+Story,Definir formato de notificación hacia Portal del Estudiante y Portal del Docente,Definir el formato del link/notificación que reciben esos portales para llegar al detalle del evento.,,1ra Entrega,Sprint 3,09/09/2026,integracion,Medium
+Story,Diseñar y documentar API de Eventos Académicos,"Definir endpoints (alta de evento, listado/búsqueda, inscripción, baja de inscripción, marcar asistencia, consulta de cupo) y documentarlos con Swagger o Postman.",,1ra Entrega,Sprint 4,09/09/2026,api,High
+Story,Mock de vista - Alta de evento (admin),Mock de la pantalla donde el administrativo crea un evento (locación, cupo, fecha, gratuito/pago).,,1ra Entrega,Sprint 5,16/09/2026,mocks,Medium
+Story,Mock de vista - Listado y búsqueda de eventos,Mock de la pantalla de consulta/búsqueda de eventos académicos disponibles.,,1ra Entrega,Sprint 5,16/09/2026,mocks,Medium
+Story,Mock de vista - Detalle e inscripción a evento,Mock de la pantalla de detalle del evento con la acción de inscripción.,,1ra Entrega,Sprint 5,16/09/2026,mocks,Medium
+Story,Mock de vista - Mis inscripciones,Mock del panel donde el usuario ve los eventos a los que está inscripto.,,1ra Entrega,Sprint 5,16/09/2026,mocks,Medium
+Story,Mock de vista - Marcado de asistencia,Mock de la pantalla/flujo para registrar asistencia a un evento.,,1ra Entrega,Sprint 5,16/09/2026,mocks,Medium
+Story,Diagrama de flujo de datos,Diagramar el flujo desde que un admin crea un evento hasta que un usuario se inscribe, paga (si aplica), recibe recordatorio y se le registra asistencia.,,1ra Entrega,Sprint 5,16/09/2026,docs,High
+Story,Implementar mecanismo de verificación de asistencia,Implementar el método elegido (QR, código, check-in manual) para registrar asistencia real a un evento.,,2da Entrega,Sprint 6,30/09/2026,asistencia,High
+Story,Mockear integración con CORE,Simular las respuestas de autenticación/notificaciones/saldo de CORE respetando el contrato ya definido.,,2da Entrega,Sprint 7,14/10/2026,integracion mock,High
+Story,Mockear integración con Analítica Institucional,Simular el envío de eventos/datos hacia Analítica respetando el contrato ya definido.,,2da Entrega,Sprint 7,14/10/2026,integracion mock,Medium
+Story,Implementar creación y validación de eventos,Implementar el alta de evento con validación de no-solapamiento de locación.,,2da Entrega,Sprint 6,30/09/2026,backend,Highest
+Story,Implementar inscripción con validación de concurrencia,Implementar la inscripción a eventos validando que el usuario no esté inscripto a dos eventos concurrentes y control de cupo.,,2da Entrega,Sprint 8,28/10/2026,backend,Highest
+Story,Implementar cobro simulado de inscripciones pagas,Implementar el descuento de saldo simulado (mock de CORE) al inscribirse a un evento pago.,,2da Entrega,Sprint 8,28/10/2026,backend,High
+Story,Implementar recordatorio simulado,Implementar el envío simulado del recordatorio una semana antes del evento.,,2da Entrega,Sprint 9,11/11/2026,backend,Medium
+Story,Integrar módulo funcional end-to-end para 2da entrega,Dejar el módulo funcionando de punta a punta con todas las integraciones mockeadas para la demo de la 2da entrega.,,2da Entrega,Sprint 9,11/11/2026,integracion mock,Highest
+Story,Reemplazar mock de CORE por integración real,Conectar el módulo con el CORE real (auth/notificaciones/saldo) coordinando con el equipo dueño.,,Entrega Final,Sprint 10,25/11/2026,integracion,Highest
+Story,Reemplazar mock de Analítica por integración real,Conectar el envío real de eventos/datos al módulo de Analítica Institucional.,,Entrega Final,Sprint 10,25/11/2026,integracion,High
+Story,Escribir README de instalación y ejecución,Documentar los pasos para instalar y correr el módulo de forma independiente.,,Entrega Final,Sprint 11,02/12/2026,docs,High
+Story,Armar diagrama de arquitectura general del sistema,Coordinar con el resto de los grupos y documentar el diagrama de arquitectura general de UADEnet.,,Entrega Final,Sprint 11,02/12/2026,docs,High
+Story,Preparar y rendir taller práctico,Preparar el taller práctico con materiales robóticos del 2/9 (nota individual, mínimo 4 para aprobar).,,Taller Practico,Sprint 3,02/09/2026,taller,High
