@@ -14,7 +14,7 @@ Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript,
 
 - Todo el trabajo se gestiona en Jira, proyecto **SCRUM**.
 - No se trabaja sin ticket: si la tarea que vas a hacer no tiene un ticket creado en el board, lo primero es crearlo (con su Epic correspondiente) antes de escribir código o abrir un branch.
-- El nombre del branch es el ticket: `SCRUM-XXX-descripcion-corta`, creado desde `main`.
+- El nombre del branch es el ticket: `SCRUM-XXX-descripcion-corta`, creado desde `dev` (ver ADR 0009).
 - Un branch = una tarea = un ticket. No mezclar dos historias en el mismo branch.
 - Antes de arrancar una tarea, pasarla a "En curso" en el board.
 
@@ -32,12 +32,13 @@ Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript,
 
 ## Pull Requests
 
-- Siempre contra `main`. No hay branch `dev` — `main` es la única rama base. Nunca push directo a `main`.
+- Ramas de feature/fix van contra `dev` (ver ADR 0009). Requieren al menos 1 aprobación de otra persona del equipo — regla forzada en GitHub, no se puede mergear el propio PR sin review.
+- `dev` se promueve a `main` con un PR `dev → main` antes de cada fecha de entrega. `main` nunca recibe push directo ni PRs de feature branches directamente.
 - Título igual al formato del commit, usando el título del ticket de Jira como descripción.
 - PR chico y enfocado — si se hace gigante, probablemente el ticket debería haber sido dos.
 - Antes de abrir el PR: `turbo run lint typecheck test` en verde localmente.
 - Mergear por rebase (sin squash ni merge commit), historial lineal. Borrar el branch después de mergear.
-- Para actualizar contra `main`: `git rebase main` + push `--force-with-lease` (nunca merge de `main` al branch).
+- Para actualizar contra `dev`: `git rebase dev` + push `--force-with-lease` (nunca merge de `dev` al branch).
 
 ---
 
