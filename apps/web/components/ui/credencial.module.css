@@ -1,0 +1,25 @@
+.credencial {
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: 10px;
+  display: grid;
+  grid-template-columns: repeat(13, 1fr);
+  grid-template-rows: repeat(13, 1fr);
+}
+
+.grande {
+  width: 132px;
+  height: 132px;
+  padding: 8px;
+}
+
+.chica {
+  width: 66px;
+  height: 66px;
+  border-radius: 8px;
+  padding: 5px;
+}
+
+.encendida {
+  background: var(--tinta);
+}

@@ -1,27 +1,25 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Geist, Geist_Mono } from "next/font/google";
+
+import { SesionProvider } from "@/lib/sesion";
+import { Toast } from "@/components/ui/toast";
+
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "uadenet-eventos",
+  title: "UADEnet · Eventos académicos",
   description: "Módulo Eventos Académicos — UADEnet",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+    <html lang="es">
+      <body>
+        <SesionProvider>
+          {children}
+          <Toast />
+        </SesionProvider>
+      </body>
     </html>
   );
 }
