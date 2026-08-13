@@ -1,0 +1,283 @@
+.resumen {
+  background: var(--acento-profundo);
+  color: #fff;
+  border-radius: 16px;
+  padding: 26px 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 26px;
+  align-items: center;
+}
+
+.saldo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.saldoLabel {
+  font-size: 12.5px;
+  color: var(--oscuro-etiqueta);
+}
+
+.saldoMonto {
+  font-size: 44px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.saldoId {
+  font-size: 11.5px;
+  color: var(--oscuro-terciario);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-left: 1px solid var(--oscuro-linea);
+  padding-left: 26px;
+  min-width: 0;
+}
+
+.statClave {
+  font-size: 12.5px;
+  color: var(--oscuro-etiqueta);
+}
+
+.statValor {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.statSub {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--oscuro-terciario);
+  text-wrap: pretty;
+}
+
+.columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 22px;
+  align-items: start;
+}
+
+.movimientos {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.movimientosHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.movimientosTitulo {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tinta-secundaria);
+  white-space: nowrap;
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.grupoHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.grupoMes {
+  font-size: 12.5px;
+  font-weight: 500;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.regla {
+  flex: 1;
+  height: 1px;
+  background: var(--linea);
+}
+
+.grupoNeto {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tinta-secundaria);
+}
+
+.grupoNetoPositivo {
+  color: var(--exito);
+}
+
+.lista {
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: 13px;
+  overflow: auto;
+}
+
+.fila {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 15px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--linea-fila);
+  align-items: center;
+}
+
+.icono {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--neutro-fondo);
+  border: 1px solid var(--linea);
+}
+
+.iconoIngreso {
+  background: var(--exito-fondo);
+  border-color: var(--exito-linea);
+}
+
+.filaDatos {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.concepto {
+  font-size: 13.5px;
+}
+
+.detalle {
+  font-size: 11.5px;
+  color: var(--tinta-placeholder);
+}
+
+.monto {
+  text-align: right;
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.montoIngreso {
+  color: var(--exito);
+}
+
+.lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: sticky;
+  top: 78px;
+}
+
+.panel {
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  scroll-margin-top: 90px;
+}
+
+.panelTitulo {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.panelBajada {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--tinta-secundaria);
+}
+
+.montos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.opcionMonto {
+  padding: 11px 6px;
+  border-radius: 9px;
+  border: 1.5px solid var(--linea);
+  background: var(--superficie);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--tinta);
+  white-space: nowrap;
+}
+
+.montoElegido {
+  border-color: var(--acento);
+  background: #f7f9fb;
+}
+
+.notas {
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.notasTitulo {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tinta-suave);
+}
+
+.nota {
+  display: grid;
+  grid-template-columns: 7px minmax(0, 1fr);
+  gap: 11px;
+  align-items: start;
+}
+
+.vineta {
+  width: 5px;
+  height: 5px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: #c9cdd3;
+}
+
+.notaTexto {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--tinta-secundaria);
+  text-wrap: pretty;
+}
+
+@media (max-width: 900px) {
+  .lateral {
+    position: static;
+  }
+
+  .stat {
+    border-left: 0;
+    padding-left: 0;
+  }
+}

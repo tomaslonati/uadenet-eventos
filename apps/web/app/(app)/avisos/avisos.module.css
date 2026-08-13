@@ -1,0 +1,392 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 336px;
+  gap: 24px;
+  align-items: start;
+}
+
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.grupoHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.grupoLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tinta-secundaria);
+  white-space: nowrap;
+}
+
+.regla {
+  flex: 1;
+  height: 1px;
+  background: var(--linea);
+}
+
+.aviso {
+  display: grid;
+  grid-template-columns: 4px minmax(0, 1fr);
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: 13px;
+  overflow: hidden;
+  animation: riseIn 0.24s ease both;
+}
+
+.avisoSinLeer {
+  border-color: #dbe1e8;
+}
+
+.riel {
+  background: transparent;
+}
+
+.rielSinLeer {
+  background: var(--acento-riel);
+}
+
+.avisoCuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 17px 20px 17px 18px;
+  min-width: 0;
+}
+
+.avisoMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cuando {
+  font-size: 11px;
+  color: var(--tinta-tenue);
+}
+
+.espacio {
+  flex: 1;
+}
+
+.canal {
+  font-size: 10.5px;
+  color: #b0b3b8;
+  white-space: nowrap;
+}
+
+.avisoTitulo {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.38;
+  letter-spacing: -0.005em;
+  text-wrap: pretty;
+}
+
+.avisoTexto {
+  font-size: 13px;
+  line-height: 1.62;
+  color: var(--tinta-secundaria);
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+
+.avisoAcciones {
+  margin-top: 3px;
+}
+
+/* Lateral */
+.lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: sticky;
+  top: 78px;
+}
+
+.panel {
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.panelTitulo {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.panelBajada {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--tinta-secundaria);
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.hito {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.hitoRiel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  height: 100%;
+}
+
+.hitoPunto {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  margin-top: 4px;
+  background: var(--superficie);
+  border: 1.5px solid #c9cdd3;
+}
+
+.hitoPuntoCumplido {
+  background: var(--acento-riel);
+  border-color: var(--acento-riel);
+}
+
+.hitoLinea {
+  flex: 1;
+  width: 1.5px;
+  background: var(--linea);
+}
+
+.hitoTextos {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 15px;
+}
+
+.hitoMomento {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--tinta-secundaria);
+}
+
+.hitoMomentoCumplido {
+  color: var(--tinta);
+}
+
+.hitoDetalle {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--tinta-suave);
+  text-wrap: pretty;
+}
+
+/* Previsualización del canal */
+.canales {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mail {
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.mailHeader {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--linea-fuerte);
+  background: var(--superficie-sutil);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mailRemitente {
+  font-size: 11px;
+  color: var(--tinta-placeholder);
+}
+
+.mailAsunto {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.mailCuerpo {
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mailWordmark {
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--acento-profundo);
+}
+
+.mailSaludo {
+  font-size: 17px;
+  line-height: 1.38;
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
+}
+
+.mailDatos {
+  border: 1px solid var(--linea-fuerte);
+  border-radius: 10px;
+  padding: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--superficie-sutil);
+}
+
+.mailDato {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.mailDatoClave {
+  font-size: 11px;
+  color: var(--tinta-placeholder);
+}
+
+.mailDatoValor {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--tinta);
+}
+
+.mailTexto {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--tinta-media);
+}
+
+.mailBotones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mailBotonPrimario {
+  padding: 9px 13px;
+  background: var(--acento);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mailBotonSecundario {
+  padding: 9px 13px;
+  border: 1px solid var(--borde-campo);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tinta-media);
+  white-space: nowrap;
+}
+
+.portal {
+  background: var(--acento-profundo);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.portalLabel {
+  font-size: 12.5px;
+  color: var(--oscuro-etiqueta);
+}
+
+.portalTarjeta {
+  background: var(--superficie);
+  border-radius: 11px;
+  padding: 15px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.portalPunto {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--acento-riel);
+  flex: none;
+}
+
+.portalDatos {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.portalTitulo {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.portalDetalle {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--tinta-secundaria);
+}
+
+.portalLink {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--acento);
+  margin-top: 2px;
+}
+
+.portalNota {
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--oscuro-etiqueta);
+}
+
+@media (max-width: 960px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lateral {
+    position: static;
+  }
+}
