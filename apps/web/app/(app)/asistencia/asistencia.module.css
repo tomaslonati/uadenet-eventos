@@ -1,0 +1,273 @@
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.kpi {
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: 12px;
+  padding: 17px 18px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kpiTextos {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.kpiClave {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tinta-suave);
+}
+
+.kpiSub {
+  font-size: 11.5px;
+  color: var(--tinta-suave);
+}
+
+.kpiValor {
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.kpiValorExito {
+  color: var(--exito);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 390px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.metodo {
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+}
+
+.metodoTitulo {
+  font-size: 13.5px;
+  font-weight: 500;
+  align-self: flex-start;
+}
+
+.metodoTexto {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--tinta-secundaria);
+  align-self: flex-start;
+}
+
+.escaner {
+  width: 214px;
+  height: 214px;
+  border-radius: 14px;
+  background: var(--acento-profundo);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulseRing 2.4s ease-out infinite;
+}
+
+.escanerMarco {
+  width: 150px;
+  height: 150px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 9px;
+}
+
+.escanerLinea {
+  position: absolute;
+  left: 32px;
+  right: 32px;
+  top: 50%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.codigoPanel {
+  width: 100%;
+  background: var(--acento-profundo);
+  border-radius: 14px;
+  padding: 34px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.codigo {
+  font-size: 44px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  color: #fff;
+}
+
+.codigoRestante {
+  font-size: 11.5px;
+  color: var(--oscuro-etiqueta);
+}
+
+.pendientes {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pendiente {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid var(--linea);
+  background: var(--superficie);
+  border-radius: 9px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.pendiente:hover {
+  background: #f7f9fa;
+}
+
+.casilla {
+  width: 17px;
+  height: 17px;
+  border: 1.5px solid #c9cdd3;
+  border-radius: 5px;
+  flex: none;
+}
+
+.pendienteDatos {
+  display: flex;
+  flex-direction: column;
+}
+
+.pendienteNombre {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.pendienteLegajo {
+  font-size: 11px;
+  color: var(--tinta-placeholder);
+}
+
+/* Registro */
+.registro {
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: 14px;
+  overflow: auto;
+}
+
+.registroHeader {
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--linea-fuerte);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.registroTitulo {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.registroCuenta {
+  font-size: 11.5px;
+  color: var(--tinta-placeholder);
+  white-space: nowrap;
+}
+
+.fila {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 116px 84px;
+  gap: 14px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--linea-fila);
+  align-items: center;
+  animation: riseIn 0.22s ease both;
+}
+
+.iniciales {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--exito-fondo);
+  color: var(--exito);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.filaDatos {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.filaNombre {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.filaLegajo {
+  font-size: 11px;
+  color: var(--tinta-placeholder);
+}
+
+.filaHora {
+  font-size: 12px;
+  color: var(--tinta-secundaria);
+}
+
+.validado {
+  justify-self: end;
+}
+
+.sinIngresos {
+  padding: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.sinIngresosTitulo {
+  font-size: 13.5px;
+  color: var(--tinta-suave);
+}
+
+.sinIngresosTexto {
+  font-size: 12px;
+  color: var(--tinta-tenue);
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
