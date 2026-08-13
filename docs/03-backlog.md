@@ -46,6 +46,22 @@ No incluidas por no estar pedidas explícitamente en el TP (no agregar sin confi
 
 Definir modelo de dominio (`02-modelo-dominio.md`) · Definir roles y permisos · Definir stack tecnológico (cerrado, ver `decisions/`) · Definir contrato de integración con CORE · Definir contrato de integración con Analítica · Diseñar y documentar API (Swagger) · Definir mecanismo de verificación de asistencia · Diagrama de arquitectura general del sistema · ~~Setup del monorepo (`BOOTSTRAP.md`)~~ hecho.
 
+## Estado de los mocks de vista (1ra Entrega)
+
+Las cinco historias de mocks del board están implementadas como pantallas reales de `apps/web`, con datos de `lib/mock/` en vez de la API:
+
+| Historia del board | Pantalla |
+|---|---|
+| Mock de vista - Alta de evento (admin) | `/eventos/nuevo` |
+| Mock de vista - Listado y búsqueda de eventos | `/cartelera` (tarjetas / tabla / agenda) |
+| Mock de vista - Detalle e inscripción a evento | `/eventos/[id]` |
+| Mock de vista - Mis inscripciones | `/mis-inscripciones` |
+| Mock de vista - Marcado de asistencia | `/asistencia` (QR, código en sala, lista manual) |
+
+Además, y sin historia propia en el board todavía: `/gestion` (panel del administrativo con indicadores), `/cuenta` (saldo institucional y movimientos), `/docente` y `/avisos` (centro de notificaciones + regla automática de recordatorio). Si el equipo las quiere trackear, hay que crearles el ticket.
+
+Lo que **no** cubren estos mocks, porque depende del backend: persistencia, validación real de solapamiento contra la base, cobro contra CORE y envío efectivo del recordatorio.
+
 ## Definition of Ready
 
 Una HU entra a un sprint solo si tiene: descripción As a/I want/So that, criterios Given/When/Then, dependencias identificadas (¿bloqueada por algo de `04-integraciones.md`?), prioridad MoSCoW, estimación hecha en Planning Poker por todo el equipo, mock de la vista si aplica, y — sumado tras la conversación de infraestructura — **dependencias de infraestructura resueltas o explícitamente marcadas como bloqueantes**.

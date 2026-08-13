@@ -62,6 +62,7 @@ Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript,
 - `docs/02-modelo-dominio.md` — entidades y reglas de negocio. Tiene TBDs a propósito; cerrarlos a medida que el equipo los defina, no de una sola vez.
 - `docs/03-backlog.md` — historias de usuario, DoR/DoD, estimación. Reflejar acá cualquier cambio grande hecho en Jira.
 - `docs/04-integraciones.md` — estado de cada contrato con otros módulos del TP (CORE, Analítica, portales). Actualizar el estado de la tabla apenas haya novedades, no esperar a que esté todo resuelto para tocar el archivo.
+- `docs/05-sistema-diseno.md` — tokens, componentes y copy de la UI. Es la fuente de verdad del frontend: los valores viven como variables CSS en `apps/web/app/globals.css`. No inventar colores, tamaños ni radios fuera de lo que dice este documento.
 - `docs/decisions/` — un ADR nuevo (numerado, `000X-titulo.md`) cada vez que se tome una decisión de arquitectura no trivial. No se edita un ADR viejo para cambiar la decisión — si algo se revierte, se agrega un ADR nuevo que referencia al anterior y explica por qué cambió.
 
 Regla para agentes: antes de arrancar una tarea no trivial, leer `docs/00-overview.md` y el archivo de `docs/` más relevante al tema. Al terminar una tarea que cambió algo del contexto general (arquitectura, modelo, integraciones, decisiones), actualizar el `.md` correspondiente como parte de la misma tarea, no como un paso aparte que puede quedar pendiente.

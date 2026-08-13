@@ -23,6 +23,13 @@ pnpm dev
 Levanta `apps/api` en http://localhost:3000 y `apps/web` en http://localhost:3001. `apps/web` pega contra `apps/api` en `NEXT_PUBLIC_API_URL` (default `http://localhost:3000`).
 
 Documentación de la API (Swagger): `http://localhost:3000/api/docs`.
+Estado de `apps/api` visto desde el portal: `http://localhost:3001/health`.
+
+### Pantallas
+
+`apps/web` arranca en `/` (login: elegís el perfil con el que querés recorrer el portal). Desde ahí: `/cartelera`, `/eventos/[id]`, `/eventos/nuevo`, `/mis-inscripciones`, `/cuenta`, `/gestion`, `/asistencia`, `/docente` y `/avisos`.
+
+Todavía no consumen `apps/api`: los datos salen de `apps/web/lib/mock/`. El diseño y sus tokens están en [`docs/05-sistema-diseno.md`](docs/05-sistema-diseno.md).
 
 ## Variables de entorno
 

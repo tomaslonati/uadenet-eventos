@@ -36,4 +36,5 @@ El estado de estos contratos (definido / en negociación / pendiente) se trackea
 - `02-modelo-dominio.md` — entidades y reglas de negocio.
 - `03-backlog.md` — historias de usuario, tareas técnicas, DoR/DoD, estimación.
 - `04-integraciones.md` — contratos con otros módulos, estado de cada uno.
+- `05-sistema-diseno.md` — tokens, componentes y copy de la UI.
 - `decisions/` — un ADR corto por cada decisión de arquitectura tomada.
