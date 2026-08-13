@@ -14,7 +14,9 @@ Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript,
 
 - Todo el trabajo se gestiona en Jira, proyecto **SCRUM**.
 - No se trabaja sin ticket: si la tarea que vas a hacer no tiene un ticket creado en el board, lo primero es crearlo (con su Epic correspondiente) antes de escribir código o abrir un branch.
-- El nombre del branch es el ticket: `SCRUM-XXX-descripcion-corta`, creado desde `dev` (ver ADR 0009).
+- El nombre del branch es el ticket, creado desde `dev` (ver ADR 0009):
+  - Si es una Historia de Usuario del backlog (`docs/03-backlog.md`), usar su número de HU: `HU2-descripcion-corta`.
+  - Si es una tarea técnica/infra sin HU asociada, usar el issue de Jira: `SCRUM-XXX-descripcion-corta`.
 - Un branch = una tarea = un ticket. No mezclar dos historias en el mismo branch.
 - Antes de arrancar una tarea, pasarla a "En curso" en el board.
 
@@ -22,9 +24,9 @@ Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript,
 
 ## Commits
 
-- Formato: `tipo: [SCRUM-XXX] descripción en minúscula`.
+- Formato: `tipo: [ID] descripción en minúscula`, con el mismo `ID` que el branch (`HU2` o `SCRUM-XXX`).
   Tipos: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`.
-  Ejemplo: `feat: [SCRUM-14] definir formato de notificación hacia portales`.
+  Ejemplos: `fix: [HU2] rompía la inscripción cuando el evento no tenía cupo seteado` · `chore: [SCRUM-14] definir formato de notificación hacia portales`.
 - Commits lo más chicos posible: cada cambio coherente es un commit, no un commit gigante al final de la tarea.
 - No mezclar cambios no relacionados en el mismo commit (si tocás lint config de paso, va en un commit `chore` separado).
 
@@ -38,7 +40,7 @@ Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript,
 - PR chico y enfocado — si se hace gigante, probablemente el ticket debería haber sido dos.
 - Antes de abrir el PR: `turbo run lint typecheck test` en verde localmente.
 - Mergear por rebase (sin squash ni merge commit), historial lineal. Borrar el branch después de mergear.
-- Para actualizar contra `dev`: `git rebase dev` + push `--force-with-lease` (nunca merge de `dev` al branch).
+- Para actualizar contra `dev`: `git pull --rebase origin dev` sobre el branch local + push `--force-with-lease` (nunca merge de `dev` al branch). Conviene hacerlo seguido durante la tarea, no solo justo antes de abrir el PR — evita conflictos grandes de una sola vez.
 
 ---
 
