@@ -1,5 +1,7 @@
 # Plan de setup — uadenet-eventos
 
+> **Documento archivado. No es fuente de verdad.** Fue el primer plan de setup del repo, escrito antes de que existiera el monorepo. Lo superó [`../04-guias/bootstrap.md`](../04-guias/bootstrap.md), que es la guía vigente. Además quedó desactualizado en la base de datos: acá dice Supabase, y el proveedor pasó a Neon (ver [`../decisions/0008-migracion-neon.md`](../decisions/0008-migracion-neon.md)). Se conserva solo por trazabilidad de cómo se planificó el arranque.
+
 Orden pensado para no bloquearse entre pasos. Cada bloque asume que el anterior ya cerró.
 
 ## 0. Prerrequisitos (una vez por integrante)

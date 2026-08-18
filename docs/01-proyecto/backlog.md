@@ -1,10 +1,10 @@
-# 03 — Backlog, metodología y convenciones
+# Backlog, metodología y convenciones
 
 > Documento vivo. Basado en lo visto en Clase 02 (Metodologías y Escalado Ágil). Cuando se agreguen/cambien historias en Jira, reflejarlo acá o al menos linkear al board — este archivo es el resumen navegable, Jira es la fuente operativa del día a día.
 
 ## Framework
 
-Scrum a nivel de nuestro equipo (sprints con fechas fijas, ya cargados en Jira). Los frameworks de escalado (Nexus, SAFe, LeSS) no aplican dentro del grupo — son para coordinar entre los 10 grupos del TP, y ese nivel de coordinación todavía no está definido (ver `04-integraciones.md`).
+Scrum a nivel de nuestro equipo (sprints con fechas fijas, ya cargados en Jira). Los frameworks de escalado (Nexus, SAFe, LeSS) no aplican dentro del grupo — son para coordinar entre los 10 grupos del TP, y ese nivel de coordinación todavía no está definido (ver [`../02-arquitectura/integraciones.md`](../02-arquitectura/integraciones.md)).
 
 ## Historias de Usuario (formato: As a / I want / So that + Given/When/Then)
 
@@ -31,7 +31,7 @@ Como usuario quiero inscribirme a un evento pago, para participar descontando el
 **HU5 — Ver mis inscripciones** · Should
 Como usuario quiero ver mis eventos inscriptos, para hacer seguimiento.
 
-**HU6 — Registrar asistencia** · Must (bloqueada por definir mecanismo — ver `02-modelo-dominio.md`)
+**HU6 — Registrar asistencia** · Must (bloqueada por definir mecanismo — ver [`../02-arquitectura/modelo-dominio.md`](../02-arquitectura/modelo-dominio.md))
 Como administrativo quiero registrar la asistencia de un inscripto, para llevar presentismo real.
 
 **HU7 — Recibir recordatorio de evento** · Must (bloqueada por contrato de notificaciones con CORE)
@@ -44,7 +44,7 @@ No incluidas por no estar pedidas explícitamente en el TP (no agregar sin confi
 
 ## Tareas técnicas / Spikes (no son HU)
 
-Definir modelo de dominio (`02-modelo-dominio.md`) · Definir roles y permisos · Definir stack tecnológico (cerrado, ver `decisions/`) · Definir contrato de integración con CORE · Definir contrato de integración con Analítica · Diseñar y documentar API (Swagger) · Definir mecanismo de verificación de asistencia · Diagrama de arquitectura general del sistema · ~~Setup del monorepo (`BOOTSTRAP.md`)~~ hecho.
+Definir modelo de dominio (`../02-arquitectura/modelo-dominio.md`) · Definir roles y permisos · Definir stack tecnológico (cerrado, ver `../decisions/`) · Definir contrato de integración con CORE · Definir contrato de integración con Analítica · Diseñar y documentar API (Swagger) · Definir mecanismo de verificación de asistencia · Diagrama de arquitectura general del sistema · ~~Setup del monorepo (`../04-guias/bootstrap.md`)~~ hecho.
 
 ## Estado de los mocks de vista (1ra Entrega)
 
@@ -64,7 +64,7 @@ Lo que **no** cubren estos mocks, porque depende del backend: persistencia, vali
 
 ## Definition of Ready
 
-Una HU entra a un sprint solo si tiene: descripción As a/I want/So that, criterios Given/When/Then, dependencias identificadas (¿bloqueada por algo de `04-integraciones.md`?), prioridad MoSCoW, estimación hecha en Planning Poker por todo el equipo, mock de la vista si aplica, y — sumado tras la conversación de infraestructura — **dependencias de infraestructura resueltas o explícitamente marcadas como bloqueantes**.
+Una HU entra a un sprint solo si tiene: descripción As a/I want/So that, criterios Given/When/Then, dependencias identificadas (¿bloqueada por algo de `../02-arquitectura/integraciones.md`?), prioridad MoSCoW, estimación hecha en Planning Poker por todo el equipo, mock de la vista si aplica, y — sumado tras la conversación de infraestructura — **dependencias de infraestructura resueltas o explícitamente marcadas como bloqueantes**.
 
 ## Definition of Done
 

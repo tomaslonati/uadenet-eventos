@@ -1,4 +1,4 @@
-# 05 — Sistema de diseño
+# Sistema de diseño
 
 > Documento vivo. Es la fuente de verdad de la UI del módulo. Los tokens están implementados como variables CSS en `apps/web/app/globals.css`: si cambia algo acá, se cambia ahí — y al revés, no se inventan valores nuevos en un componente.
 

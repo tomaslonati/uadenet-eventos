@@ -1,4 +1,4 @@
-# 01 — Arquitectura
+# Arquitectura
 
 > Documento vivo. Si cambia el stack o la estructura, se actualiza acá primero y después se ajusta el código — no al revés.
 
@@ -104,7 +104,7 @@ uadenet-eventos/
 
 **Por ruta, no por tipo de archivo.** Cada pantalla vive en su carpeta de `app/`, con el `.tsx` y su `.module.css` al lado; si necesita partirse en piezas, esas piezas quedan en la misma carpeta. Sólo sube a `components/` lo que usan dos o más pantallas: la shell (`shell/`), los primitivos del sistema de diseño (`ui/`) y las vistas de eventos que comparten cartelera y gestión (`eventos/`). La lógica sin JSX (formato de montos y fechas, estado del evento, detección de conflictos) va en `lib/`, así se puede testear sin montar un componente.
 
-Estilos: CSS Modules con los tokens en `app/globals.css` — ver ADR 0009 y `docs/05-sistema-diseno.md`.
+Estilos: CSS Modules con los tokens en `app/globals.css` — ver ADR 0009 y `../03-diseno/sistema-diseno.md`.
 
 Datos: mientras `apps/api` no exponga los endpoints, las pantallas leen de `lib/mock/`. Todo lo que sale de ahí está tipado con las mismas formas que después van a venir de `packages/contracts`, para que el reemplazo sea cambiar el origen y no reescribir la pantalla. La fecha "hoy" del prototipo está fija en `lib/mock/eventos.ts` a propósito: un `new Date()` real haría divergir el render del servidor del render del cliente.
 
@@ -116,7 +116,7 @@ Datos: mientras `apps/api` no exponga los endpoints, las pantallas leen de `lib/
 Portal (web) → CORE (gateway + auth) → apps/api (NestJS) → packages/db (Drizzle) → Neon (Postgres)
 ```
 
-Sin excepciones por ahora: Neon no ofrece un mecanismo de suscripción tipo Realtime, así que las notificaciones en vivo (si se necesitan) van a depender de lo que defina CORE — a evaluar (ver `04-integraciones.md`).
+Sin excepciones por ahora: Neon no ofrece un mecanismo de suscripción tipo Realtime, así que las notificaciones en vivo (si se necesitan) van a depender de lo que defina CORE — a evaluar (ver `integraciones.md`).
 
 `packages/contracts` (Zod) es el contrato compartido: `apps/api` lo usa para validar requests (pipes de Nest), `apps/web` lo usa para validar formularios y tipar responses. Un solo lugar de verdad para la forma de los datos — no duplicar DTOs entre apps.
 
@@ -128,4 +128,4 @@ Sin excepciones por ahora: Neon no ofrece un mecanismo de suscripción tipo Real
 
 ## Seguridad / auth
 
-`common/guards/core-jwt.guard.ts` valida el token emitido por CORE en cada request. El mecanismo exacto (secreto compartido vs JWKS) todavía no está cerrado — ver `04-integraciones.md`. Hasta que se defina, el guard queda como placeholder documentado, no implementado a ciegas.
+`common/guards/core-jwt.guard.ts` valida el token emitido por CORE en cada request. El mecanismo exacto (secreto compartido vs JWKS) todavía no está cerrado — ver `integraciones.md`. Hasta que se defina, el guard queda como placeholder documentado, no implementado a ciegas.

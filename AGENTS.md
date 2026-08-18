@@ -6,7 +6,7 @@ Convenciones del proyecto. Aplican tanto a personas como a asistentes de IA (Cla
 
 ## Stack
 
-Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript, monorepo con Turborepo + pnpm, deploy en Vercel. Detalle completo de la arquitectura en `docs/01-arquitectura.md`, y el porqué de cada elección en `docs/decisions/`.
+Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript, monorepo con Turborepo + pnpm, deploy en Vercel. Detalle completo de la arquitectura en `docs/02-arquitectura/stack-y-estructura.md`, y el porqué de cada elección en `docs/decisions/`.
 
 ---
 
@@ -15,7 +15,7 @@ Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript,
 - Todo el trabajo se gestiona en Jira, proyecto **SCRUM**.
 - No se trabaja sin ticket: si la tarea que vas a hacer no tiene un ticket creado en el board, lo primero es crearlo (con su Epic correspondiente) antes de escribir código o abrir un branch.
 - El nombre del branch es el ticket, creado desde `dev` (ver ADR 0009):
-  - Si es una Historia de Usuario del backlog (`docs/03-backlog.md`), usar su número de HU: `HU2-descripcion-corta`.
+  - Si es una Historia de Usuario del backlog (`docs/01-proyecto/backlog.md`), usar su número de HU: `HU2-descripcion-corta`.
   - Si es una tarea técnica/infra sin HU asociada, usar el issue de Jira: `SCRUM-XXX-descripcion-corta`.
 - Un branch = una tarea = un ticket. No mezclar dos historias en el mismo branch.
 - Antes de arrancar una tarea, pasarla a "En curso" en el board.
@@ -55,17 +55,30 @@ Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript,
 
 ## Mantener `/docs` vivo
 
-`docs/` es la memoria del proyecto entre sesiones y entre personas — el objetivo es que cualquiera (o cualquier agente) pueda retomar el trabajo leyendo esa carpeta, sin depender de que alguien "se acuerde" de una conversación pasada.
+`docs/` es la memoria del proyecto entre sesiones y entre personas — el objetivo es que cualquiera (o cualquier agente) pueda retomar el trabajo leyendo esa carpeta, sin depender de que alguien "se acuerde" de una conversación pasada. El mapa completo está en `docs/README.md`, que es el índice de la carpeta y define dónde va cada tipo de documento.
 
-- `docs/00-overview.md` — qué es el proyecto, fechas de entregas, dependencias externas. Actualizar si cambia algo de esto.
-- `docs/01-arquitectura.md` — stack y estructura del monorepo. Si el código diverge de lo que dice acá, o se actualiza el documento o se corrige el código — nunca se dejan desincronizados.
-- `docs/02-modelo-dominio.md` — entidades y reglas de negocio. Tiene TBDs a propósito; cerrarlos a medida que el equipo los defina, no de una sola vez.
-- `docs/03-backlog.md` — historias de usuario, DoR/DoD, estimación. Reflejar acá cualquier cambio grande hecho en Jira.
-- `docs/04-integraciones.md` — estado de cada contrato con otros módulos del TP (CORE, Analítica, portales). Actualizar el estado de la tabla apenas haya novedades, no esperar a que esté todo resuelto para tocar el archivo.
-- `docs/05-sistema-diseno.md` — tokens, componentes y copy de la UI. Es la fuente de verdad del frontend: los valores viven como variables CSS en `apps/web/app/globals.css`. No inventar colores, tamaños ni radios fuera de lo que dice este documento.
+Organización por carpeta:
+
+- `docs/01-proyecto/` — contexto y gestión.
+  - `overview.md` — qué es el proyecto, fechas de entregas, dependencias externas. Actualizar si cambia algo de esto.
+  - `backlog.md` — historias de usuario, DoR/DoD, estimación. Reflejar acá cualquier cambio grande hecho en Jira.
+  - `plan-de-definicion.md` — orden de decisiones por fase, alineado a las tres entregas.
+- `docs/02-arquitectura/` — cómo está construido el sistema.
+  - `stack-y-estructura.md` — stack y estructura del monorepo. Si el código diverge de lo que dice acá, o se actualiza el documento o se corrige el código — nunca se dejan desincronizados.
+  - `modelo-dominio.md` — entidades y reglas de negocio. Tiene TBDs a propósito; cerrarlos a medida que el equipo los defina, no de una sola vez.
+  - `integraciones.md` — estado de cada contrato con otros módulos del TP (CORE, Analítica, portales). Actualizar el estado de la tabla apenas haya novedades, no esperar a que esté todo resuelto para tocar el archivo.
+- `docs/03-diseno/sistema-diseno.md` — tokens, componentes y copy de la UI. Es la fuente de verdad del frontend: los valores viven como variables CSS en `apps/web/app/globals.css`. No inventar colores, tamaños ni radios fuera de lo que dice este documento.
+- `docs/04-guias/` — procedimientos ejecutables paso a paso (runbooks), como el bootstrap del monorepo.
 - `docs/decisions/` — un ADR nuevo (numerado, `000X-titulo.md`) cada vez que se tome una decisión de arquitectura no trivial. No se edita un ADR viejo para cambiar la decisión — si algo se revierte, se agrega un ADR nuevo que referencia al anterior y explica por qué cambió.
+- `docs/archivo/` — documentos superados que se conservan por trazabilidad. No son fuente de verdad y no se citan como tal; llevan arriba una nota que dice qué los reemplazó.
 
-Regla para agentes: antes de arrancar una tarea no trivial, leer `docs/00-overview.md` y el archivo de `docs/` más relevante al tema. Al terminar una tarea que cambió algo del contexto general (arquitectura, modelo, integraciones, decisiones), actualizar el `.md` correspondiente como parte de la misma tarea, no como un paso aparte que puede quedar pendiente.
+Reglas de la carpeta:
+
+- No se dejan `.md` sueltos: ni en la raíz del repo (solo `README.md`, `AGENTS.md` y `CLAUDE.md`), ni en la raíz de `docs/` (solo `README.md`).
+- Nombres de archivo en kebab-case y sin numerar — el orden lo da la carpeta. La única excepción es `decisions/`, donde el número es el ID del ADR.
+- Documento nuevo que no entra en ninguna carpeta existente → se crea una carpeta nueva numerada y se la agrega al índice de `docs/README.md` en el mismo cambio.
+
+Regla para agentes: antes de arrancar una tarea no trivial, leer `docs/01-proyecto/overview.md` y el archivo de `docs/` más relevante al tema. Al terminar una tarea que cambió algo del contexto general (arquitectura, modelo, integraciones, decisiones), actualizar el `.md` correspondiente como parte de la misma tarea, no como un paso aparte que puede quedar pendiente.
 
 ---
 
@@ -86,4 +99,4 @@ Regla para agentes: antes de arrancar una tarea no trivial, leer `docs/00-overvi
 - Nunca mencionar herramientas de IA en commits, PRs, issues ni comentarios de código. Los mensajes son como si los hubiera escrito la persona.
 - Antes de tocar algo fuera del scope del ticket actual, preguntar en vez de asumir.
 - Si una tarea toca `packages/db` (schema, migrations), avisar explícitamente y crear/usar una branch de Neon por PR (no migrar directo contra la branch base compartida) — ver ADR 0008.
-- Antes de iniciar el repo desde cero, seguir `BOOTSTRAP.md` en el orden dado.
+- Antes de iniciar el repo desde cero, seguir `docs/04-guias/bootstrap.md` en el orden dado.

@@ -2,7 +2,7 @@
 
 ## Contexto
 
-Hay que implementar las pantallas del módulo (cartelera, detalle, alta de evento, mis inscripciones, cuenta, gestión, asistencia, avisos) a partir del prototipo de diseño. El sistema de diseño está cerrado y es chico: una sola tipografía, una paleta acotada, tres animaciones (ver `docs/05-sistema-diseno.md`). No hay diseñador dedicado ni intención de armar una librería de componentes reutilizable fuera de este repo.
+Hay que implementar las pantallas del módulo (cartelera, detalle, alta de evento, mis inscripciones, cuenta, gestión, asistencia, avisos) a partir del prototipo de diseño. El sistema de diseño está cerrado y es chico: una sola tipografía, una paleta acotada, tres animaciones (ver `../03-diseno/sistema-diseno.md`). No hay diseñador dedicado ni intención de armar una librería de componentes reutilizable fuera de este repo.
 
 ## Opciones consideradas
 

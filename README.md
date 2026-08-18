@@ -1,10 +1,10 @@
 # uadenet-eventos
 
-Módulo **Eventos Académicos** del sistema UADEnet (TPO Desarrollo de Aplicaciones II, UADE, 2Q 2026). Administrativos gestionan eventos (locación, cupo); estudiantes/docentes/administrativos consultan e inscriben; verificación de asistencia; recordatorio automático. Contexto completo, fechas de entrega y dependencias con otros grupos: [`docs/00-overview.md`](docs/00-overview.md).
+Módulo **Eventos Académicos** del sistema UADEnet (TPO Desarrollo de Aplicaciones II, UADE, 2Q 2026). Administrativos gestionan eventos (locación, cupo); estudiantes/docentes/administrativos consultan e inscriben; verificación de asistencia; recordatorio automático. Contexto completo, fechas de entrega y dependencias con otros grupos: [`docs/01-proyecto/overview.md`](docs/01-proyecto/overview.md).
 
 ## Stack
 
-Next.js (`apps/web`) + NestJS (`apps/api`) + Drizzle + Neon (Postgres serverless) + TypeScript, monorepo con Turborepo + pnpm, deploy en Vercel. Detalle en [`docs/01-arquitectura.md`](docs/01-arquitectura.md) y el porqué de cada elección en [`docs/decisions/`](docs/decisions/).
+Next.js (`apps/web`) + NestJS (`apps/api`) + Drizzle + Neon (Postgres serverless) + TypeScript, monorepo con Turborepo + pnpm, deploy en Vercel. Detalle en [`docs/02-arquitectura/stack-y-estructura.md`](docs/02-arquitectura/stack-y-estructura.md) y el porqué de cada elección en [`docs/decisions/`](docs/decisions/).
 
 ## Instalar
 
@@ -29,7 +29,7 @@ Estado de `apps/api` visto desde el portal: `http://localhost:3001/health`.
 
 `apps/web` arranca en `/` (login: elegís el perfil con el que querés recorrer el portal). Desde ahí: `/cartelera`, `/eventos/[id]`, `/eventos/nuevo`, `/mis-inscripciones`, `/cuenta`, `/gestion`, `/asistencia`, `/docente` y `/avisos`.
 
-Todavía no consumen `apps/api`: los datos salen de `apps/web/lib/mock/`. El diseño y sus tokens están en [`docs/05-sistema-diseno.md`](docs/05-sistema-diseno.md).
+Todavía no consumen `apps/api`: los datos salen de `apps/web/lib/mock/`. El diseño y sus tokens están en [`docs/03-diseno/sistema-diseno.md`](docs/03-diseno/sistema-diseno.md).
 
 ## Variables de entorno
 
@@ -51,7 +51,7 @@ pnpm --filter @repo/db db:generate   # genera la migration a partir del schema d
 pnpm --filter @repo/db db:migrate    # la aplica
 ```
 
-El schema (`packages/db/src/schema/`) todavía está vacío — se completa cuando se cierre `docs/02-modelo-dominio.md`. No correr migrations contra la branch base compartida sin avisar al equipo (ver `AGENTS.md`).
+El schema (`packages/db/src/schema/`) todavía está vacío — se completa cuando se cierre `docs/02-arquitectura/modelo-dominio.md`. No correr migrations contra la branch base compartida sin avisar al equipo (ver `AGENTS.md`).
 
 ## Verificar antes de un PR
 
@@ -67,3 +67,7 @@ turbo run lint typecheck test build
 ## Convenciones
 
 Ver [`AGENTS.md`](AGENTS.md) — tickets, commits, PRs, documentación y reglas de código.
+
+## Documentación
+
+Toda la documentación del proyecto vive en [`docs/`](docs/), con un índice en [`docs/README.md`](docs/README.md): contexto y backlog en `01-proyecto/`, arquitectura y contratos en `02-arquitectura/`, sistema de diseño en `03-diseno/`, guías paso a paso en `04-guias/` y los ADRs en `decisions/`.
