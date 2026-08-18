@@ -1,4 +1,4 @@
-# 0009 — Estilos del frontend: CSS Modules + tokens propios
+# 0010 — Estilos del frontend: CSS Modules + tokens propios
 
 ## Contexto
 
