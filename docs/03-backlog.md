@@ -52,7 +52,7 @@ Una HU entra a un sprint solo si tiene: descripción As a/I want/So that, criter
 
 ## Definition of Done
 
-Código mergeado a `main` vía PR aprobado · tests unitarios pasando · `turbo run lint typecheck test build` en verde · Swagger actualizado si expone un endpoint · probado manualmente contra los criterios de aceptación · sin secrets commiteados.
+Código mergeado a `dev` vía PR aprobado (ver ADR 0009) · tests unitarios pasando · `turbo run lint typecheck test build` en verde · Swagger actualizado si expone un endpoint · probado manualmente contra los criterios de aceptación · sin secrets commiteados.
 
 ## Estimación y prioridad
 

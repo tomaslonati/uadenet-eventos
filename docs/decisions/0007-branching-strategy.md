@@ -1,5 +1,7 @@
 # ADR 0007 — Branching: un único `main`, sin `dev`
 
+> **Superseded por ADR 0009**: se agregó `dev` como rama de integración. Se mantiene la regla de "sin push directo a main" definida acá; lo que cambia es la cantidad de ramas base.
+
 **Contexto:** Definir el modelo de branches del repo.
 
 **Opciones consideradas:** `main` + `dev` con protección en ambas (estilo gitflow simplificado) vs un único branch base `main`.
