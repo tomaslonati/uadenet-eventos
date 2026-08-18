@@ -44,7 +44,7 @@ No incluidas por no estar pedidas explícitamente en el TP (no agregar sin confi
 
 ## Tareas técnicas / Spikes (no son HU)
 
-Definir modelo de dominio (`02-modelo-dominio.md`) · Definir roles y permisos · Definir stack tecnológico (cerrado, ver `decisions/`) · Definir contrato de integración con CORE · Definir contrato de integración con Analítica · Diseñar y documentar API (Swagger) · Definir mecanismo de verificación de asistencia · Diagrama de arquitectura general del sistema · Setup del monorepo (`BOOTSTRAP.md`).
+Definir modelo de dominio (`02-modelo-dominio.md`) · Definir roles y permisos · Definir stack tecnológico (cerrado, ver `decisions/`) · Definir contrato de integración con CORE · Definir contrato de integración con Analítica · Diseñar y documentar API (Swagger) · Definir mecanismo de verificación de asistencia · Diagrama de arquitectura general del sistema · ~~Setup del monorepo (`BOOTSTRAP.md`)~~ hecho.
 
 ## Definition of Ready
 
