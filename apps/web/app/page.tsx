@@ -3,7 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { INICIO_POR_ROL, ROLES, useSesion, type Rol } from "@/lib/sesion";
+import {
+  CUENTAS_DEMO,
+  DOMINIO_MAIL,
+  INICIO_POR_ROL,
+  autenticar,
+  useSesion,
+} from "@/lib/sesion";
 
 import estilos from "./login.module.css";
 
@@ -17,12 +23,18 @@ export default function Login() {
   const router = useRouter();
   const { ingresar } = useSesion();
   const [mail, setMail] = useState("m.ibarra");
-  const [perfil, setPerfil] = useState<Rol>("admin");
+  const [contrasena, setContrasena] = useState("");
+  const [error, setError] = useState(false);
 
   const entrar = (evento: FormEvent) => {
     evento.preventDefault();
-    ingresar(perfil);
-    router.push(INICIO_POR_ROL[perfil]);
+    const rol = autenticar(`${mail}${DOMINIO_MAIL}`, contrasena);
+    if (!rol) {
+      setError(true);
+      return;
+    }
+    ingresar(rol);
+    router.push(INICIO_POR_ROL[rol]);
   };
 
   return (
@@ -67,44 +79,68 @@ export default function Login() {
             <label className={estilos.label} htmlFor="mail">
               Mail institucional
             </label>
-            <div className={estilos.mail}>
+            <div className={`${estilos.mail} ${error ? estilos.enError : ""}`}>
               <input
                 id="mail"
                 className={estilos.mailInput}
                 value={mail}
-                onChange={(evento) => setMail(evento.target.value)}
+                onChange={(evento) => {
+                  setMail(evento.target.value);
+                  setError(false);
+                }}
                 autoComplete="username"
+                aria-invalid={error}
+                required
               />
-              <span className={estilos.mailDominio}>@uadenet.edu</span>
+              <span className={estilos.mailDominio}>{DOMINIO_MAIL}</span>
             </div>
           </div>
 
           <div className={estilos.grupo}>
-            <span className={estilos.label}>Perfil detectado</span>
-            <div className={estilos.perfiles}>
-              {ROLES.map((opcion) => (
-                <button
-                  key={opcion.rol}
-                  type="button"
-                  aria-pressed={opcion.rol === perfil}
-                  className={`${estilos.perfil} ${
-                    opcion.rol === perfil ? estilos.perfilActivo : ""
-                  }`}
-                  onClick={() => setPerfil(opcion.rol)}
-                >
-                  {opcion.label}
-                </button>
-              ))}
-            </div>
-            <p className={estilos.nota}>
-              En producción el perfil llega del SSO; acá lo elegís para recorrer
-              el prototipo.
-            </p>
+            <label className={estilos.label} htmlFor="contrasena">
+              Contraseña
+            </label>
+            <input
+              id="contrasena"
+              type="password"
+              className={`${estilos.control} ${error ? estilos.enError : ""}`}
+              value={contrasena}
+              onChange={(evento) => {
+                setContrasena(evento.target.value);
+                setError(false);
+              }}
+              autoComplete="current-password"
+              aria-invalid={error}
+              required
+            />
+            {error ? (
+              <p className={estilos.error} role="alert">
+                No pudimos validar esos datos contra el directorio. Revisá el
+                mail y la contraseña.
+              </p>
+            ) : (
+              <p className={estilos.nota}>
+                El perfil sale de la cuenta con la que entrás; en producción
+                llega en la cookie de sesión.
+              </p>
+            )}
           </div>
 
           <button type="submit" className={estilos.continuar}>
             Continuar
           </button>
+
+          <div className={estilos.cuentas}>
+            <span className={estilos.cuentasTitulo}>Cuentas del prototipo</span>
+            {CUENTAS_DEMO.map((cuenta) => (
+              <span key={cuenta.mail} className={estilos.cuenta}>
+                <span className={estilos.cuentaPerfil}>{cuenta.perfil}</span>
+                <span className={estilos.cuentaDatos}>
+                  {cuenta.mail.replace(DOMINIO_MAIL, "")} · {cuenta.clave}
+                </span>
+              </span>
+            ))}
+          </div>
         </form>
       </div>
     </div>
