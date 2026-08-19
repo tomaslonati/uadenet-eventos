@@ -43,7 +43,7 @@
   border: 1px solid var(--linea);
   border-radius: 13px;
   overflow: hidden;
-  animation: riseIn 0.24s ease both;
+  animation: riseIn 0.24s var(--ease-salida) both;
 }
 
 .avisoSinLeer {

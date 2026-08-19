@@ -141,10 +141,17 @@
   border-radius: 9px;
   padding: 10px 12px;
   text-align: left;
+  transition:
+    transform var(--duracion-presion) var(--ease-salida),
+    background-color var(--duracion-color) ease;
 }
 
 .pendiente:hover {
   background: #f7f9fa;
+}
+
+.pendiente:active {
+  transform: scale(0.99);
 }
 
 .casilla {
@@ -205,7 +212,7 @@
   padding: 13px 20px;
   border-bottom: 1px solid var(--linea-fila);
   align-items: center;
-  animation: riseIn 0.22s ease both;
+  animation: riseIn 0.22s var(--ease-salida) both;
 }
 
 .iniciales {

@@ -26,6 +26,7 @@
 .fila {
   padding: 14px 18px;
   border-bottom: 1px solid var(--linea-fila);
+  transition: background-color var(--duracion-color) ease;
 }
 
 .fila:hover {

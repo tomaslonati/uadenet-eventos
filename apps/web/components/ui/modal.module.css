@@ -5,7 +5,7 @@
   z-index: 70;
   border: 0;
   padding: 0;
-  animation: fadeIn 0.16s ease both;
+  animation: fadeIn 160ms linear both;
 }
 
 .contenedor {
@@ -27,7 +27,9 @@
   box-shadow: var(--sombra-modal);
   overflow: hidden;
   pointer-events: auto;
-  animation: riseIn 0.2s ease both;
+  /* Centrado y sin ancla: escala desde el centro, no desde un disparador. */
+  transform-origin: center;
+  animation: modalIn 220ms var(--ease-salida) both;
 }
 
 .header {
@@ -81,6 +83,7 @@
   text-align: center;
 }
 
+/* Momento de celebración, se ve una vez por operación: acá el rebote suma. */
 .tilde {
   width: 46px;
   height: 46px;
@@ -89,6 +92,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: tildeIn 320ms var(--ease-rebote) 60ms both;
 }
 
 .tilde span {

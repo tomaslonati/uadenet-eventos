@@ -226,6 +226,14 @@
   font-weight: 500;
   color: var(--tinta);
   white-space: nowrap;
+  transition:
+    transform var(--duracion-presion) var(--ease-salida),
+    background-color var(--duracion-color) ease,
+    border-color var(--duracion-color) ease;
+}
+
+.opcionMonto:active {
+  transform: scale(0.97);
 }
 
 .montoElegido {
