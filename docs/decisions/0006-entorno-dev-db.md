@@ -1,6 +1,6 @@
 # ADR 0006 — Supabase compartido para desarrollo
 
-> **Superseded parcialmente por ADR 0008** (migración a Neon): se mantiene la idea de "un entorno de dev compartido, sin Docker local", pero cambia el mecanismo — en vez de un único proyecto compartido, se usa una branch de Neon por PR. Se deja este ADR intacto como registro histórico de por qué se descartó Docker local.
+> **Superseded parcialmente por ADR 0008** (migración a Neon), y esa parte restaurada por **ADR 0011** (vuelta a Supabase): la estrategia de "un proyecto compartido, sin Docker local" definida acá vuelve a estar vigente. Se deja este ADR intacto como registro histórico de por qué se descartó Docker local.
 
 **Contexto:** El equipo necesita una base de datos contra la cual desarrollar localmente.
 

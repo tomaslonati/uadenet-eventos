@@ -7,7 +7,7 @@
 - Frontend: **Next.js 16** (App Router), TypeScript.
 - Backend: **NestJS**, TypeScript. App separada de `web`, no Route Handlers de Next.
 - ORM: **Drizzle** (sin paso de generación, liviano para serverless, agnóstico al proveedor de Postgres).
-- Base de datos: **Neon** (Postgres serverless), con una branch de Neon por PR/feature en vez de un proyecto único compartido (ver ADR 0008, supersede parcialmente a ADR 0006).
+- Base de datos: **Supabase** (Postgres), un único proyecto compartido de dev para todo el equipo (ver ADR 0011, restaura la estrategia de ADR 0006; ADR 0008 documenta el paso intermedio por Neon).
 - Documentación de API: **Swagger/OpenAPI**, generado desde NestJS.
 - Monorepo: **Turborepo** + **pnpm** workspaces (ver ADR 0002).
 - Deploy: **Vercel**, dos proyectos separados (`apps/web` y `apps/api`) sobre el mismo repo.

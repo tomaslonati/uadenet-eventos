@@ -6,7 +6,7 @@ Convenciones del proyecto. Aplican tanto a personas como a asistentes de IA (Cla
 
 ## Stack
 
-Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript, monorepo con Turborepo + pnpm, deploy en Vercel. Detalle completo de la arquitectura en `docs/02-arquitectura/stack-y-estructura.md`, y el porqué de cada elección en `docs/decisions/`.
+Next.js (apps/web) + NestJS (apps/api) + Drizzle + Supabase (Postgres) + TypeScript, monorepo con Turborepo + pnpm, deploy en Vercel. Detalle completo de la arquitectura en `docs/02-arquitectura/stack-y-estructura.md`, y el porqué de cada elección en `docs/decisions/`.
 
 ---
 
@@ -98,5 +98,5 @@ Regla para agentes: antes de arrancar una tarea no trivial, leer `docs/01-proyec
 - Nunca commitear `.env` ni ningún tipo de credencial o secreto.
 - Nunca mencionar herramientas de IA en commits, PRs, issues ni comentarios de código. Los mensajes son como si los hubiera escrito la persona.
 - Antes de tocar algo fuera del scope del ticket actual, preguntar en vez de asumir.
-- Si una tarea toca `packages/db` (schema, migrations), avisar explícitamente y crear/usar una branch de Neon por PR (no migrar directo contra la branch base compartida) — ver ADR 0008.
+- Si una tarea toca `packages/db` (schema, migrations), avisar explícitamente en el grupo antes de correr la migration contra el proyecto Supabase compartido de dev (no hay branching nativo en el free tier) — ver ADR 0011.
 - Antes de iniciar el repo desde cero, seguir `docs/04-guias/bootstrap.md` en el orden dado.

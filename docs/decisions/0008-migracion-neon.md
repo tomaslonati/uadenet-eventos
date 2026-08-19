@@ -1,5 +1,7 @@
 # ADR 0008 — Migración de Supabase a Neon como proveedor de Postgres
 
+> **Superseded por ADR 0011**: el equipo volvió a Supabase por preferencia de equipo/cátedra, sin un problema técnico con Neon de por medio. Se deja este ADR intacto como registro histórico de por qué se había migrado a Neon en su momento.
+
 **Contexto:** El equipo se quedó sin proyectos gratis disponibles en Supabase. Hay que decidir si upgradear a un plan pago o cambiar de proveedor. Al revisar qué tanto dependíamos realmente de Supabase, se encontró que: el auth del módulo lo maneja CORE (JWT propio, no Supabase Auth) y el uso de Supabase Realtime para notificaciones nunca se cerró (seguía "a evaluar" en `../02-arquitectura/integraciones.md`). En la práctica solo se estaba usando Postgres alojado.
 
 **Opciones consideradas:**

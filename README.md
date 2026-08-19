@@ -36,11 +36,11 @@ Todavía no consumen `apps/api`: los datos salen de `apps/web/lib/mock/`. El dis
 `packages/env` valida al boot con Zod. Copiar a `.env` en la raíz (no versionado):
 
 ```
-DATABASE_URL=postgres://...   # branch de Neon (ver ADR 0008 en docs/decisions/)
+DATABASE_URL=postgres://...   # proyecto Supabase compartido de dev (ver ADR 0011 en docs/decisions/)
 NODE_ENV=development
 ```
 
-**Pendiente:** las credenciales de Neon (branch base de dev) las comparte quien haya armado el proyecto — pedirlas al equipo, no están en el repo.
+**Pendiente:** las credenciales de Supabase (proyecto compartido de dev) las comparte quien haya armado el proyecto — pedirlas al equipo, no están en el repo.
 
 ## Migrations
 
