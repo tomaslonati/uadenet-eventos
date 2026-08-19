@@ -20,14 +20,13 @@
   font-size: 14px;
   color: var(--tinta);
   outline: none;
+  transition:
+    border-color var(--duracion-color) ease,
+    background-color var(--duracion-color) ease;
 }
 
 .control:focus-visible {
   border-color: var(--acento);
-}
-
-select.control {
-  cursor: pointer;
 }
 
 textarea.control {

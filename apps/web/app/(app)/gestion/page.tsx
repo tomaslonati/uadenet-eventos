@@ -46,29 +46,21 @@ export default function Gestion() {
       label: "Eventos activos",
       valor: String(deLaSede.length),
       sub: `en ${sede === TODAS_LAS_SEDES ? "3 sedes" : sede}`,
-      delta: "+2",
-      enAlza: true,
     },
     {
       label: "Inscriptos",
       valor: numero(inscriptos),
       sub: "total del cuatrimestre",
-      delta: "+18%",
-      enAlza: true,
     },
     {
       label: "Ocupación media",
       valor: `${ocupacionMedia}%`,
       sub: "sobre cupo publicado",
-      delta: "−4%",
-      enAlza: false,
     },
     {
       label: "Recaudado",
       valor: pesos(recaudado),
       sub: "vía cuenta institucional",
-      delta: "+9%",
-      enAlza: true,
     },
   ];
 
