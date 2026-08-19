@@ -1,4 +1,4 @@
-# 04 — Integraciones con otros módulos
+# Integraciones con otros módulos
 
 > Documento vivo. Cada fila se actualiza cuando haya novedades de la conversación con el otro grupo. No cerrar código contra un contrato que siga en estado "pendiente" sin dejarlo mockeado y documentado como tal.
 

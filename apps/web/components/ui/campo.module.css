@@ -1,0 +1,54 @@
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--tinta-media);
+}
+
+.control {
+  width: 100%;
+  border: 1px solid var(--borde-campo);
+  background: var(--superficie);
+  border-radius: 9px;
+  padding: 11px 13px;
+  font-size: 14px;
+  color: var(--tinta);
+  outline: none;
+}
+
+.control:focus-visible {
+  border-color: var(--acento);
+}
+
+select.control {
+  cursor: pointer;
+}
+
+textarea.control {
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.enError {
+  border-color: #d9b3ad;
+  background: var(--error-fondo);
+}
+
+.soloLectura {
+  display: block;
+  border-color: var(--linea-fuerte);
+  background: var(--superficie-sutil);
+  color: var(--tinta-media);
+  font-weight: 500;
+}
+
+.grilla {
+  display: grid;
+  gap: 14px;
+}

@@ -1,4 +1,4 @@
-# 02 — Modelo de dominio
+# Modelo de dominio
 
 > Documento vivo, **todavía no cerrado**. Esto es un punto de partida a validar/completar como equipo (es justamente la historia "Definir modelo de dominio" del backlog). Actualizar los campos marcados como TBD antes de empezar a modelar el schema en Drizzle.
 
@@ -19,7 +19,7 @@
 ### Locación
 - `id`
 - `nombre`
-- `sedeId` — TBD: ¿lo gestiona Backoffice Administrativo o lo modelamos nosotros? (Definido: catálogo de sedes se maneja directo en nuestra DB, no vía integración — ver ADR y `00-overview.md`).
+- `sedeId` — TBD: ¿lo gestiona Backoffice Administrativo o lo modelamos nosotros? (Definido: catálogo de sedes se maneja directo en nuestra DB, no vía integración — ver ADR y `../01-proyecto/overview.md`).
 - `capacidad` — TBD: ¿se usa para validar contra el cupo del evento, o son cosas independientes?
 
 ### Inscripcion
@@ -27,7 +27,7 @@
 - `eventoId` (FK)
 - `usuarioId` (referencia externa — id de usuario de CORE, no una tabla propia de usuarios)
 - `fechaInscripcion`
-- `estado` — TBD: mínimo `inscripto`, ¿hace falta `cancelado`? (No hay HU de cancelación definida todavía, ver `03-backlog.md`).
+- `estado` — TBD: mínimo `inscripto`, ¿hace falta `cancelado`? (No hay HU de cancelación definida todavía, ver `../01-proyecto/backlog.md`).
 - `pagoConfirmado` — solo aplica si el evento es pago
 
 ### Asistencia

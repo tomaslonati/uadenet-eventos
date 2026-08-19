@@ -1,6 +1,6 @@
 # ADR 0001 — Stack general
 
-> **Nota (ADR 0008):** el proveedor de DB pasó de Supabase a Neon. El resto de esta decisión sigue vigente. Ver `docs/01-arquitectura.md` para el stack actualizado.
+> **Nota (ADR 0008):** el proveedor de DB pasó de Supabase a Neon. El resto de esta decisión sigue vigente. Ver `../02-arquitectura/stack-y-estructura.md` para el stack actualizado.
 
 **Contexto:** Hay que elegir tecnologías para el módulo Eventos Académicos, justificables y defendibles en las entregas del TP.
 
