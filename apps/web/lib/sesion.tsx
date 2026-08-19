@@ -24,29 +24,52 @@ export type Usuario = {
   iniciales: string;
 };
 
-const USUARIOS: Record<Rol, Omit<Usuario, "iniciales">> = {
+// Directorio hardcodeado del prototipo: un usuario por rol para poder recorrer
+// las tres vistas. Las claves son de demo, no son secretos: cuando el acceso se
+// valide de verdad contra el directorio de la universidad, el campo `clave`
+// desaparece de acá junto con `autenticar`.
+const USUARIOS: Record<Rol, Omit<Usuario, "iniciales"> & { clave: string }> = {
   admin: {
     nombre: "Mariana Ibarra",
     mail: "m.ibarra@uadenet.edu",
     perfil: "Administrativo",
+    clave: "admin.2026",
   },
   docente: {
     nombre: "Dr. Esteban Ruiz",
     mail: "e.ruiz@uadenet.edu",
     perfil: "Docente",
+    clave: "docente.2026",
   },
   alumno: {
     nombre: "Tomás Vidal",
     mail: "t.vidal@uadenet.edu",
     perfil: "Estudiante",
+    clave: "alumno.2026",
   },
 };
 
-export const ROLES: { rol: Rol; label: string }[] = [
-  { rol: "admin", label: "Administrativo" },
-  { rol: "docente", label: "Docente" },
-  { rol: "alumno", label: "Estudiante" },
-];
+export const DOMINIO_MAIL = "@uadenet.edu";
+
+const ROLES = Object.keys(USUARIOS) as Rol[];
+
+// Provisorio: hasta que el rol llegue en la cookie de sesión, sale del usuario
+// del directorio que coincida con el mail y la clave ingresados.
+export function autenticar(mail: string, clave: string): Rol | null {
+  const buscado = mail.trim().toLowerCase();
+  const rol = ROLES.find(
+    (candidato) =>
+      USUARIOS[candidato].mail === buscado &&
+      USUARIOS[candidato].clave === clave,
+  );
+  return rol ?? null;
+}
+
+export const CUENTAS_DEMO = ROLES.map((rol) => ({
+  perfil: USUARIOS[rol].perfil,
+  mail: USUARIOS[rol].mail,
+  clave: USUARIOS[rol].clave,
+}));
 
 export const INICIO_POR_ROL: Record<Rol, string> = {
   admin: "/gestion",
@@ -100,7 +123,6 @@ type Sesion = {
   rol: Rol;
   usuario: Usuario;
   ingresar: (rol: Rol) => void;
-  cambiarRol: (rol: Rol) => void;
 
   sede: string;
   cambiarSede: (sede: string) => void;
@@ -162,7 +184,6 @@ export function SesionProvider({ children }: { children: ReactNode }) {
       rol,
       usuario: { ...datos, iniciales: iniciales(datos.nombre) },
       ingresar: setRol,
-      cambiarRol: setRol,
 
       sede,
       cambiarSede: setSede,

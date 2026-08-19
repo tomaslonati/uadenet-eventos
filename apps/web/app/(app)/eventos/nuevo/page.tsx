@@ -11,13 +11,14 @@ import {
   claseControlError,
   claseSoloLectura,
 } from "@/components/ui/campo";
-import { Cupo, Segmentado } from "@/components/ui/controles";
+import { Cupo } from "@/components/ui/controles";
 import {
   Modal,
   ModalConfirmacion,
   ModalPie,
 } from "@/components/ui/modal";
 import { Encabezado } from "@/components/ui/pantalla";
+import { Select } from "@/components/ui/select";
 import { choquesDe, estaLibre, primeraFranjaLibre } from "@/lib/dominio";
 import { fechaLarga, horario, minutos, pesos } from "@/lib/formato";
 import {
@@ -29,13 +30,6 @@ import {
 } from "@/lib/mock/eventos";
 
 import estilos from "./nuevo.module.css";
-
-type Modo = "wizard" | "unico";
-
-const MODOS: { valor: Modo; label: string }[] = [
-  { valor: "wizard", label: "Paso a paso" },
-  { valor: "unico", label: "Formulario único" },
-];
 
 const PASOS = [
   { numero: 1, label: "Datos" },
@@ -105,7 +99,6 @@ function soloNumeros(valor: string): number {
 
 export default function NuevoEvento() {
   const router = useRouter();
-  const [modo, setModo] = useState<Modo>("wizard");
   const [paso, setPaso] = useState(1);
   const [form, setForm] = useState<Formulario>(INICIAL);
   const [publicado, setPublicado] = useState(false);
@@ -113,9 +106,7 @@ export default function NuevoEvento() {
   const editar = (cambios: Partial<Formulario>) =>
     setForm((actual) => ({ ...actual, ...cambios }));
 
-  const esWizard = modo === "wizard";
-  const verPaso = (numero: number) => !esWizard || paso === numero;
-  const enUltimoPaso = !esWizard || paso === 3;
+  const enUltimoPaso = paso === PASOS.length;
 
   const franja = { desde: form.desde, hasta: form.hasta };
   const reservas = reservasDe(form.locacion, form.fecha);
@@ -166,62 +157,45 @@ export default function NuevoEvento() {
     <>
       <Encabezado
         titulo="Nuevo evento"
-        bajada={
-          esWizard
-            ? "Tres pasos. La disponibilidad de la locación se valida antes de publicar."
-            : "Todo en una pantalla. La disponibilidad se valida al publicar."
-        }
-        accion={
-          <Segmentado
-            etiqueta="Modo de carga"
-            opciones={MODOS}
-            activa={modo}
-            onCambio={(nuevo) => {
-              setModo(nuevo);
-              setPaso(1);
-            }}
-          />
-        }
+        bajada="Tres pasos. La disponibilidad de la locación se valida antes de publicar."
       />
 
-      {esWizard ? (
-        <ol className={estilos.pasos}>
-          {PASOS.map((item) => {
-            const activo = paso === item.numero;
-            const hecho = paso > item.numero;
-            return (
-              <li
-                key={item.numero}
-                aria-current={activo ? "step" : undefined}
+      <ol className={estilos.pasos}>
+        {PASOS.map((item) => {
+          const activo = paso === item.numero;
+          const hecho = paso > item.numero;
+          return (
+            <li
+              key={item.numero}
+              aria-current={activo ? "step" : undefined}
+              className={[
+                estilos.paso,
+                activo ? estilos.pasoActivo : "",
+                hecho ? estilos.pasoHecho : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <span
                 className={[
-                  estilos.paso,
-                  activo ? estilos.pasoActivo : "",
-                  hecho ? estilos.pasoHecho : "",
+                  estilos.pasoNumero,
+                  activo ? estilos.pasoNumeroActivo : "",
+                  hecho ? estilos.pasoNumeroHecho : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
               >
-                <span
-                  className={[
-                    estilos.pasoNumero,
-                    activo ? estilos.pasoNumeroActivo : "",
-                    hecho ? estilos.pasoNumeroHecho : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  {hecho ? "✓" : item.numero}
-                </span>
-                <span>{item.label}</span>
-              </li>
-            );
-          })}
-        </ol>
-      ) : null}
+                {hecho ? "✓" : item.numero}
+              </span>
+              <span>{item.label}</span>
+            </li>
+          );
+        })}
+      </ol>
 
       <div className={estilos.layout}>
         <div className={estilos.formulario}>
-          {verPaso(1) ? (
+          {paso === 1 ? (
             <section className={estilos.bloque}>
               <span className={estilos.bloqueTitulo}>Datos del evento</span>
               <Campo label="Título">
@@ -238,20 +212,16 @@ export default function NuevoEvento() {
               <div className={estilos.grillaDatos}>
                 <Campo label="Tipo">
                   {(id) => (
-                    <select
+                    <Select
                       id={id}
+                      etiqueta="Tipo"
                       className={claseControl}
-                      value={form.tipo}
-                      onChange={(evento) =>
-                        editar({ tipo: evento.target.value as TipoEvento })
+                      valor={form.tipo}
+                      opciones={TIPOS_EVENTO}
+                      onCambiar={(valor) =>
+                        editar({ tipo: valor as TipoEvento })
                       }
-                    >
-                      {TIPOS_EVENTO.map((tipo) => (
-                        <option key={tipo} value={tipo}>
-                          {tipo}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   )}
                 </Campo>
                 <Campo label="Disertante">
@@ -283,7 +253,7 @@ export default function NuevoEvento() {
             </section>
           ) : null}
 
-          {verPaso(2) ? (
+          {paso === 2 ? (
             <section className={estilos.bloque}>
               <span className={estilos.bloqueTitulo}>
                 Fecha, locación y cupo
@@ -326,36 +296,26 @@ export default function NuevoEvento() {
               <div className={estilos.grillaLugar}>
                 <Campo label="Sede">
                   {(id) => (
-                    <select
+                    <Select
                       id={id}
+                      etiqueta="Sede"
                       className={claseControl}
-                      value={form.sede}
-                      onChange={(evento) => editar({ sede: evento.target.value })}
-                    >
-                      {SEDES.map((sede) => (
-                        <option key={sede} value={sede}>
-                          {sede}
-                        </option>
-                      ))}
-                    </select>
+                      valor={form.sede}
+                      opciones={SEDES}
+                      onCambiar={(valor) => editar({ sede: valor })}
+                    />
                   )}
                 </Campo>
                 <Campo label="Locación">
                   {(id) => (
-                    <select
+                    <Select
                       id={id}
+                      etiqueta="Locación"
                       className={hayConflicto ? claseControlError : claseControl}
-                      value={form.locacion}
-                      onChange={(evento) =>
-                        editar({ locacion: evento.target.value })
-                      }
-                    >
-                      {LOCACIONES.map((locacion) => (
-                        <option key={locacion} value={locacion}>
-                          {locacion}
-                        </option>
-                      ))}
-                    </select>
+                      valor={form.locacion}
+                      opciones={LOCACIONES}
+                      onCambiar={(valor) => editar({ locacion: valor })}
+                    />
                   )}
                 </Campo>
                 <Campo label="Cupo máximo">
@@ -456,7 +416,7 @@ export default function NuevoEvento() {
             </section>
           ) : null}
 
-          {verPaso(3) ? (
+          {paso === 3 ? (
             <section className={estilos.bloque}>
               <span className={estilos.bloqueTitulo}>Inscripción</span>
               <div className={estilos.modosPago}>
@@ -542,7 +502,7 @@ export default function NuevoEvento() {
           ) : null}
 
           <div className={estilos.acciones}>
-            {esWizard && paso > 1 ? (
+            {paso > 1 ? (
               <Boton onClick={() => setPaso((actual) => actual - 1)}>Atrás</Boton>
             ) : null}
             <Boton variante="primario" disabled={bloqueado} onClick={avanzar}>

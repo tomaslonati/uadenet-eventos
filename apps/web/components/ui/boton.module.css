@@ -8,6 +8,15 @@
   border: 1px solid transparent;
   font-weight: 500;
   text-decoration: none;
+  transition:
+    transform var(--duracion-presion) var(--ease-salida),
+    background-color var(--duracion-color) ease,
+    border-color var(--duracion-color) ease,
+    color var(--duracion-color) ease;
+}
+
+.boton:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .md {

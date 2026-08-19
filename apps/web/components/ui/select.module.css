@@ -1,0 +1,88 @@
+.select {
+  position: relative;
+  min-width: 0;
+}
+
+/* El borde, el fondo y la tipografía los pone la clase del contexto
+   (campo de formulario o control del header); acá va solo el layout. */
+.disparador {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--duracion-presion) var(--ease-salida),
+    background-color var(--duracion-color) ease,
+    border-color var(--duracion-color) ease;
+}
+
+.disparador:active {
+  transform: scale(0.98);
+}
+
+.valor {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flecha {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  margin-top: -3px;
+  border-right: 1.5px solid var(--tinta-suave);
+  border-bottom: 1.5px solid var(--tinta-suave);
+  transform: rotate(45deg);
+  transition: transform var(--duracion-flotante) var(--ease-salida);
+}
+
+/* El chevron acompaña el estado: apunta hacia arriba con la lista abierta. */
+.disparador[aria-expanded="true"] .flecha {
+  transform: rotate(225deg) translate(-1px, -1px);
+}
+
+.lista {
+  position: fixed;
+  z-index: 60;
+  max-height: 264px;
+  overflow: auto;
+  padding: 5px;
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: 12px;
+  box-shadow: var(--sombra-flotante);
+  display: flex;
+  flex-direction: column;
+  transform-origin: top left;
+  animation: popIn var(--duracion-flotante) var(--ease-salida) both;
+}
+
+.opcion {
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--tinta-media);
+  text-align: left;
+  white-space: nowrap;
+  transition:
+    background-color var(--duracion-color) ease,
+    color var(--duracion-color) ease;
+}
+
+.opcion:hover,
+.opcion:focus-visible {
+  outline: none;
+  background: var(--superficie-sutil);
+  color: var(--tinta);
+}
+
+.elegida {
+  background: var(--acento-claro);
+  color: var(--acento-profundo);
+  font-weight: 500;
+}

@@ -72,14 +72,14 @@ export default function Avisos() {
         }
       />
 
+      <ChipsFiltro
+        opciones={FILTROS_AVISO}
+        activa={filtro}
+        onCambio={setFiltro}
+      />
+
       <div className={estilos.layout}>
         <div className={estilos.feed}>
-          <ChipsFiltro
-            opciones={FILTROS_AVISO}
-            activa={filtro}
-            onCambio={setFiltro}
-          />
-
           {grupos.length === 0 ? (
             <EstadoVacio texto="No quedan avisos con este filtro." />
           ) : null}

@@ -78,7 +78,7 @@
   color: var(--tinta-secundaria);
 }
 
-/* Datacard estándar: bandeja + tarjeta encastrada */
+/* Datacard estándar: tarjeta blanca, label arriba y cifra al medio */
 .datacards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
@@ -86,22 +86,19 @@
 }
 
 .datacard {
-  background: var(--bandeja);
-  border-radius: 17px;
-  padding: 5px;
-  display: flex;
-  flex-direction: column;
-}
-
-.datacardCifra {
   background: var(--superficie);
-  border-radius: 13px;
+  border: 1px solid var(--linea);
+  border-radius: 14px;
   padding: 22px 20px;
   box-shadow: var(--sombra-encastrada);
   display: flex;
-  align-items: baseline;
-  gap: 9px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.datacardLabel {
+  font-size: 13px;
+  color: var(--tinta-suave);
 }
 
 .cifra {
@@ -109,18 +106,6 @@
   font-weight: 500;
   letter-spacing: -0.03em;
   white-space: nowrap;
-}
-
-.datacardPie {
-  padding: 11px 18px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.datacardLabel {
-  font-size: 13px;
-  color: #7c7f85;
 }
 
 .datacardSub {

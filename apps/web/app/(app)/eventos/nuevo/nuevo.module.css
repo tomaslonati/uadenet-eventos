@@ -18,6 +18,9 @@
   color: var(--tinta-tenue);
   font-size: 13px;
   white-space: nowrap;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
 }
 
 .pasoHecho {
@@ -42,6 +45,9 @@
   font-weight: 500;
   background: var(--neutro-fondo);
   color: var(--tinta-tenue);
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
 }
 
 .pasoNumeroHecho {
@@ -167,6 +173,14 @@
   background: rgba(63, 107, 82, 0.14);
   border: 1.5px solid var(--exito);
   color: var(--exito);
+  /* Se mueve dentro de la pista al cambiar el horario o aplicar una
+     alternativa: es movimiento en pantalla, por eso ease-in-out. */
+  transition:
+    left 260ms var(--ease-transicion),
+    width 260ms var(--ease-transicion),
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease;
 }
 
 .nuevoEnConflicto {
@@ -191,7 +205,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  animation: riseIn 0.2s ease both;
+  animation: riseIn 0.2s var(--ease-salida) both;
 }
 
 .conflictoHeader {
@@ -241,10 +255,17 @@
   font-weight: 500;
   color: var(--error);
   white-space: nowrap;
+  transition:
+    transform var(--duracion-presion) var(--ease-salida),
+    background-color var(--duracion-color) ease;
 }
 
 .alternativa:hover {
   background: #fbeeec;
+}
+
+.alternativa:active {
+  transform: scale(0.97);
 }
 
 .disponible {
@@ -287,6 +308,14 @@
   border-radius: 11px;
   border: 1.5px solid var(--linea);
   background: var(--superficie);
+  transition:
+    transform var(--duracion-presion) var(--ease-salida),
+    background-color var(--duracion-color) ease,
+    border-color var(--duracion-color) ease;
+}
+
+.modoPago:active {
+  transform: scale(0.99);
 }
 
 .modoPagoElegido {
@@ -322,6 +351,14 @@
   border: 1px solid var(--linea-fuerte);
   border-radius: 10px;
   background: var(--superficie-sutil);
+  transition:
+    border-color var(--duracion-color) ease,
+    background-color var(--duracion-color) ease;
+}
+
+.opcion:hover {
+  border-color: var(--borde-campo);
+  background: var(--superficie);
 }
 
 .opcionCasilla {
@@ -333,6 +370,14 @@
   border: 1.5px solid #c9cdd3;
   background: var(--superficie);
   appearance: none;
+  transition:
+    transform var(--duracion-presion) var(--ease-salida),
+    background-color var(--duracion-color) ease,
+    border-color var(--duracion-color) ease;
+}
+
+.opcionCasilla:active {
+  transform: scale(0.9);
 }
 
 .opcionCasilla:checked {

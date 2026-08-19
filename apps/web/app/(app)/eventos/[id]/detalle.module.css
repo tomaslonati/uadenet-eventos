@@ -71,17 +71,21 @@
 
 .metaItem {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: baseline;
+  gap: 10px;
 }
 
 .metaClave {
+  flex: none;
+  min-width: 96px;
   font-size: 12px;
   font-weight: 500;
   color: var(--tinta-suave);
 }
 
 .metaValor {
+  min-width: 0;
+  margin: 0;
   font-size: 14px;
   color: var(--tinta);
 }

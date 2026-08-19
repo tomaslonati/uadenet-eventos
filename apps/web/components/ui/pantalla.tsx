@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
 
-import { Badge } from "./badge";
-
 import estilos from "./pantalla.module.css";
 
 export function Encabezado({
@@ -77,8 +75,6 @@ export type Indicador = {
   label: string;
   valor: string;
   sub: string;
-  delta: string;
-  enAlza: boolean;
 };
 
 export function Datacards({ indicadores }: { indicadores: Indicador[] }) {
@@ -86,16 +82,9 @@ export function Datacards({ indicadores }: { indicadores: Indicador[] }) {
     <div className={estilos.datacards}>
       {indicadores.map((indicador) => (
         <div key={indicador.label} className={estilos.datacard}>
-          <div className={estilos.datacardCifra}>
-            <span className={estilos.cifra}>{indicador.valor}</span>
-            <Badge tono={indicador.enAlza ? "exito" : "atencion"}>
-              {indicador.delta}
-            </Badge>
-          </div>
-          <div className={estilos.datacardPie}>
-            <span className={estilos.datacardLabel}>{indicador.label}</span>
-            <span className={estilos.datacardSub}>{indicador.sub}</span>
-          </div>
+          <span className={estilos.datacardLabel}>{indicador.label}</span>
+          <span className={estilos.cifra}>{indicador.valor}</span>
+          <span className={estilos.datacardSub}>{indicador.sub}</span>
         </div>
       ))}
     </div>

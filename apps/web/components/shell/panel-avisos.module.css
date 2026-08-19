@@ -1,13 +1,3 @@
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(20, 22, 26, 0.14);
-  z-index: 60;
-  border: 0;
-  padding: 0;
-  animation: fadeIn 0.16s ease both;
-}
-
 .panel {
   position: fixed;
   top: 70px;
@@ -21,7 +11,8 @@
   border-radius: 14px;
   box-shadow: var(--sombra-flotante);
   z-index: 61;
-  animation: riseIn 0.18s ease both;
+  transform-origin: top right;
+  animation: popIn var(--duracion-flotante) var(--ease-salida) both;
 }
 
 .header {
@@ -53,6 +44,11 @@
   padding: 14px 18px;
   border-bottom: 1px solid var(--linea-fila);
   align-items: start;
+  transition: background-color var(--duracion-color) ease;
+}
+
+.item:hover {
+  background: var(--superficie-sutil);
 }
 
 .punto {

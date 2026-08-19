@@ -8,7 +8,6 @@
   --fondo: #f4f4f1;
   --superficie: #ffffff;
   --superficie-sutil: #fbfbf9;
-  --bandeja: #edece7;
 
   --linea: #e6e4de;
   --linea-fuerte: #eeece7;
@@ -53,6 +52,14 @@
   --sombra-hover: 0 6px 20px rgba(20, 22, 26, 0.06);
   --sombra-flotante: 0 18px 44px rgba(20, 22, 26, 0.14);
   --sombra-modal: 0 24px 60px rgba(20, 22, 26, 0.24);
+
+  /* Movimiento. Las curvas del browser son flojas: se usan estas. */
+  --ease-salida: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-transicion: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-rebote: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duracion-presion: 140ms;
+  --duracion-color: 130ms;
+  --duracion-flotante: 180ms;
 }
 
 *,
@@ -86,6 +93,7 @@ p {
 a {
   color: var(--acento);
   text-decoration: none;
+  transition: color var(--duracion-color) ease;
 }
 
 a:hover {
@@ -131,6 +139,51 @@ button:disabled {
   }
 }
 
+/* Flotantes anclados a un disparador: escalan desde su origen, nunca desde 0. */
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* El modal no está anclado a nada: entra centrado, sin desplazarse de lado. */
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* El toast ya usa translateX(-50%) para centrarse: lo conserva en los dos extremos. */
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes tildeIn {
+  from {
+    transform: scale(0.7);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
 @keyframes pulseRing {
   0% {
     box-shadow: 0 0 0 0 rgba(47, 63, 82, 0.28);
@@ -154,12 +207,16 @@ button:disabled {
   border: 3px solid var(--fondo);
 }
 
+/* Menos movimiento, no menos claridad: se van los transforms y se conservan
+   los fundidos y cambios de color que explican qué pasó. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-property:
+      opacity, background-color, border-color, color, box-shadow !important;
+    transition-duration: var(--duracion-color) !important;
   }
 }

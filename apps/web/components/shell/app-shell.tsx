@@ -1,44 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { Select } from "@/components/ui/select";
 import { pesos } from "@/lib/formato";
 import { SEDES, TODAS_LAS_SEDES } from "@/lib/mock/eventos";
-import {
-  INICIO_POR_ROL,
-  ROLES,
-  navDe,
-  useSesion,
-  type Rol,
-} from "@/lib/sesion";
+import { navDe, useSesion } from "@/lib/sesion";
 
 import { PanelAvisos } from "./panel-avisos";
 
 import estilos from "./app-shell.module.css";
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const router = useRouter();
   const pathname = usePathname();
-  const {
-    rol,
-    usuario,
-    cambiarRol,
-    sede,
-    cambiarSede,
-    saldo,
-    inscripciones,
-    sinLeer,
-  } = useSesion();
+  const { rol, usuario, sede, cambiarSede, saldo, inscripciones, sinLeer } =
+    useSesion();
   const [avisosAbiertos, setAvisosAbiertos] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const campana = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
 
   const nav = navDe(rol, inscripciones.length, sinLeer);
 
-  const cambiarPerfil = (nuevo: Rol) => {
-    cambiarRol(nuevo);
-    router.push(INICIO_POR_ROL[nuevo]);
-  };
+  useEffect(() => {
+    if (!menuAbierto) return;
+    const alApretarAfuera = (evento: PointerEvent) => {
+      if (!menu.current?.contains(evento.target as Node)) setMenuAbierto(false);
+    };
+    const alSoltarTecla = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape") setMenuAbierto(false);
+    };
+    document.addEventListener("pointerdown", alApretarAfuera);
+    document.addEventListener("keydown", alSoltarTecla);
+    return () => {
+      document.removeEventListener("pointerdown", alApretarAfuera);
+      document.removeEventListener("keydown", alSoltarTecla);
+    };
+  }, [menuAbierto]);
 
   return (
     <div className={estilos.shell}>
@@ -46,40 +46,20 @@ export function AppShell({ children }: { children: ReactNode }) {
         <span className={estilos.wordmark}>UADEnet</span>
         <span className={estilos.divisor} />
         <div className={estilos.sede}>
-          <label className={estilos.sedeLabel} htmlFor="selector-sede">
-            Sede
-          </label>
-          <select
-            id="selector-sede"
+          <span className={estilos.sedeLabel}>Sede</span>
+          <Select
+            etiqueta="Sede"
             className={estilos.sedeSelect}
-            value={sede}
-            onChange={(evento) => cambiarSede(evento.target.value)}
-          >
-            {[TODAS_LAS_SEDES, ...SEDES].map((opcion) => (
-              <option key={opcion} value={opcion}>
-                {opcion}
-              </option>
-            ))}
-          </select>
+            valor={sede}
+            opciones={[TODAS_LAS_SEDES, ...SEDES]}
+            onCambiar={cambiarSede}
+          />
         </div>
 
         <div className={estilos.espacio} />
 
-        <div className={estilos.perfiles} role="group" aria-label="Perfil activo">
-          {ROLES.map((opcion) => (
-            <button
-              key={opcion.rol}
-              type="button"
-              aria-pressed={opcion.rol === rol}
-              className={`${estilos.perfil} ${opcion.rol === rol ? estilos.perfilActivo : ""}`}
-              onClick={() => cambiarPerfil(opcion.rol)}
-            >
-              {opcion.label}
-            </button>
-          ))}
-        </div>
-
         <button
+          ref={campana}
           type="button"
           className={estilos.campana}
           aria-label={`Avisos, ${sinLeer} sin leer`}
@@ -90,19 +70,37 @@ export function AppShell({ children }: { children: ReactNode }) {
           {sinLeer > 0 ? <span className={estilos.campanaPunto} /> : null}
         </button>
 
-        <div className={estilos.usuario}>
-          <span className={estilos.avatar} aria-hidden>
-            {usuario.iniciales}
-          </span>
-          <span className={estilos.usuarioDatos}>
-            <span className={estilos.usuarioNombre}>{usuario.nombre}</span>
-            <span className={estilos.usuarioMail}>{usuario.mail}</span>
-          </span>
-        </div>
+        <div ref={menu} className={estilos.menuUsuario}>
+          <button
+            type="button"
+            className={estilos.usuario}
+            aria-haspopup="menu"
+            aria-expanded={menuAbierto}
+            onClick={() => setMenuAbierto((abierto) => !abierto)}
+          >
+            <span className={estilos.avatar} aria-hidden>
+              {usuario.iniciales}
+            </span>
+            <span className={estilos.usuarioDatos}>
+              <span className={estilos.usuarioNombre}>{usuario.nombre}</span>
+              <span className={estilos.usuarioMail}>{usuario.mail}</span>
+            </span>
+            <span className={estilos.usuarioFlecha} aria-hidden />
+          </button>
 
-        <Link href="/" className={estilos.salir}>
-          Salir
-        </Link>
+          {menuAbierto ? (
+            <div className={estilos.menu} role="menu">
+              <Link
+                href="/"
+                role="menuitem"
+                className={estilos.menuItem}
+                onClick={() => setMenuAbierto(false)}
+              >
+                Cerrar sesión
+              </Link>
+            </div>
+          ) : null}
+        </div>
       </header>
 
       <div className={estilos.cuerpo}>
@@ -150,7 +148,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       {avisosAbiertos ? (
-        <PanelAvisos onCerrar={() => setAvisosAbiertos(false)} />
+        <PanelAvisos
+          onCerrar={() => setAvisosAbiertos(false)}
+          disparador={campana}
+        />
       ) : null}
     </div>
   );

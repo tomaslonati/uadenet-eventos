@@ -53,39 +53,15 @@
   font-size: 12.5px;
   font-weight: 500;
   color: var(--tinta);
+}
+
+.sedeSelect:focus-visible {
   outline: none;
-  cursor: pointer;
+  border-color: var(--acento);
 }
 
 .espacio {
   flex: 1;
-}
-
-.perfiles {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--fondo);
-  border-radius: 8px;
-  padding: 3px;
-  flex: none;
-}
-
-.perfil {
-  padding: 6px 12px;
-  border-radius: 7px;
-  border: 0;
-  background: transparent;
-  color: var(--tinta-suave);
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.perfilActivo {
-  background: var(--superficie);
-  color: var(--tinta);
-  box-shadow: 0 1px 3px rgba(20, 22, 26, 0.1);
 }
 
 .campana {
@@ -99,10 +75,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition:
+    transform var(--duracion-presion) var(--ease-salida),
+    background-color var(--duracion-color) ease,
+    border-color var(--duracion-color) ease;
 }
 
 .campana:hover {
   background: #faf9f7;
+}
+
+.campana:active {
+  transform: scale(0.94);
+}
+
+.campana[aria-expanded="true"] {
+  background: var(--acento-claro);
+  border-color: #d8dee6;
 }
 
 .campanaIcono {
@@ -124,14 +113,94 @@
   border-radius: 50%;
 }
 
+.menuUsuario {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
 .usuario {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-left: 2px;
+  width: 100%;
   min-width: 0;
-  flex: 0 1 auto;
+  padding: 4px 8px 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  text-align: left;
   overflow: hidden;
+  transition:
+    transform var(--duracion-presion) var(--ease-salida),
+    background-color var(--duracion-color) ease,
+    border-color var(--duracion-color) ease;
+}
+
+.usuario:hover {
+  background: var(--superficie-sutil);
+  border-color: var(--linea);
+}
+
+.usuario:active {
+  transform: scale(0.985);
+}
+
+.usuario[aria-expanded="true"] {
+  background: var(--superficie-sutil);
+  border-color: var(--linea);
+}
+
+.usuario:focus-visible {
+  outline: none;
+  border-color: var(--acento);
+}
+
+.usuarioFlecha {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  margin-top: -3px;
+  border-right: 1.5px solid var(--tinta-suave);
+  border-bottom: 1.5px solid var(--tinta-suave);
+  transform: rotate(45deg);
+  transition: transform var(--duracion-flotante) var(--ease-salida);
+}
+
+.usuario[aria-expanded="true"] .usuarioFlecha {
+  transform: rotate(225deg) translate(-1px, -1px);
+}
+
+/* Fijo, como el panel de avisos: el header tiene overflow hidden. */
+.menu {
+  position: fixed;
+  top: 66px;
+  right: 18px;
+  z-index: 61;
+  min-width: 184px;
+  padding: 5px;
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: 12px;
+  box-shadow: var(--sombra-flotante);
+  display: flex;
+  flex-direction: column;
+  transform-origin: top right;
+  animation: popIn var(--duracion-flotante) var(--ease-salida) both;
+}
+
+.menuItem {
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 13px;
+  color: var(--tinta-media);
+  transition:
+    background-color var(--duracion-color) ease,
+    color var(--duracion-color) ease;
+}
+
+.menuItem:hover {
+  background: var(--superficie-sutil);
+  color: var(--tinta);
 }
 
 .avatar {
@@ -167,17 +236,6 @@
 }
 
 /* Cuerpo */
-.salir {
-  flex: none;
-  color: var(--tinta-placeholder);
-  font-size: 12px;
-  padding: 6px;
-}
-
-.salir:hover {
-  color: var(--tinta);
-}
-
 .cuerpo {
   flex: 1;
   display: flex;
@@ -213,9 +271,13 @@
   border-radius: 8px;
   color: var(--neutro);
   font-size: 13px;
+  transition:
+    background-color var(--duracion-color) ease,
+    color var(--duracion-color) ease;
 }
 
 .navItem:hover {
+  background: var(--superficie);
   color: var(--tinta);
 }
 
@@ -270,6 +332,14 @@
   font-weight: 500;
   color: var(--acento);
   text-align: center;
+  transition:
+    transform var(--duracion-presion) var(--ease-salida),
+    background-color var(--duracion-color) ease,
+    color var(--duracion-color) ease;
+}
+
+.saldoAccion:active {
+  transform: scale(0.97);
 }
 
 .saldoAccion:hover {

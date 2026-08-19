@@ -27,7 +27,17 @@ Estado de `apps/api` visto desde el portal: `http://localhost:3001/health`.
 
 ### Pantallas
 
-`apps/web` arranca en `/` (login: elegís el perfil con el que querés recorrer el portal). Desde ahí: `/cartelera`, `/eventos/[id]`, `/eventos/nuevo`, `/mis-inscripciones`, `/cuenta`, `/gestion`, `/asistencia`, `/docente` y `/avisos`.
+`apps/web` arranca en `/` (login con mail institucional y contraseña). El rol sale de la cuenta con la que entrás: el prototipo tiene tres usuarios hardcodeados en `apps/web/lib/sesion.tsx`, uno por perfil.
+
+| Perfil | Mail | Contraseña |
+| :---- | :---- | :---- |
+| Administrativo | `m.ibarra@uadenet.edu` | `admin.2026` |
+| Docente | `e.ruiz@uadenet.edu` | `docente.2026` |
+| Estudiante | `t.vidal@uadenet.edu` | `alumno.2026` |
+
+Son credenciales de demo, no secretos: se van del código cuando el acceso se valide contra el directorio de la universidad. La pantalla de login las lista para no tener que abrir el código.
+
+Desde ahí: `/cartelera`, `/eventos/[id]`, `/eventos/nuevo`, `/mis-inscripciones`, `/cuenta`, `/gestion`, `/asistencia`, `/docente` y `/avisos`.
 
 Todavía no consumen `apps/api`: los datos salen de `apps/web/lib/mock/`. El diseño y sus tokens están en [`docs/03-diseno/sistema-diseno.md`](docs/03-diseno/sistema-diseno.md).
 

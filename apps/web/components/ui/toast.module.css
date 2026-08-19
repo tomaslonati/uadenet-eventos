@@ -10,5 +10,7 @@
   font-size: 13px;
   box-shadow: 0 12px 30px rgba(20, 22, 26, 0.22);
   z-index: 80;
-  animation: riseIn 0.2s ease both;
+  /* riseIn terminaba en `transform: none` y le comía el translateX(-50%): el
+     toast quedaba corrido media caja a la derecha. */
+  animation: toastIn 240ms var(--ease-salida) both;
 }
