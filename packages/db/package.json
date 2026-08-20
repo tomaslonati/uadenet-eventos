@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsc && node dist/seed.js"
   },
   "dependencies": {
     "@repo/env": "workspace:*",
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
+    "@types/node": "^24.0.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.1",
     "typescript": "^5.9.2"

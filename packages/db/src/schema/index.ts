@@ -1,3 +1,3 @@
-// Placeholder: el schema de Drizzle se modela acá cuando se cierre
-// docs/02-arquitectura/modelo-dominio.md (todavía tiene TBDs).
-export {};
+export * from "./usuario.js";
+export * from "./locacion.js";
+export * from "./evento.js";
