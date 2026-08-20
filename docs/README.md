@@ -36,7 +36,7 @@ Esta carpeta es la memoria de `uadenet-eventos` entre sesiones y entre personas:
 **`04-guias/`**
 - [`bootstrap.md`](04-guias/bootstrap.md) — inicialización del monorepo desde cero (ya ejecutada; se conserva como referencia del orden y del porqué).
 
-**`decisions/`** — 0001 stack general · 0002 monorepo tooling · 0003 backend framework · 0004 ORM · 0005 contratos compartidos · 0006 entorno de dev DB · 0007 branching strategy · 0008 migración a Neon · 0009 branching dev/main · 0010 estilos de frontend.
+**`decisions/`** — 0001 stack general · 0002 monorepo tooling · 0003 backend framework · 0004 ORM · 0005 contratos compartidos · 0006 entorno de dev DB · 0007 branching strategy · 0008 migración a Neon · 0009 branching dev/main · 0010 estilos de frontend · 0011 vuelta a Supabase.
 
 **`archivo/`**
 - [`plan-de-setup-inicial.md`](archivo/plan-de-setup-inicial.md) — primer plan de setup, superado por `04-guias/bootstrap.md`.

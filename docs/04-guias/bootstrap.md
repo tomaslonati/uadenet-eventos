@@ -12,8 +12,8 @@ Este documento es para inicializar el monorepo desde cero, sin re-derivar decisi
 
 - Node LTS activa instalada (ver `../02-arquitectura/stack-y-estructura.md` por la versión vigente).
 - pnpm disponible (`corepack enable` si hace falta).
-- Credenciales de la branch base de Neon (connection string; pedir al equipo si no las tenés — no se versionan).
-- No se necesita Docker ni Postgres local (ver ADR 0006, ADR 0008).
+- Credenciales del proyecto Supabase compartido de dev (connection string; pedir al equipo si no las tenés — no se versionan).
+- No se necesita Docker ni Postgres local (ver ADR 0006, ADR 0011).
 
 ## 1. Repo y monorepo
 
@@ -33,11 +33,11 @@ Crear en este orden porque `apps/api` los importa desde el primer commit real:
 3. `packages/env` — un schema de Zod que valida las env vars requeridas (`DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, etc.) y falla explícito al boot si falta alguna.
 4. `packages/contracts` — carpeta `src/` vacía por ahora salvo un `index.ts` placeholder; se llena a medida que se cierre `../02-arquitectura/modelo-dominio.md` (ver ADR 0005: Zod, no generado desde OpenAPI).
 5. `packages/db`:
-   - Instalar `drizzle-orm` + `@neondatabase/serverless` (driver serverless de Neon) + `drizzle-kit` como dev dependency.
-   - `src/client.ts` — cliente Drizzle usando `drizzle-orm/neon-http` sobre `@neondatabase/serverless`, que lee la connection string desde `packages/env`.
+   - Instalar `drizzle-orm` + `postgres` (postgres.js) + `drizzle-kit` como dev dependency.
+   - `src/client.ts` — cliente Drizzle usando `drizzle-orm/postgres-js` sobre `postgres`, conectando vía el pooler de transacciones de Supabase (Supavisor) con `prepare: false` (evita problemas de prepared statements contra el pooler en serverless), leyendo la connection string desde `packages/env`.
    - `src/schema/` — vacío por ahora, esperar a que el modelo de dominio esté validado (`../02-arquitectura/modelo-dominio.md` todavía tiene TBDs).
    - `src/seed.ts` — placeholder, se completa cuando exista schema real.
-   - **No correr ninguna migration contra la branch base de Neon todavía.** Cuando haya que tocar schema, crear antes una branch de Neon nueva a partir de la base (ver ADR 0008) y correr la migration ahí primero.
+   - **No correr ninguna migration contra el proyecto compartido sin avisar antes al equipo** (ver ADR 0006 / ADR 0011) — es un único proyecto compartido, sin branching nativo en el free tier.
 
 ## 3. apps/api (NestJS)
 

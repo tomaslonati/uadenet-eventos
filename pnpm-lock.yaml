@@ -185,15 +185,15 @@ importers:
 
   packages/db:
     dependencies:
-      '@neondatabase/serverless':
-        specifier: ^1.1.0
-        version: 1.1.0
       '@repo/env':
         specifier: workspace:*
         version: link:../env
       drizzle-orm:
         specifier: ^0.45.2
-        version: 0.45.2(@neondatabase/serverless@1.1.0)
+        version: 0.45.2(@neondatabase/serverless@1.1.0)(postgres@3.4.9)
+      postgres:
+        specifier: ^3.4.9
+        version: 3.4.9
     devDependencies:
       '@repo/eslint-config':
         specifier: workspace:*
@@ -3968,6 +3968,10 @@ packages:
     resolution: {integrity: sha512-g50586zr4bZmwFiTlflMu8E0bDTb5I5gertgwAKmsdUlTQIhZtunzUlD1WSzwcVWPoAVpsrA6vlfCD7oXvRwgg==}
     engines: {node: ^10 || ^12 || >=14}
 
+  postgres@3.4.9:
+    resolution: {integrity: sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw==}
+    engines: {node: '>=12'}
+
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
@@ -5810,7 +5814,8 @@ snapshots:
       '@tybys/wasm-util': 0.10.3
     optional: true
 
-  '@neondatabase/serverless@1.1.0': {}
+  '@neondatabase/serverless@1.1.0':
+    optional: true
 
   '@nestjs/cli@11.0.24(@types/node@24.13.3)(prettier@3.7.4)':
     dependencies:
@@ -6954,9 +6959,10 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.23.12
 
-  drizzle-orm@0.45.2(@neondatabase/serverless@1.1.0):
+  drizzle-orm@0.45.2(@neondatabase/serverless@1.1.0)(postgres@3.4.9):
     optionalDependencies:
       '@neondatabase/serverless': 1.1.0
+      postgres: 3.4.9
 
   dunder-proto@1.0.1:
     dependencies:
@@ -8696,6 +8702,8 @@ snapshots:
       nanoid: 3.3.17
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  postgres@3.4.9: {}
 
   prelude-ls@1.2.1: {}
 
