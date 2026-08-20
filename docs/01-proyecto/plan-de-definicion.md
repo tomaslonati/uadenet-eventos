@@ -25,7 +25,7 @@ Orden sugerido de decisiones, alineado con las tres entregas del TP.
 ## Fase 2 — Primera entrega
 
 7. **Mocks de cada vista.** Alta de evento (admin), listado/búsqueda de eventos, detalle + inscripción, panel de "mis inscripciones", marcado de asistencia.
-8. **Diagrama de flujo de datos.** Desde que un admin crea un evento hasta que un usuario se inscribe, paga (si aplica), recibe recordatorio y se le registra asistencia.
+8. ~~**Diagrama de flujo de datos.**~~ Hecho: [`../02-arquitectura/flujo-de-datos-negocio.md`](../02-arquitectura/flujo-de-datos-negocio.md).
 
 ## Fase 3 — Segunda entrega
 
