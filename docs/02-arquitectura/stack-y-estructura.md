@@ -61,6 +61,8 @@ uadenet-eventos/
 │       │   ├── common/
 │       │   │   ├── guards/
 │       │   │   │   └── core-jwt.guard.ts
+│       │   │   ├── pipes/
+│       │   │   │   └── zod-validation.pipe.ts
 │       │   │   ├── interceptors/
 │       │   │   └── helpers/
 │       │   ├── health/
@@ -98,7 +100,7 @@ uadenet-eventos/
 
 ## Regla de organización interna de `apps/api`
 
-**Feature-based, no type-based.** Cada módulo de dominio (`eventos/`, `inscripciones/`, `asistencia/`) agrupa su controller, service, DTOs y tests en una misma carpeta — así lo pide el sistema de módulos de NestJS y así se navega más rápido: para tocar "inscripciones" hay una sola carpeta, no cuatro. Lo transversal (guards, interceptors, helpers de uso general) va en `common/`. Los procesos en background (cron de recordatorios) van en `workers/`, separados de los módulos porque no responden a un request HTTP.
+**Feature-based, no type-based.** Cada módulo de dominio (`eventos/`, `inscripciones/`, `asistencia/`) agrupa su controller, service, DTOs y tests en una misma carpeta — así lo pide el sistema de módulos de NestJS y así se navega más rápido: para tocar "inscripciones" hay una sola carpeta, no cuatro. Lo transversal (guards, pipes, interceptors, helpers de uso general) va en `common/`. Los procesos en background (cron de recordatorios) van en `workers/`, separados de los módulos porque no responden a un request HTTP.
 
 ## Regla de organización interna de `apps/web`
 
