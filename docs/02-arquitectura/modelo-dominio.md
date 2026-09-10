@@ -39,14 +39,14 @@ Sin estado explícito: ningún HU pide borradores ni cancelación de evento. Que
 - `eventoId` (FK)
 - `usuarioId` (FK a Usuario — ver caché local de CORE arriba)
 - `fechaInscripcion`
-- `estado` — TBD: mínimo `inscripto`, ¿hace falta `cancelado`? (No hay HU de cancelación definida todavía, ver `../01-proyecto/backlog.md`).
+- `estado` — `inscripto`, único valor. La cancelación de inscripción no está pedida en el TP y quedó explícitamente fuera de alcance (ver `../01-proyecto/backlog.md`); si entra, es una migration nueva y su propio ADR.
 - `pagoConfirmado` — solo aplica si el evento es pago
 
 ### Asistencia
 - `id`
 - `inscripcionId` (FK)
 - `confirmadaEn` (timestamp)
-- `metodo` — TBD: depende de qué mecanismo se elija (QR, check-in manual, otro) — historia técnica pendiente.
+- `metodo` — `qr` | `codigo-en-sala` | `manual`. Son los tres que ya cubre el mock de `/asistencia`; se soportan los tres en vez de elegir uno, porque el mock los muestra como alternativas del mismo flujo.
 
 ## Reglas de negocio a validar contra este modelo
 
@@ -58,5 +58,6 @@ Sin estado explícito: ningún HU pide borradores ni cancelación de evento. Que
 
 ## Pendiente de decidir
 
-- ¿La cancelación de inscripción es un requisito real o quedó afuera del alcance del TP? (El enunciado no la pide explícitamente — no inventar la feature sin confirmarlo como grupo). Bloquea cerrar `Inscripcion.estado`.
-- Mecanismo de verificación de asistencia (QR, código en sala, check-in manual) — bloquea `Asistencia.metodo`, historia técnica separada.
+Nada del modelo en sí. Lo que falta no depende de nosotros: los contratos con CORE (firma del JWT, descuento de saldo, canal de notificaciones) y con Analítica — ver [`integraciones.md`](integraciones.md) y [`flujo-de-datos-integraciones.md`](flujo-de-datos-integraciones.md).
+
+`Inscripcion.estado` y `Asistencia.metodo` estaban marcados como TBD y se cerraron con lo que ya estaba decidido en `../01-proyecto/backlog.md` (la cancelación quedó fuera de alcance) y en los mocks de vista (los tres métodos de asistencia). Si el equipo quiere revisarlos, son un cambio de schema con migration.

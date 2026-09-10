@@ -5,7 +5,7 @@
 | Con quién | Qué necesitamos | Estado | Notas |
 |---|---|---|---|
 | CORE | Validar token de autenticación (JWT) en cada request | Pendiente | ¿Secreto compartido o JWKS? Bloquea `common/guards/core-jwt.guard.ts` |
-| CORE | Descuento/consulta de saldo institucional (inscripciones pagas) | Pendiente | Bloquea HU4 en su versión real (mockeable para 2° entrega) |
+| CORE | Descuento/consulta de saldo institucional (inscripciones pagas) | Pendiente | Contrato propuesto en [`flujo-de-datos-integraciones.md`](flujo-de-datos-integraciones.md); mockeado en `apps/api/src/common/core/saldo.service.ts` con saldo fijo. No reemplazar por HTTP hasta que CORE publique el endpoint |
 | CORE | Envío de notificaciones (recordatorio de evento) | Pendiente | Bloquea HU7. ¿CORE expone una cola/topic al que publicamos, o un endpoint REST? |
 | Analítica Institucional | Formato de eventos que emitimos (frecuencia, concurrencia, presentismo) | Pendiente | Definir el shape de los eventos que van a consumir |
 | Portal del Estudiante / Portal del Docente | Formato del link/notificación que reciben para llegar al detalle del evento | Pendiente | Depende de cómo termine resuelto el punto de notificaciones con CORE |
