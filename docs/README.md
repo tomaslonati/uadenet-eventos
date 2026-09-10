@@ -28,6 +28,7 @@ Esta carpeta es la memoria de `uadenet-eventos` entre sesiones y entre personas:
 **`02-arquitectura/`**
 - [`stack-y-estructura.md`](02-arquitectura/stack-y-estructura.md) — stack, estructura del monorepo, capas, flujo de datos (técnico, por capas).
 - [`flujo-de-datos-negocio.md`](02-arquitectura/flujo-de-datos-negocio.md) — diagrama de secuencia del recorrido de negocio: crear evento → inscribirse → pagar → recordatorio → asistencia.
+- [`flujo-de-datos-integraciones.md`](02-arquitectura/flujo-de-datos-integraciones.md) — contrato punto por punto: qué estructura viaja en cada entrada/salida del módulo. Versión navegable del entregable en planilla.
 - [`modelo-dominio.md`](02-arquitectura/modelo-dominio.md) — entidades y reglas de negocio (tiene TBDs a propósito).
 - [`integraciones.md`](02-arquitectura/integraciones.md) — estado de cada contrato con CORE, Analítica y los portales.
 
