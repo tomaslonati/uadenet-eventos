@@ -47,10 +47,11 @@ describe('EventosController', () => {
     expect(service.crear).toHaveBeenCalledWith(datos);
   });
 
-  it('delega el listado al service', async () => {
+  it('delega el listado al service con el filtro de fechas', async () => {
     service.listar.mockResolvedValue([eventoEjemplo]);
+    const filtro = { desde: new Date('2026-09-01T00:00:00Z') };
 
-    await expect(controller.listar()).resolves.toEqual([eventoEjemplo]);
-    expect(service.listar).toHaveBeenCalled();
+    await expect(controller.listar(filtro)).resolves.toEqual([eventoEjemplo]);
+    expect(service.listar).toHaveBeenCalledWith(filtro);
   });
 });

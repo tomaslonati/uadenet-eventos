@@ -36,3 +36,27 @@ export const eventoSchema = z.object({
 });
 
 export type Evento = z.infer<typeof eventoSchema>;
+
+/**
+ * Rango para el calendario de los portales: devuelve los eventos que se
+ * solapan con la ventana, no solo los que empiezan dentro de ella.
+ */
+export const filtroEventosSchema = z.object({
+  desde: z.coerce.date().optional(),
+  hasta: z.coerce.date().optional(),
+});
+
+export type FiltroEventos = z.infer<typeof filtroEventosSchema>;
+
+/**
+ * Lo que consumen los portales: el evento con la locación ya resuelta y el
+ * cupo calculado, para no obligarlos a una llamada por evento.
+ */
+export const eventoDeCarteleraSchema = eventoSchema.extend({
+  locacion: z.object({ nombre: z.string(), sede: z.string() }),
+  inscriptos: z.number().int(),
+  disponibles: z.number().int(),
+  yaInscripto: z.boolean(),
+});
+
+export type EventoDeCartelera = z.infer<typeof eventoDeCarteleraSchema>;

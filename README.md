@@ -4,7 +4,7 @@ Módulo **Eventos Académicos** del sistema UADEnet (TPO Desarrollo de Aplicacio
 
 ## Stack
 
-Next.js (`apps/web`) + NestJS (`apps/api`) + Drizzle + Neon (Postgres serverless) + TypeScript, monorepo con Turborepo + pnpm, deploy en Vercel. Detalle en [`docs/02-arquitectura/stack-y-estructura.md`](docs/02-arquitectura/stack-y-estructura.md) y el porqué de cada elección en [`docs/decisions/`](docs/decisions/).
+Next.js (`apps/web`) + NestJS (`apps/api`) + Drizzle + Supabase (Postgres) + TypeScript, monorepo con Turborepo + pnpm, deploy en Vercel. Detalle en [`docs/02-arquitectura/stack-y-estructura.md`](docs/02-arquitectura/stack-y-estructura.md) y el porqué de cada elección en [`docs/decisions/`](docs/decisions/).
 
 ## Instalar
 
@@ -12,7 +12,7 @@ Next.js (`apps/web`) + NestJS (`apps/api`) + Drizzle + Neon (Postgres serverless
 pnpm install
 ```
 
-Requiere Node LTS activa y pnpm (`corepack enable`).
+Requiere **Node >= 20** y pnpm 10.26.2. Para pnpm, `corepack enable pnpm`; si en Windows falla por permisos (escribe en `C:\Program Files\nodejs`), sirve `npm install -g pnpm@10.26.2`.
 
 ## Correr en dev
 
@@ -52,6 +52,8 @@ NODE_ENV=development
 
 **Pendiente:** las credenciales de Supabase (proyecto compartido de dev) las comparte quien haya armado el proyecto — pedirlas al equipo, no están en el repo.
 
+**Ojo:** hoy nada carga el `.env` automáticamente. `packages/env` valida `process.env`, pero ni `nest start` ni `drizzle-kit` leen el archivo. Hasta que se resuelva, hay que exportar las variables en la shell o usar `node --env-file=.env`.
+
 ## Migrations
 
 Con `packages/db`:
@@ -61,7 +63,12 @@ pnpm --filter @repo/db db:generate   # genera la migration a partir del schema d
 pnpm --filter @repo/db db:migrate    # la aplica
 ```
 
-El schema (`packages/db/src/schema/`) todavía está vacío — se completa cuando se cierre `docs/02-arquitectura/modelo-dominio.md`. No correr migrations contra la branch base compartida sin avisar al equipo (ver `AGENTS.md`).
+El schema (`packages/db/src/schema/`) tiene `usuarios`, `locaciones`, `eventos`, `inscripciones` y `asistencias`, según [`docs/02-arquitectura/modelo-dominio.md`](docs/02-arquitectura/modelo-dominio.md).
+
+Dos cosas antes de correr `db:migrate`:
+
+- **No usar la cadena del pooler de transacciones** (puerto `6543`). `drizzle-kit` necesita prepared statements y ese modo no los soporta — el comando se queda colgado sin dar error. Para migrations va la conexión directa o el pooler de sesión (`5432`). La app sí usa el pooler de transacciones, por eso `packages/db/src/client.ts` pasa `{ prepare: false }`.
+- **Avisar al equipo antes**, porque corre contra el proyecto Supabase compartido de dev: el free tier no tiene branching (ver ADR 0011 en [`docs/decisions/`](docs/decisions/)).
 
 ## Verificar antes de un PR
 

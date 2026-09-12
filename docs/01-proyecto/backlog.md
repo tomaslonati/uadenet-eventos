@@ -31,8 +31,10 @@ Como usuario quiero inscribirme a un evento pago, para participar descontando el
 **HU5 — Ver mis inscripciones** · Should
 Como usuario quiero ver mis eventos inscriptos, para hacer seguimiento.
 
-**HU6 — Registrar asistencia** · Must (bloqueada por definir mecanismo — ver [`../02-arquitectura/modelo-dominio.md`](../02-arquitectura/modelo-dominio.md))
+**HU6 — Registrar asistencia** · Must (parcial: el registro existe, el mecanismo de verificación no)
 Como administrativo quiero registrar la asistencia de un inscripto, para llevar presentismo real.
+- El campo `Asistencia.metodo` está cerrado (`qr | codigo-en-sala | manual`, ver [`../02-arquitectura/modelo-dominio.md`](../02-arquitectura/modelo-dominio.md)) y `POST /api/v1/asistencia` guarda con cuál se tomó.
+- **Falta el mecanismo en sí.** El TP pide "desarrollar un método para comprobar la asistencia": guardar `metodo: "qr"` no es generar ni validar un QR. Sigue abierta la tarea técnica de más abajo.
 
 **HU7 — Recibir recordatorio de evento** · Must (bloqueada por contrato de notificaciones con CORE)
 Como usuario inscripto quiero recibir una notificación una semana antes del evento, para no olvidarme.
@@ -42,9 +44,28 @@ Como administrativo quiero ver cupos restantes de un evento, para anticipar nece
 
 No incluidas por no estar pedidas explícitamente en el TP (no agregar sin confirmar como grupo): cancelación de inscripción, edición/borrado de evento.
 
+## Estado de implementación
+
+Tres niveles distintos, no confundirlos: que el backend funcione no significa que la historia esté entregada. **Ninguna cumple el DoD todavía**, porque el DoD exige estar mergeada a `dev` vía PR aprobado y los PRs siguen en revisión.
+
+| HU | Prioridad | Backend | Mock de vista | Punta a punta |
+|---|---|---|---|---|
+| HU1 crear evento | Must | ✅ | `/eventos/nuevo` | ❌ |
+| HU2 consultar eventos | Must | ✅ | `/cartelera` | ❌ |
+| HU3 inscripción gratuita | Must | ✅ | `/eventos/[id]` | ❌ |
+| HU4 inscripción paga | Must | ⚠️ contra mock de CORE | `/eventos/[id]`, `/cuenta` | ❌ |
+| HU5 mis inscripciones | Should | ✅ | `/mis-inscripciones` | ❌ |
+| HU6 registrar asistencia | Must | ⚠️ sin mecanismo de verificación | `/asistencia` | ❌ |
+| HU7 recordatorio | Must | ❌ sin empezar | `/avisos` | ❌ |
+| HU8 ver cupo | Could | ✅ | `/gestion` | ❌ |
+
+Lo que falta para pasar de "backend ✅" a "punta a punta ✅" es que `apps/web` deje de leer de `lib/mock/` y consuma la API — es el grueso de la 2° Entrega.
+
+Salvedades del backend verde: HU4 descuenta contra el mock de saldo (`apps/api/src/common/core/saldo.service.ts`, saldo fijo), y todo el módulo opera con un usuario demo fijo porque `common/guards/core-jwt.guard.ts` sigue siendo un placeholder. Hasta que CORE cierre el JWT, `yaInscripto` y `GET /inscripciones` responden siempre por el mismo usuario.
+
 ## Tareas técnicas / Spikes (no son HU)
 
-Definir modelo de dominio (`../02-arquitectura/modelo-dominio.md`) · Definir roles y permisos · Definir stack tecnológico (cerrado, ver `../decisions/`) · Definir contrato de integración con CORE · Definir contrato de integración con Analítica · Diseñar y documentar API (Swagger) · Definir mecanismo de verificación de asistencia · Diagrama de arquitectura general del sistema · ~~Setup del monorepo (`../04-guias/bootstrap.md`)~~ hecho.
+~~Definir modelo de dominio~~ hecho (`../02-arquitectura/modelo-dominio.md`) · Definir roles y permisos · ~~Definir stack tecnológico~~ hecho (ver `../decisions/`) · Definir contrato de integración con CORE · Definir contrato de integración con Analítica · ~~Diseñar y documentar API (Swagger)~~ hecho, los 9 endpoints están en `/api/docs` · **Definir mecanismo de verificación de asistencia** (bloquea cerrar HU6) · Conectar `apps/web` a la API real · Diagrama de arquitectura general del sistema · ~~Setup del monorepo (`../04-guias/bootstrap.md`)~~ hecho.
 
 ## Estado de los mocks de vista (1ra Entrega)
 
