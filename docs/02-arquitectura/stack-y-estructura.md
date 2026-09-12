@@ -115,10 +115,12 @@ Datos: mientras `apps/api` no exponga los endpoints, las pantallas leen de `lib/
 `apps/web` **nunca** consulta la base de datos directo. Todo pasa por `apps/api`:
 
 ```
-Portal (web) → CORE (gateway + auth) → apps/api (NestJS) → packages/db (Drizzle) → Neon (Postgres)
+Portal (web) → CORE (gateway + auth) → apps/api (NestJS) → packages/db (Drizzle) → Supabase (Postgres)
 ```
 
-Sin excepciones por ahora: Neon no ofrece un mecanismo de suscripción tipo Realtime, así que las notificaciones en vivo (si se necesitan) van a depender de lo que defina CORE — a evaluar (ver `integraciones.md`).
+Sin excepciones por ahora: Supabase Realtime no está en uso (ver ADR 0011), así que las notificaciones en vivo (si se necesitan) van a depender de lo que defina CORE — a evaluar (ver `integraciones.md`).
+
+Esto es la vista técnica por capas. Para el recorrido de negocio completo (crear evento → inscribirse → pagar → recordatorio → asistencia), con las validaciones de cada HU, ver [`flujo-de-datos-negocio.md`](flujo-de-datos-negocio.md).
 
 `packages/contracts` (Zod) es el contrato compartido: `apps/api` lo usa para validar requests (pipes de Nest), `apps/web` lo usa para validar formularios y tipar responses. Un solo lugar de verdad para la forma de los datos — no duplicar DTOs entre apps.
 
