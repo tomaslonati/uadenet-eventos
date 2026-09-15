@@ -202,21 +202,13 @@ export function buscarEvento(id: string): Evento | undefined {
 
 export type Reserva = { titulo: string; desde: string; hasta: string };
 
-/** Agenda ya ocupada por locación y fecha, contra la que se valida el alta. */
-export const RESERVAS: Record<string, Reserva[]> = {
-  "Auditorio Magno|2026-09-12": [
-    { titulo: "Jornada de IA Aplicada", desde: "09:00", hasta: "13:00" },
-    { titulo: "Ensayo de acto de colación", desde: "15:00", hasta: "17:00" },
-  ],
-  "Aula Magna B|2026-09-12": [
-    { titulo: "Workshop Arquitectura", desde: "10:00", hasta: "12:30" },
-  ],
-  "Salón de Actos|2026-09-12": [
-    { titulo: "Reunión de claustro", desde: "08:00", hasta: "09:30" },
-  ],
-  "Aula 302|2026-09-12": [],
-};
-
+/** Agenda ya ocupada por locación y fecha, derivada de los eventos ya publicados. */
 export function reservasDe(locacion: string, fecha: string): Reserva[] {
-  return RESERVAS[`${locacion}|${fecha}`] ?? [];
+  return EVENTOS.filter(
+    (evento) => evento.locacion === locacion && evento.fecha === fecha,
+  ).map((evento) => ({
+    titulo: evento.titulo,
+    desde: evento.desde,
+    hasta: evento.hasta,
+  }));
 }
