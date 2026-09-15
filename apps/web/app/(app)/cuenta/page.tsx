@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 
-import { Boton, BotonLink } from "@/components/ui/boton";
 import { Segmentado } from "@/components/ui/controles";
 import { Encabezado } from "@/components/ui/pantalla";
 import { pesos } from "@/lib/formato";
@@ -25,8 +24,6 @@ const FILTROS: { valor: FiltroMovimiento; label: string }[] = [
   { valor: "Consumos", label: "Consumos" },
 ];
 
-const MONTOS_RECARGA = [5_000, 10_000, 20_000];
-
 type GrupoMovimientos = { mes: string; neto: number; items: Movimiento[] };
 
 function agruparPorMes(movimientos: Movimiento[]): GrupoMovimientos[] {
@@ -44,10 +41,8 @@ function agruparPorMes(movimientos: Movimiento[]): GrupoMovimientos[] {
 }
 
 export default function Cuenta() {
-  const { saldo, usuario, inscripciones, cargarSaldo, mostrarToast } =
-    useSesion();
+  const { saldo, usuario, inscripciones } = useSesion();
   const [filtro, setFiltro] = useState<FiltroMovimiento>("Todos");
-  const [montoElegido, setMontoElegido] = useState(10_000);
 
   const movimientos = MOVIMIENTOS.filter((movimiento) =>
     filtro === "Todos"
@@ -79,11 +74,6 @@ export default function Cuenta() {
     },
   ];
 
-  const recargar = () => {
-    cargarSaldo(montoElegido);
-    mostrarToast(`Saldo cargado: ${pesos(montoElegido)}`);
-  };
-
   return (
     <>
       <Encabezado
@@ -106,9 +96,6 @@ export default function Cuenta() {
             <span className={estilos.statSub}>{stat.sub}</span>
           </div>
         ))}
-        <BotonLink href="#recarga" variante="claro">
-          Cargar saldo
-        </BotonLink>
       </section>
 
       <div className={estilos.columnas}>
@@ -174,33 +161,6 @@ export default function Cuenta() {
         </div>
 
         <aside className={estilos.lateral}>
-          <div className={estilos.panel} id="recarga">
-            <div>
-              <div className={estilos.panelTitulo}>Cargar saldo</div>
-              <p className={estilos.panelBajada}>
-                Se debita de tu cuenta corriente y se acredita en el acto.
-              </p>
-            </div>
-            <div className={estilos.montos}>
-              {MONTOS_RECARGA.map((monto) => (
-                <button
-                  key={monto}
-                  type="button"
-                  aria-pressed={monto === montoElegido}
-                  className={`${estilos.opcionMonto} ${
-                    monto === montoElegido ? estilos.montoElegido : ""
-                  }`}
-                  onClick={() => setMontoElegido(monto)}
-                >
-                  {pesos(monto)}
-                </button>
-              ))}
-            </div>
-            <Boton variante="primario" bloque onClick={recargar}>
-              Cargar {pesos(montoElegido)}
-            </Boton>
-          </div>
-
           <div className={estilos.notas}>
             <span className={estilos.notasTitulo}>Cómo funciona</span>
             {NOTAS_CUENTA.map((nota) => (

@@ -1,4 +1,4 @@
-export type TipoAviso = "Recordatorio" | "Pago" | "Asistencia";
+export type TipoAviso = "Recordatorio" | "Asistencia";
 export type GrupoAviso = "Hoy" | "Esta semana" | "Antes";
 
 export type Aviso = {
@@ -15,7 +15,7 @@ export type Aviso = {
 
 export const GRUPOS_AVISO: GrupoAviso[] = ["Hoy", "Esta semana", "Antes"];
 
-export const FILTROS_AVISO = ["Todos", "Recordatorio", "Pago"] as const;
+export const FILTROS_AVISO = ["Todos", "Recordatorio"] as const;
 
 export const AVISOS: Aviso[] = [
   {
@@ -29,18 +29,6 @@ export const AVISOS: Aviso[] = [
     cuando: "hace 2 h",
     sinLeer: true,
     accion: { label: "Ver mi credencial", href: "/mis-inscripciones" },
-  },
-  {
-    id: "a4",
-    grupo: "Esta semana",
-    tipo: "Pago",
-    canal: "Mail",
-    titulo: "Saldo acreditado en tu cuenta institucional",
-    texto:
-      "Se cargaron $ 20.000. Ya podés usarlos para inscribirte a eventos arancelados.",
-    cuando: "lunes",
-    sinLeer: false,
-    accion: { label: "Ver movimientos", href: "/cuenta" },
   },
   {
     id: "a5",

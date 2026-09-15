@@ -196,7 +196,7 @@ export function DetalleEvento({ evento }: { evento: Evento }) {
               variante={saldoPosterior < 0 ? "destructivo" : "primario"}
               onClick={confirmarPago}
             >
-              {saldoPosterior < 0 ? "Cargar saldo" : "Confirmar y pagar"}
+              {saldoPosterior < 0 ? "Ver mi cuenta" : "Confirmar y pagar"}
             </Boton>
           </ModalPie>
         </Modal>

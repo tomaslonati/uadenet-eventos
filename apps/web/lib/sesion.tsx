@@ -128,7 +128,6 @@ type Sesion = {
   cambiarSede: (sede: string) => void;
 
   saldo: number;
-  cargarSaldo: (monto: number) => void;
 
   inscripciones: string[];
   estaInscripto: (eventoId: string) => boolean;
@@ -187,9 +186,6 @@ export function SesionProvider({ children }: { children: ReactNode }) {
       cambiarSede: setSede,
 
       saldo,
-      cargarSaldo: (monto) => {
-        setSaldo((actual) => actual + monto);
-      },
 
       inscripciones,
       estaInscripto: (eventoId) => inscripciones.includes(eventoId),
