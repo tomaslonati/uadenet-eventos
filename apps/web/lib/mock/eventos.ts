@@ -32,7 +32,7 @@ export type Evento = {
  * consumen la API, y un `new Date()` real haría divergir el render del servidor
  * y el del cliente.
  */
-export const HOY = "2026-08-05";
+export const HOY = "2026-09-05";
 
 /** Evento que el prototipo muestra "en curso" en el control de asistencia. */
 export const EVENTO_EN_CURSO = "e1";
