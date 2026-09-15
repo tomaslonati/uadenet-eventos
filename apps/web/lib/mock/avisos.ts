@@ -52,11 +52,6 @@ export const REGLA_RECORDATORIO = [
     cumplido: true,
   },
   {
-    momento: "T−24 horas",
-    detalle: "Segundo aviso solo a quienes no abrieron el primero.",
-    cumplido: true,
-  },
-  {
     momento: "Día del evento",
     detalle:
       "La credencial pasa al frente de Mis inscripciones y habilita el escaneo.",
