@@ -150,7 +150,7 @@ const DURACION_TOAST = 2600;
 export function SesionProvider({ children }: { children: ReactNode }) {
   const [rol, setRol] = useState<Rol>("admin");
   const [sede, setSede] = useState<string>(TODAS_LAS_SEDES);
-  const [saldo, setSaldo] = useState(34_750);
+  const [saldo, setSaldo] = useState(13_000);
   const [inscripciones, setInscripciones] = useState<string[]>(["e1"]);
   const [avisosLeidos, setAvisosLeidos] = useState(false);
   const [avisosDescartados, setAvisosDescartados] = useState<string[]>([]);

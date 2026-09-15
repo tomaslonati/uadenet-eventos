@@ -28,14 +28,6 @@ export const MOVIMIENTOS: Movimiento[] = [
     ingreso: false,
   },
   {
-    fecha: "19 jul",
-    mes: "julio 2026",
-    concepto: "Devolución por evento cancelado",
-    detalle: "Seminario de Estadística Aplicada",
-    monto: 9_000,
-    ingreso: true,
-  },
-  {
     fecha: "11 jul",
     mes: "julio 2026",
     concepto: "Taller de Escritura Académica",
