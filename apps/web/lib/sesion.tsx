@@ -99,6 +99,11 @@ export function navDe(rol: Rol, inscripciones: number, sinLeer: number): ItemNav
       { href: "/eventos/nuevo", label: "Nuevo evento" },
       { href: "/asistencia", label: "Asistencia en vivo", badge: "live" },
       { href: "/cartelera", label: "Cartelera pública" },
+      {
+        href: "/mis-inscripciones",
+        label: "Mis inscripciones",
+        badge: String(inscripciones),
+      },
       avisos,
       cuenta,
     ];
