@@ -45,6 +45,10 @@ export const LOCACIONES = [
   "Aula Magna B",
   "Salón de Actos",
   "Aula 302",
+  "Laboratorio 4",
+  "Auditorio B",
+  "Hall Central",
+  "Aula 108",
 ] as const;
 
 export const TIPOS_EVENTO: TipoEvento[] = [

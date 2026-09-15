@@ -10,7 +10,7 @@
 | CORE | Envío de notificaciones (recordatorio de evento) | Pendiente | Bloquea HU7. ¿CORE expone una cola/topic al que publicamos, o un endpoint REST? |
 | Analítica Institucional | Formato de eventos que emitimos (frecuencia, concurrencia, presentismo) | Pendiente | Definir el shape de los eventos que van a consumir |
 | Portal del Estudiante / Portal del Docente | Formato del link/notificación que reciben para llegar al detalle del evento | Pendiente | Depende de cómo termine resuelto el punto de notificaciones con CORE |
-| Backoffice Administrativo | Catálogo de sedes/locaciones | **No aplica** | Decidido: se maneja directo en nuestra DB, sin integración |
+| Backoffice Administrativo | Catálogo de sedes/locaciones | **No aplica** | Ver [ADR 0012](../decisions/0012-catalogo-de-locaciones-panel-propio.md): se carga desde nuestro propio panel, sin integración |
 
 ## Coordinación entre los 10 grupos
 

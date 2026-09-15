@@ -29,7 +29,7 @@ Sin estado explícito: ningún HU pide borradores ni cancelación de evento. Que
 ### Locación
 - `id`
 - `nombre`
-- `sede` (texto, no FK) — catálogo de sedes se maneja en nuestra DB, no vía integración (ver `../01-proyecto/overview.md`). No se modela `Sede` como entidad propia porque no hay HU que la gestione ni atributos más allá del nombre (ver mock `SEDES` en `apps/web/lib/mock/eventos.ts`) — si aparece esa necesidad, se extrae a tabla después.
+- `sede` (texto, no FK) — catálogo de sedes se maneja en nuestra DB, no vía integración con Backoffice Administrativo (ver [ADR 0012](../decisions/0012-catalogo-de-locaciones-panel-propio.md)). No se modela `Sede` como entidad propia porque no hay HU que la gestione ni atributos más allá del nombre (ver mock `SEDES` en `apps/web/lib/mock/eventos.ts`) — si aparece esa necesidad, se extrae a tabla después.
 - `capacidad`
 
 `capacidad` es informativa, no se valida contra `Evento.cupoMaximo` — son cosas independientes. El admin es responsable de no poner un cupo mayor a lo que la locación banca; si se decide validarlo más adelante, es un cambio de regla de negocio, no de schema.
