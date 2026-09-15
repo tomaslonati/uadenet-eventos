@@ -133,8 +133,6 @@ type Sesion = {
   inscripciones: string[];
   estaInscripto: (eventoId: string) => boolean;
   inscribir: (evento: Evento, cobrar: boolean) => void;
-  reemplazar: (saliente: string, evento: Evento) => void;
-  liberar: (eventoId: string) => void;
 
   avisosLeidos: boolean;
   avisosDescartados: string[];
@@ -200,17 +198,6 @@ export function SesionProvider({ children }: { children: ReactNode }) {
           actuales.includes(evento.id) ? actuales : [...actuales, evento.id],
         );
         if (cobrar) setSaldo((actual) => actual - evento.precio);
-      },
-      reemplazar: (saliente, evento) => {
-        setInscripciones((actuales) => [
-          ...actuales.filter((id) => id !== saliente),
-          evento.id,
-        ]);
-      },
-      liberar: (eventoId) => {
-        setInscripciones((actuales) =>
-          actuales.filter((id) => id !== eventoId),
-        );
       },
 
       avisosLeidos,
