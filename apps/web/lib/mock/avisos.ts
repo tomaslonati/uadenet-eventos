@@ -62,7 +62,6 @@ export const REGLA_RECORDATORIO = [
 export const PREVIEW_RECORDATORIO = {
   remitente: "eventos@uadenet.edu",
   evento: "Jornada de Inteligencia Artificial Aplicada",
-  enEspera: 12,
   datos: [
     { clave: "Fecha", valor: "sábado 12 de septiembre de 2026" },
     { clave: "Horario", valor: "09:00 a 13:00 h" },
