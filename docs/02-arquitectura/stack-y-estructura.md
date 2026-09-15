@@ -57,7 +57,7 @@ uadenet-eventos/
 │       │   │   ├── inscripciones/
 │       │   │   └── asistencia/
 │       │   ├── workers/
-│       │   │   └── recordatorio-evento.worker.ts
+│       │   │   └── recordatorio-evento.worker.ts  # (pendiente, 2° entrega — HU7, ver backlog.md)
 │       │   ├── common/
 │       │   │   ├── guards/
 │       │   │   │   └── core-jwt.guard.ts

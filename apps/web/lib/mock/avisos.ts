@@ -1,4 +1,4 @@
-export type TipoAviso = "Recordatorio" | "Cupo" | "Cambio" | "Pago" | "Asistencia";
+export type TipoAviso = "Recordatorio" | "Asistencia";
 export type GrupoAviso = "Hoy" | "Esta semana" | "Antes";
 
 export type Aviso = {
@@ -15,13 +15,7 @@ export type Aviso = {
 
 export const GRUPOS_AVISO: GrupoAviso[] = ["Hoy", "Esta semana", "Antes"];
 
-export const FILTROS_AVISO = [
-  "Todos",
-  "Recordatorio",
-  "Cupo",
-  "Cambio",
-  "Pago",
-] as const;
+export const FILTROS_AVISO = ["Todos", "Recordatorio"] as const;
 
 export const AVISOS: Aviso[] = [
   {
@@ -35,42 +29,6 @@ export const AVISOS: Aviso[] = [
     cuando: "hace 2 h",
     sinLeer: true,
     accion: { label: "Ver mi credencial", href: "/mis-inscripciones" },
-  },
-  {
-    id: "a2",
-    grupo: "Hoy",
-    tipo: "Cupo",
-    canal: "Portal",
-    titulo: "Se liberó un lugar en Hackathon Interfacultades",
-    texto:
-      "Estabas en lista de espera. Tenés 24 horas para confirmar antes de que pase al siguiente.",
-    cuando: "hace 5 h",
-    sinLeer: true,
-    accion: { label: "Confirmar mi lugar", href: "/eventos/e4" },
-  },
-  {
-    id: "a3",
-    grupo: "Esta semana",
-    tipo: "Cambio",
-    canal: "Mail + portal",
-    titulo: "Cambio de locación: Coloquio de Finanzas Corporativas",
-    texto:
-      "Se movió de Aula 210 al Salón de Actos, en la misma fecha y horario. No hace falta que hagas nada.",
-    cuando: "martes",
-    sinLeer: true,
-    accion: { label: "Ver el evento", href: "/eventos/e3" },
-  },
-  {
-    id: "a4",
-    grupo: "Esta semana",
-    tipo: "Pago",
-    canal: "Mail",
-    titulo: "Saldo acreditado en tu cuenta institucional",
-    texto:
-      "Se cargaron $ 20.000. Ya podés usarlos para inscribirte a eventos arancelados.",
-    cuando: "lunes",
-    sinLeer: false,
-    accion: { label: "Ver movimientos", href: "/cuenta" },
   },
   {
     id: "a5",
@@ -94,11 +52,6 @@ export const REGLA_RECORDATORIO = [
     cumplido: true,
   },
   {
-    momento: "T−24 horas",
-    detalle: "Segundo aviso solo a quienes no abrieron el primero.",
-    cumplido: true,
-  },
-  {
     momento: "Día del evento",
     detalle:
       "La credencial pasa al frente de Mis inscripciones y habilita el escaneo.",
@@ -109,7 +62,6 @@ export const REGLA_RECORDATORIO = [
 export const PREVIEW_RECORDATORIO = {
   remitente: "eventos@uadenet.edu",
   evento: "Jornada de Inteligencia Artificial Aplicada",
-  enEspera: 12,
   datos: [
     { clave: "Fecha", valor: "sábado 12 de septiembre de 2026" },
     { clave: "Horario", valor: "09:00 a 13:00 h" },

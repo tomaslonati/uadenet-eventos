@@ -28,14 +28,6 @@ export const MOVIMIENTOS: Movimiento[] = [
     ingreso: false,
   },
   {
-    fecha: "19 jul",
-    mes: "julio 2026",
-    concepto: "Devolución por evento cancelado",
-    detalle: "Seminario de Estadística Aplicada",
-    monto: 9_000,
-    ingreso: true,
-  },
-  {
     fecha: "11 jul",
     mes: "julio 2026",
     concepto: "Taller de Escritura Académica",
@@ -63,8 +55,6 @@ export const MOVIMIENTOS: Movimiento[] = [
 
 export const NOTAS_CUENTA = [
   "El arancel se descuenta al confirmar la inscripción, no al momento del evento.",
-  "Si cancelás con más de 48 horas de anticipación, el saldo vuelve a tu cuenta automáticamente.",
-  "Si un evento se suspende, la devolución se acredita dentro de las 24 horas.",
 ];
 
 export type Asistencia = {

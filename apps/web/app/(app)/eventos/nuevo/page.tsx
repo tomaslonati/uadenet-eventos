@@ -55,10 +55,6 @@ const OPCIONES = [
     label: "Recordatorio automático 7 días antes",
     desc: "Mail institucional y aviso en el portal.",
   },
-  {
-    label: "Habilitar lista de espera al completarse el cupo",
-    desc: "Se promueve automáticamente cuando alguien cancela.",
-  },
 ];
 
 type Formulario = {
@@ -90,7 +86,7 @@ const INICIAL: Formulario = {
   cupo: "120",
   arancelado: false,
   precio: "",
-  opciones: [true, true, false],
+  opciones: [true, true],
 };
 
 function soloNumeros(valor: string): number {

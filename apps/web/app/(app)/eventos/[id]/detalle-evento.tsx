@@ -26,15 +26,7 @@ type Dialogo = "checkout" | "conflicto" | "confirmado" | null;
 
 export function DetalleEvento({ evento }: { evento: Evento }) {
   const router = useRouter();
-  const {
-    rol,
-    saldo,
-    inscripciones,
-    estaInscripto,
-    inscribir,
-    reemplazar,
-    mostrarToast,
-  } = useSesion();
+  const { rol, saldo, inscripciones, estaInscripto, inscribir } = useSesion();
   const [dialogo, setDialogo] = useState<Dialogo>(null);
 
   const vista = vistaDe(evento, estaInscripto(evento.id));
@@ -56,25 +48,21 @@ export function DetalleEvento({ evento }: { evento: Evento }) {
   const ctaLabel = vista.inscripto
     ? "Ya estás inscripto"
     : vista.lleno
-      ? "Anotarme en lista de espera"
+      ? "Cupo completo"
       : evento.precio
         ? `Inscribirme por ${pesos(evento.precio)}`
         : "Inscribirme";
 
   const ctaHint = vista.inscripto
-    ? "Podés cancelar desde Mis inscripciones hasta 24 h antes."
+    ? "Ya tenés tu lugar confirmado."
     : vista.lleno
-      ? "Te avisamos si se libera un lugar. Hay 12 personas antes que vos."
+      ? "No quedan lugares disponibles."
       : evento.precio
         ? "Se descuenta de tu cuenta institucional al confirmar."
         : "Sin costo. Se te asigna una credencial digital al confirmar.";
 
   const intentarInscribir = () => {
-    if (vista.inscripto) return;
-    if (vista.lleno) {
-      mostrarToast("Te sumamos a la lista de espera. Sos el número 13.");
-      return;
-    }
+    if (vista.inscripto || vista.lleno) return;
     if (conflicto) {
       setDialogo("conflicto");
       return;
@@ -142,7 +130,7 @@ export function DetalleEvento({ evento }: { evento: Evento }) {
                 vista.inscripto ? "secundario" : vista.lleno ? "secundario" : "primario"
               }
               bloque
-              disabled={vista.inscripto}
+              disabled={vista.inscripto || vista.lleno}
               onClick={intentarInscribir}
             >
               {ctaLabel}
@@ -208,7 +196,7 @@ export function DetalleEvento({ evento }: { evento: Evento }) {
               variante={saldoPosterior < 0 ? "destructivo" : "primario"}
               onClick={confirmarPago}
             >
-              {saldoPosterior < 0 ? "Cargar saldo" : "Confirmar y pagar"}
+              {saldoPosterior < 0 ? "Ver mi cuenta" : "Confirmar y pagar"}
             </Boton>
           </ModalPie>
         </Modal>
@@ -251,15 +239,6 @@ export function DetalleEvento({ evento }: { evento: Evento }) {
           </ModalCuerpo>
           <ModalPie>
             <Boton onClick={() => setDialogo(null)}>Entendido</Boton>
-            <Boton
-              variante="primario"
-              onClick={() => {
-                reemplazar(conflicto.id, evento);
-                setDialogo("confirmado");
-              }}
-            >
-              Cambiar por este evento
-            </Boton>
           </ModalPie>
         </Modal>
       ) : null}

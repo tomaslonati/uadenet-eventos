@@ -1,6 +1,6 @@
 # ADR 0011 — Vuelta a Supabase como proveedor de Postgres
 
-**Contexto:** ADR 0008 había migrado de Supabase a Neon por falta de cupo gratis en Supabase y para aprovechar el branching nativo de Neon. Tras una charla de equipo, se decidió volver a Supabase por preferencia del equipo/cátedra — no hay un problema técnico puntual con Neon de por medio.
+**Contexto:** ADR 0008 había migrado de Supabase a Neon por falta de cupo gratis en Supabase y para aprovechar el branching nativo de Neon. Tras una charla de equipo, se decidió volver a Supabase por preferencia del equipo — no hay un problema técnico puntual con Neon de por medio ni un pedido de la cátedra que lo exija.
 
 **Opciones consideradas:**
 1. Quedarse en Neon (statu quo de ADR 0008).

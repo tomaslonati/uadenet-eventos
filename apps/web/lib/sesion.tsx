@@ -51,6 +51,16 @@ const USUARIOS: Record<Rol, Omit<Usuario, "iniciales"> & { clave: string }> = {
 
 export const DOMINIO_MAIL = "@uadenet.edu";
 
+/** Estado propio de cada cuenta demo: cambiar de cuenta no debe arrastrar el saldo/inscripciones de la anterior. */
+const ESTADO_INICIAL_POR_ROL: Record<
+  Rol,
+  { saldo: number; inscripciones: string[] }
+> = {
+  admin: { saldo: 13_000, inscripciones: [] },
+  docente: { saldo: 13_000, inscripciones: [] },
+  alumno: { saldo: 13_000, inscripciones: ["e1"] },
+};
+
 const ROLES = Object.keys(USUARIOS) as Rol[];
 
 // Provisorio: hasta que el rol llegue en la cookie de sesión, sale del usuario
@@ -89,6 +99,11 @@ export function navDe(rol: Rol, inscripciones: number, sinLeer: number): ItemNav
       { href: "/eventos/nuevo", label: "Nuevo evento" },
       { href: "/asistencia", label: "Asistencia en vivo", badge: "live" },
       { href: "/cartelera", label: "Cartelera pública" },
+      {
+        href: "/mis-inscripciones",
+        label: "Mis inscripciones",
+        badge: String(inscripciones),
+      },
       avisos,
       cuenta,
     ];
@@ -128,13 +143,10 @@ type Sesion = {
   cambiarSede: (sede: string) => void;
 
   saldo: number;
-  cargarSaldo: (monto: number) => void;
 
   inscripciones: string[];
   estaInscripto: (eventoId: string) => boolean;
   inscribir: (evento: Evento, cobrar: boolean) => void;
-  reemplazar: (saliente: string, evento: Evento) => void;
-  liberar: (eventoId: string) => void;
 
   avisosLeidos: boolean;
   avisosDescartados: string[];
@@ -153,8 +165,10 @@ const DURACION_TOAST = 2600;
 export function SesionProvider({ children }: { children: ReactNode }) {
   const [rol, setRol] = useState<Rol>("admin");
   const [sede, setSede] = useState<string>(TODAS_LAS_SEDES);
-  const [saldo, setSaldo] = useState(34_750);
-  const [inscripciones, setInscripciones] = useState<string[]>(["e1"]);
+  const [saldo, setSaldo] = useState(ESTADO_INICIAL_POR_ROL.admin.saldo);
+  const [inscripciones, setInscripciones] = useState<string[]>(
+    ESTADO_INICIAL_POR_ROL.admin.inscripciones,
+  );
   const [avisosLeidos, setAvisosLeidos] = useState(false);
   const [avisosDescartados, setAvisosDescartados] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
@@ -172,6 +186,15 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     temporizador.current = setTimeout(() => setToast(null), DURACION_TOAST);
   }, []);
 
+  const ingresar = useCallback((nuevoRol: Rol) => {
+    const inicial = ESTADO_INICIAL_POR_ROL[nuevoRol];
+    setRol(nuevoRol);
+    setSaldo(inicial.saldo);
+    setInscripciones(inicial.inscripciones);
+    setAvisosLeidos(false);
+    setAvisosDescartados([]);
+  }, []);
+
   const valor = useMemo<Sesion>(() => {
     const datos = USUARIOS[rol];
     const sinLeer = avisosLeidos
@@ -183,15 +206,12 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     return {
       rol,
       usuario: { ...datos, iniciales: iniciales(datos.nombre) },
-      ingresar: setRol,
+      ingresar,
 
       sede,
       cambiarSede: setSede,
 
       saldo,
-      cargarSaldo: (monto) => {
-        setSaldo((actual) => actual + monto);
-      },
 
       inscripciones,
       estaInscripto: (eventoId) => inscripciones.includes(eventoId),
@@ -200,17 +220,6 @@ export function SesionProvider({ children }: { children: ReactNode }) {
           actuales.includes(evento.id) ? actuales : [...actuales, evento.id],
         );
         if (cobrar) setSaldo((actual) => actual - evento.precio);
-      },
-      reemplazar: (saliente, evento) => {
-        setInscripciones((actuales) => [
-          ...actuales.filter((id) => id !== saliente),
-          evento.id,
-        ]);
-      },
-      liberar: (eventoId) => {
-        setInscripciones((actuales) =>
-          actuales.filter((id) => id !== eventoId),
-        );
       },
 
       avisosLeidos,
@@ -233,6 +242,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     avisosDescartados,
     toast,
     mostrarToast,
+    ingresar,
   ]);
 
   return (

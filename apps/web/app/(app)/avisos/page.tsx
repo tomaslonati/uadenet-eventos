@@ -210,16 +210,9 @@ export default function Avisos() {
                       </div>
                     ))}
                   </div>
-                  <p className={estilos.mailTexto}>
-                    Si no vas a poder asistir, liberá tu lugar: hay{" "}
-                    {PREVIEW_RECORDATORIO.enEspera} personas en lista de espera.
-                  </p>
                   <div className={estilos.mailBotones}>
                     <span className={estilos.mailBotonPrimario}>
                       Ver mi credencial
-                    </span>
-                    <span className={estilos.mailBotonSecundario}>
-                      No voy a asistir
                     </span>
                   </div>
                 </div>

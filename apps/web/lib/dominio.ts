@@ -12,7 +12,7 @@ export type EstadoEvento = { texto: string; tono: Tono };
  */
 export function estadoDe(evento: Evento, inscripto: boolean): EstadoEvento {
   if (evento.inscriptos >= evento.cupo) {
-    return { texto: "Lista de espera", tono: "atencion" };
+    return { texto: "Cupo completo", tono: "atencion" };
   }
   if (evento.inscriptos / evento.cupo > 0.85) {
     return { texto: "Últimos lugares", tono: "atencion" };
