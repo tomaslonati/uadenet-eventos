@@ -41,6 +41,7 @@ Sin estado explícito: ningún HU pide borradores ni cancelación de evento. Que
 - `fechaInscripcion`
 - `estado` — `inscripto`, único valor. La cancelación de inscripción no está pedida en el TP y quedó explícitamente fuera de alcance (ver `../01-proyecto/backlog.md`); si entra, es una migration nueva y su propio ADR.
 - `pagoConfirmado` — solo aplica si el evento es pago
+- `codigoCredencial` — código que el método `qr` de `Asistencia` valida en la puerta. Hoy sólo existe en el mock de frontend, derivado en `apps/web/lib/dominio.ts` (`codigoCredencial(eventoId, indice)`); cuando `Inscripcion` deje de ser mock, pasa a ser un campo real de esta tabla (generado al confirmarse la inscripción).
 
 ### Asistencia
 - `id`
