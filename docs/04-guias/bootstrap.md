@@ -30,7 +30,7 @@ Crear en este orden porque `apps/api` los importa desde el primer commit real:
 
 1. `packages/typescript-config` — `tsconfig.base.json` con `"strict": true`.
 2. `packages/eslint-config` — reglas compartidas. (Si se decide usar Biome en vez de ESLint/Prettier, actualizar este paso y `../02-arquitectura/stack-y-estructura.md` antes de seguir — no está cerrado, ver `../01-proyecto/backlog.md`.)
-3. `packages/env` — un schema de Zod que valida las env vars requeridas (`DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, etc.) y falla explícito al boot si falta alguna.
+3. `packages/env` — un schema de Zod que valida las env vars requeridas (`DATABASE_URL`, `NODE_ENV`) y falla explícito al boot si falta alguna. No se agregan `SUPABASE_URL`/`SUPABASE_ANON_KEY`: sólo se usa la connection string de Postgres vía Drizzle, no el SDK `supabase-js` (ver ADR 0011).
 4. `packages/contracts` — carpeta `src/` vacía por ahora salvo un `index.ts` placeholder; se llena a medida que se cierre `../02-arquitectura/modelo-dominio.md` (ver ADR 0005: Zod, no generado desde OpenAPI).
 5. `packages/db`:
    - Instalar `drizzle-orm` + `postgres` (postgres.js) + `drizzle-kit` como dev dependency.
