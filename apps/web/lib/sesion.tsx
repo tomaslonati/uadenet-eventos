@@ -51,6 +51,16 @@ const USUARIOS: Record<Rol, Omit<Usuario, "iniciales"> & { clave: string }> = {
 
 export const DOMINIO_MAIL = "@uadenet.edu";
 
+/** Estado propio de cada cuenta demo: cambiar de cuenta no debe arrastrar el saldo/inscripciones de la anterior. */
+const ESTADO_INICIAL_POR_ROL: Record<
+  Rol,
+  { saldo: number; inscripciones: string[] }
+> = {
+  admin: { saldo: 13_000, inscripciones: [] },
+  docente: { saldo: 13_000, inscripciones: [] },
+  alumno: { saldo: 13_000, inscripciones: ["e1"] },
+};
+
 const ROLES = Object.keys(USUARIOS) as Rol[];
 
 // Provisorio: hasta que el rol llegue en la cookie de sesión, sale del usuario
@@ -150,8 +160,10 @@ const DURACION_TOAST = 2600;
 export function SesionProvider({ children }: { children: ReactNode }) {
   const [rol, setRol] = useState<Rol>("admin");
   const [sede, setSede] = useState<string>(TODAS_LAS_SEDES);
-  const [saldo, setSaldo] = useState(13_000);
-  const [inscripciones, setInscripciones] = useState<string[]>(["e1"]);
+  const [saldo, setSaldo] = useState(ESTADO_INICIAL_POR_ROL.admin.saldo);
+  const [inscripciones, setInscripciones] = useState<string[]>(
+    ESTADO_INICIAL_POR_ROL.admin.inscripciones,
+  );
   const [avisosLeidos, setAvisosLeidos] = useState(false);
   const [avisosDescartados, setAvisosDescartados] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
@@ -169,6 +181,15 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     temporizador.current = setTimeout(() => setToast(null), DURACION_TOAST);
   }, []);
 
+  const ingresar = useCallback((nuevoRol: Rol) => {
+    const inicial = ESTADO_INICIAL_POR_ROL[nuevoRol];
+    setRol(nuevoRol);
+    setSaldo(inicial.saldo);
+    setInscripciones(inicial.inscripciones);
+    setAvisosLeidos(false);
+    setAvisosDescartados([]);
+  }, []);
+
   const valor = useMemo<Sesion>(() => {
     const datos = USUARIOS[rol];
     const sinLeer = avisosLeidos
@@ -180,7 +201,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     return {
       rol,
       usuario: { ...datos, iniciales: iniciales(datos.nombre) },
-      ingresar: setRol,
+      ingresar,
 
       sede,
       cambiarSede: setSede,
@@ -216,6 +237,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     avisosDescartados,
     toast,
     mostrarToast,
+    ingresar,
   ]);
 
   return (
