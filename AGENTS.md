@@ -6,7 +6,7 @@ Convenciones del proyecto. Aplican tanto a personas como a asistentes de IA (Cla
 
 ## Stack
 
-Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript, monorepo con Turborepo + pnpm, deploy en Vercel. Detalle completo de la arquitectura en `docs/01-arquitectura.md`, y el porqué de cada elección en `docs/decisions/`.
+Next.js (apps/web) + NestJS (apps/api) + Drizzle + Supabase (Postgres) + TypeScript, monorepo con Turborepo + pnpm, deploy en Vercel. Detalle completo de la arquitectura en `docs/02-arquitectura/stack-y-estructura.md`, y el porqué de cada elección en `docs/decisions/`.
 
 ---
 
@@ -14,7 +14,9 @@ Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript,
 
 - Todo el trabajo se gestiona en Jira, proyecto **SCRUM**.
 - No se trabaja sin ticket: si la tarea que vas a hacer no tiene un ticket creado en el board, lo primero es crearlo (con su Epic correspondiente) antes de escribir código o abrir un branch.
-- El nombre del branch es el ticket: `SCRUM-XXX-descripcion-corta`, creado desde `main`.
+- El nombre del branch es el ticket, creado desde `dev` (ver ADR 0009):
+  - Si es una Historia de Usuario del backlog (`docs/01-proyecto/backlog.md`), usar su número de HU: `HU2-descripcion-corta`.
+  - Si es una tarea técnica/infra sin HU asociada, usar el issue de Jira: `SCRUM-XXX-descripcion-corta`.
 - Un branch = una tarea = un ticket. No mezclar dos historias en el mismo branch.
 - Antes de arrancar una tarea, pasarla a "En curso" en el board.
 
@@ -22,9 +24,9 @@ Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript,
 
 ## Commits
 
-- Formato: `tipo: [SCRUM-XXX] descripción en minúscula`.
+- Formato: `tipo: [ID] descripción en minúscula`, con el mismo `ID` que el branch (`HU2` o `SCRUM-XXX`).
   Tipos: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`.
-  Ejemplo: `feat: [SCRUM-14] definir formato de notificación hacia portales`.
+  Ejemplos: `fix: [HU2] rompía la inscripción cuando el evento no tenía cupo seteado` · `chore: [SCRUM-14] definir formato de notificación hacia portales`.
 - Commits lo más chicos posible: cada cambio coherente es un commit, no un commit gigante al final de la tarea.
 - No mezclar cambios no relacionados en el mismo commit (si tocás lint config de paso, va en un commit `chore` separado).
 
@@ -32,12 +34,13 @@ Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript,
 
 ## Pull Requests
 
-- Siempre contra `main`. No hay branch `dev` — `main` es la única rama base. Nunca push directo a `main`.
+- Ramas de feature/fix van contra `dev` (ver ADR 0009). Requieren al menos 1 aprobación de otra persona del equipo — regla forzada en GitHub, no se puede mergear el propio PR sin review.
+- `dev` se promueve a `main` con un PR `dev → main` antes de cada fecha de entrega. `main` nunca recibe push directo ni PRs de feature branches directamente.
 - Título igual al formato del commit, usando el título del ticket de Jira como descripción.
 - PR chico y enfocado — si se hace gigante, probablemente el ticket debería haber sido dos.
 - Antes de abrir el PR: `turbo run lint typecheck test` en verde localmente.
 - Mergear por rebase (sin squash ni merge commit), historial lineal. Borrar el branch después de mergear.
-- Para actualizar contra `main`: `git rebase main` + push `--force-with-lease` (nunca merge de `main` al branch).
+- Para actualizar contra `dev`: `git pull --rebase origin dev` sobre el branch local + push `--force-with-lease` (nunca merge de `dev` al branch). Conviene hacerlo seguido durante la tarea, no solo justo antes de abrir el PR — evita conflictos grandes de una sola vez.
 
 ---
 
@@ -52,16 +55,30 @@ Next.js (apps/web) + NestJS (apps/api) + Drizzle + Neon (Postgres) + TypeScript,
 
 ## Mantener `/docs` vivo
 
-`docs/` es la memoria del proyecto entre sesiones y entre personas — el objetivo es que cualquiera (o cualquier agente) pueda retomar el trabajo leyendo esa carpeta, sin depender de que alguien "se acuerde" de una conversación pasada.
+`docs/` es la memoria del proyecto entre sesiones y entre personas — el objetivo es que cualquiera (o cualquier agente) pueda retomar el trabajo leyendo esa carpeta, sin depender de que alguien "se acuerde" de una conversación pasada. El mapa completo está en `docs/README.md`, que es el índice de la carpeta y define dónde va cada tipo de documento.
 
-- `docs/00-overview.md` — qué es el proyecto, fechas de entregas, dependencias externas. Actualizar si cambia algo de esto.
-- `docs/01-arquitectura.md` — stack y estructura del monorepo. Si el código diverge de lo que dice acá, o se actualiza el documento o se corrige el código — nunca se dejan desincronizados.
-- `docs/02-modelo-dominio.md` — entidades y reglas de negocio. Tiene TBDs a propósito; cerrarlos a medida que el equipo los defina, no de una sola vez.
-- `docs/03-backlog.md` — historias de usuario, DoR/DoD, estimación. Reflejar acá cualquier cambio grande hecho en Jira.
-- `docs/04-integraciones.md` — estado de cada contrato con otros módulos del TP (CORE, Analítica, portales). Actualizar el estado de la tabla apenas haya novedades, no esperar a que esté todo resuelto para tocar el archivo.
+Organización por carpeta:
+
+- `docs/01-proyecto/` — contexto y gestión.
+  - `overview.md` — qué es el proyecto, fechas de entregas, dependencias externas. Actualizar si cambia algo de esto.
+  - `backlog.md` — historias de usuario, DoR/DoD, estimación. Reflejar acá cualquier cambio grande hecho en Jira.
+  - `plan-de-definicion.md` — orden de decisiones por fase, alineado a las tres entregas.
+- `docs/02-arquitectura/` — cómo está construido el sistema.
+  - `stack-y-estructura.md` — stack y estructura del monorepo. Si el código diverge de lo que dice acá, o se actualiza el documento o se corrige el código — nunca se dejan desincronizados.
+  - `modelo-dominio.md` — entidades y reglas de negocio. Tiene TBDs a propósito; cerrarlos a medida que el equipo los defina, no de una sola vez.
+  - `integraciones.md` — estado de cada contrato con otros módulos del TP (CORE, Analítica, portales). Actualizar el estado de la tabla apenas haya novedades, no esperar a que esté todo resuelto para tocar el archivo.
+- `docs/03-diseno/sistema-diseno.md` — tokens, componentes y copy de la UI. Es la fuente de verdad del frontend: los valores viven como variables CSS en `apps/web/app/globals.css`. No inventar colores, tamaños ni radios fuera de lo que dice este documento.
+- `docs/04-guias/` — procedimientos ejecutables paso a paso (runbooks), como el bootstrap del monorepo.
 - `docs/decisions/` — un ADR nuevo (numerado, `000X-titulo.md`) cada vez que se tome una decisión de arquitectura no trivial. No se edita un ADR viejo para cambiar la decisión — si algo se revierte, se agrega un ADR nuevo que referencia al anterior y explica por qué cambió.
+- `docs/archivo/` — documentos superados que se conservan por trazabilidad. No son fuente de verdad y no se citan como tal; llevan arriba una nota que dice qué los reemplazó.
 
-Regla para agentes: antes de arrancar una tarea no trivial, leer `docs/00-overview.md` y el archivo de `docs/` más relevante al tema. Al terminar una tarea que cambió algo del contexto general (arquitectura, modelo, integraciones, decisiones), actualizar el `.md` correspondiente como parte de la misma tarea, no como un paso aparte que puede quedar pendiente.
+Reglas de la carpeta:
+
+- No se dejan `.md` sueltos: ni en la raíz del repo (solo `README.md`, `AGENTS.md` y `CLAUDE.md`), ni en la raíz de `docs/` (solo `README.md`).
+- Nombres de archivo en kebab-case y sin numerar — el orden lo da la carpeta. La única excepción es `decisions/`, donde el número es el ID del ADR.
+- Documento nuevo que no entra en ninguna carpeta existente → se crea una carpeta nueva numerada y se la agrega al índice de `docs/README.md` en el mismo cambio.
+
+Regla para agentes: antes de arrancar una tarea no trivial, leer `docs/01-proyecto/overview.md` y el archivo de `docs/` más relevante al tema. Al terminar una tarea que cambió algo del contexto general (arquitectura, modelo, integraciones, decisiones), actualizar el `.md` correspondiente como parte de la misma tarea, no como un paso aparte que puede quedar pendiente.
 
 ---
 
@@ -81,5 +98,5 @@ Regla para agentes: antes de arrancar una tarea no trivial, leer `docs/00-overvi
 - Nunca commitear `.env` ni ningún tipo de credencial o secreto.
 - Nunca mencionar herramientas de IA en commits, PRs, issues ni comentarios de código. Los mensajes son como si los hubiera escrito la persona.
 - Antes de tocar algo fuera del scope del ticket actual, preguntar en vez de asumir.
-- Si una tarea toca `packages/db` (schema, migrations), avisar explícitamente y crear/usar una branch de Neon por PR (no migrar directo contra la branch base compartida) — ver ADR 0008.
-- Antes de iniciar el repo desde cero, seguir `BOOTSTRAP.md` en el orden dado.
+- Si una tarea toca `packages/db` (schema, migrations), avisar explícitamente en el grupo antes de correr la migration contra el proyecto Supabase compartido de dev (no hay branching nativo en el free tier) — ver ADR 0011.
+- Antes de iniciar el repo desde cero, seguir `docs/04-guias/bootstrap.md` en el orden dado.

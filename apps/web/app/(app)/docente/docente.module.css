@@ -1,0 +1,89 @@
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tarjeta {
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: 14px;
+  padding: 22px 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 26px;
+  align-items: center;
+}
+
+.datos {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.etiquetas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.titulo {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.detalle {
+  font-size: 13px;
+  color: var(--tinta-secundaria);
+}
+
+.acciones {
+  margin-top: 5px;
+}
+
+.metricas {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  border-left: 1px solid var(--linea-fuerte);
+  padding-left: 26px;
+}
+
+.metrica {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.metricaClave {
+  font-size: 12px;
+  color: var(--tinta-suave);
+}
+
+.metricaValor {
+  font-size: 20px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.metricaAsistencia {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--exito);
+}
+
+@media (max-width: 820px) {
+  .tarjeta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .metricas {
+    border-left: 0;
+    border-top: 1px solid var(--linea-fuerte);
+    padding-left: 0;
+    padding-top: 16px;
+  }
+}

@@ -1,0 +1,100 @@
+# Backlog, metodología y convenciones
+
+> Documento vivo. Basado en lo visto en Clase 02 (Metodologías y Escalado Ágil). Cuando se agreguen/cambien historias en Jira, reflejarlo acá o al menos linkear al board — este archivo es el resumen navegable, Jira es la fuente operativa del día a día.
+
+## Framework
+
+Scrum a nivel de nuestro equipo (sprints con fechas fijas, ya cargados en Jira). Los frameworks de escalado (Nexus, SAFe, LeSS) no aplican dentro del grupo — son para coordinar entre los 10 grupos del TP, y ese nivel de coordinación todavía no está definido (ver [`../02-arquitectura/integraciones.md`](../02-arquitectura/integraciones.md)).
+
+## Historias de Usuario (formato: As a / I want / So that + Given/When/Then)
+
+**HU1 — Crear evento académico** · Must
+Como administrativo quiero crear un evento definiendo locación, cupo, fecha/hora y si es gratuito o pago, para publicarlo.
+- Given datos válidos, When guardo, Then el evento se crea y aparece en el listado.
+- Given locación ya reservada en ese horario, When guardo, Then se rechaza por conflicto.
+
+**HU2 — Consultar eventos disponibles** · Must
+Como usuario quiero ver el listado de eventos, para decidir a cuáles inscribirme.
+- Given eventos publicados, When entro al listado, Then veo nombre, fecha, locación, cupo y si es pago.
+
+**HU3 — Inscribirme a un evento gratuito** · Must
+Como usuario quiero inscribirme a un evento gratuito, para participar.
+- Given cupo disponible y sin conflicto horario, When confirmo, Then quedo inscripto.
+- Given conflicto horario con otra inscripción, When intento inscribirme, Then se rechaza.
+- Given sin cupo, When intento inscribirme, Then se rechaza.
+
+**HU4 — Inscribirme a un evento pago** · Must
+Como usuario quiero inscribirme a un evento pago, para participar descontando el costo de mi cuenta institucional.
+- Given saldo suficiente, When confirmo, Then se descuenta el costo y quedo inscripto.
+- Given saldo insuficiente, When intento inscribirme, Then se rechaza e informa el motivo.
+
+**HU5 — Ver mis inscripciones** · Should
+Como usuario quiero ver mis eventos inscriptos, para hacer seguimiento.
+
+**HU6 — Registrar asistencia** · Must (parcial: el registro existe, el mecanismo de verificación no)
+Como administrativo quiero registrar la asistencia de un inscripto, para llevar presentismo real.
+- El campo `Asistencia.metodo` está cerrado (`qr | codigo-en-sala | manual`, ver [`../02-arquitectura/modelo-dominio.md`](../02-arquitectura/modelo-dominio.md)) y `POST /api/v1/asistencia` guarda con cuál se tomó.
+- **Falta el mecanismo en sí.** El TP pide "desarrollar un método para comprobar la asistencia": guardar `metodo: "qr"` no es generar ni validar un QR. Sigue abierta la tarea técnica de más abajo.
+
+**HU7 — Recibir recordatorio de evento** · Must (bloqueada por contrato de notificaciones con CORE)
+Como usuario inscripto quiero recibir una notificación una semana antes del evento, para no olvidarme.
+
+**HU8 — Ver cupo disponible** · Could
+Como administrativo quiero ver cupos restantes de un evento, para anticipar necesidad de más capacidad.
+
+No incluidas por no estar pedidas explícitamente en el TP (no agregar sin confirmar como grupo): cancelación de inscripción, edición/borrado de evento.
+
+## Estado de implementación
+
+Tres niveles distintos, no confundirlos: que el backend funcione no significa que la historia esté entregada. **Ninguna cumple el DoD todavía**, porque el DoD exige estar mergeada a `dev` vía PR aprobado y los PRs siguen en revisión.
+
+| HU | Prioridad | Backend | Mock de vista | Punta a punta |
+|---|---|---|---|---|
+| HU1 crear evento | Must | ✅ | `/eventos/nuevo` | ❌ |
+| HU2 consultar eventos | Must | ✅ | `/cartelera` | ❌ |
+| HU3 inscripción gratuita | Must | ✅ | `/eventos/[id]` | ❌ |
+| HU4 inscripción paga | Must | ⚠️ contra mock de CORE | `/eventos/[id]`, `/cuenta` | ❌ |
+| HU5 mis inscripciones | Should | ✅ | `/mis-inscripciones` | ❌ |
+| HU6 registrar asistencia | Must | ⚠️ sin mecanismo de verificación | `/asistencia` | ❌ |
+| HU7 recordatorio | Must | ❌ sin empezar | `/avisos` | ❌ |
+| HU8 ver cupo | Could | ✅ | `/gestion` | ❌ |
+
+Lo que falta para pasar de "backend ✅" a "punta a punta ✅" es que `apps/web` deje de leer de `lib/mock/` y consuma la API — es el grueso de la 2° Entrega.
+
+Salvedades del backend verde: HU4 descuenta contra el mock de saldo (`apps/api/src/common/core/saldo.service.ts`, saldo fijo), y todo el módulo opera con un usuario demo fijo porque `common/guards/core-jwt.guard.ts` sigue siendo un placeholder. Hasta que CORE cierre el JWT, `yaInscripto` y `GET /inscripciones` responden siempre por el mismo usuario.
+
+## Tareas técnicas / Spikes (no son HU)
+
+~~Definir modelo de dominio~~ hecho (`../02-arquitectura/modelo-dominio.md`) · Definir roles y permisos · ~~Definir stack tecnológico~~ hecho (ver `../decisions/`) · Definir contrato de integración con CORE · Definir contrato de integración con Analítica · ~~Diseñar y documentar API (Swagger)~~ hecho, los 9 endpoints están en `/api/docs` · **Definir mecanismo de verificación de asistencia** (bloquea cerrar HU6) · Conectar `apps/web` a la API real · Diagrama de arquitectura general del sistema · ~~Setup del monorepo (`../04-guias/bootstrap.md`)~~ hecho.
+
+## Estado de los mocks de vista (1ra Entrega)
+
+Las cinco historias de mocks del board están implementadas como pantallas reales de `apps/web`, con datos de `lib/mock/` en vez de la API:
+
+| Historia del board | Pantalla |
+|---|---|
+| Mock de vista - Alta de evento (admin) | `/eventos/nuevo` |
+| Mock de vista - Listado y búsqueda de eventos | `/cartelera` (tarjetas / tabla / agenda) |
+| Mock de vista - Detalle e inscripción a evento | `/eventos/[id]` |
+| Mock de vista - Mis inscripciones | `/mis-inscripciones` |
+| Mock de vista - Marcado de asistencia | `/asistencia` (QR, código en sala, lista manual) |
+
+Además, y sin historia propia en el board todavía: `/gestion` (panel del administrativo con indicadores), `/cuenta` (saldo institucional y movimientos), `/docente` y `/avisos` (centro de notificaciones + regla automática de recordatorio). Si el equipo las quiere trackear, hay que crearles el ticket.
+
+Lo que **no** cubren estos mocks, porque depende del backend: persistencia, validación real de solapamiento contra la base, cobro contra CORE y envío efectivo del recordatorio.
+
+## Definition of Ready
+
+Una HU entra a un sprint solo si tiene: descripción As a/I want/So that, criterios Given/When/Then, dependencias identificadas (¿bloqueada por algo de `../02-arquitectura/integraciones.md`?), prioridad MoSCoW, estimación hecha en Planning Poker por todo el equipo, mock de la vista si aplica, y — sumado tras la conversación de infraestructura — **dependencias de infraestructura resueltas o explícitamente marcadas como bloqueantes**.
+
+## Definition of Done
+
+Código mergeado a `dev` vía PR aprobado (ver ADR 0009) · tests unitarios pasando · `turbo run lint typecheck test build` en verde · Swagger actualizado si expone un endpoint · probado manualmente contra los criterios de aceptación · sin secrets commiteados.
+
+## Estimación y prioridad
+
+Planning Poker, secuencia Fibonacci (1, 2, 3, 5, 8, 13) — se hace en equipo, no la asigna una sola persona. Prioridad con MoSCoW (Must / Should / Could / Won't), no Highest/High/Medium/Low de Jira directamente (mapear si hace falta para el campo nativo del board).
+
+## Infraestructura como enabler, no como HU
+
+El setup (repo, monorepo, DB conectada, CI, Vercel) no es ni HU ni tarea técnica de dominio — es un **enabler** que bloquea al resto. Se agrupa en un Epic separado "Infraestructura" y cada HU que lo necesite lleva un link "is blocked by" hacia la tarea de infra correspondiente en Jira. La 1° Entrega (mocks) no depende de esto — puede avanzar en paralelo. La 2° Entrega sí, así que el Epic de Infraestructura tiene que estar resuelto antes de esa etapa.
