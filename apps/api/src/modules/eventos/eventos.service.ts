@@ -179,6 +179,8 @@ export class EventosService {
 
   /** `null` si el evento es gratuito; si no, la tarifa vigente de Backoffice para esa categoría. */
   private precioDe(categoria: CategoriaPrecio | null): Promise<number | null> {
-    return categoria ? this.tarifasService.consultar(categoria) : Promise.resolve(null);
+    return categoria
+      ? this.tarifasService.consultar(categoria)
+      : Promise.resolve(null);
   }
 }

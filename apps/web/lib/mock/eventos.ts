@@ -8,6 +8,14 @@ export type TipoEvento =
   | "Muestra"
   | "Competencia";
 
+export type CategoriaPrecio = "general" | "especial";
+
+/** Parametrizado por Backoffice Administrativo (ver ADR 0013), no lo define este módulo. */
+export const TARIFAS_INSCRIPCION: Record<CategoriaPrecio, number> = {
+  general: 5_500,
+  especial: 12_500,
+};
+
 export type Evento = {
   id: string;
   titulo: string;
@@ -20,7 +28,9 @@ export type Evento = {
   locacion: string;
   cupo: number;
   inscriptos: number;
-  /** 0 = gratuito. */
+  /** `null` = gratuito. El monto sale de `TARIFAS_INSCRIPCION[categoriaPrecio]`, no es un campo libre. */
+  categoriaPrecio: CategoriaPrecio | null;
+  /** 0 = gratuito. Debe coincidir con `TARIFAS_INSCRIPCION[categoriaPrecio]`. */
   precio: number;
   disertante: string;
   area: string;
@@ -73,6 +83,7 @@ export const EVENTOS: Evento[] = [
     locacion: "Auditorio Magno",
     cupo: 300,
     inscriptos: 214,
+    categoriaPrecio: null,
     precio: 0,
     disertante: "Dra. Lucía Ferrari",
     area: "Facultad de Ingeniería y Ciencias Exactas",
@@ -90,6 +101,7 @@ export const EVENTOS: Evento[] = [
     locacion: "Aula Magna B",
     cupo: 60,
     inscriptos: 44,
+    categoriaPrecio: null,
     precio: 0,
     disertante: "Ing. Pablo Sosa",
     area: "Departamento de Sistemas",
@@ -107,6 +119,7 @@ export const EVENTOS: Evento[] = [
     locacion: "Salón de Actos",
     cupo: 120,
     inscriptos: 87,
+    categoriaPrecio: "especial",
     precio: 12_500,
     disertante: "Mg. Renata Ledesma",
     area: "Facultad de Ciencias Económicas",
@@ -124,6 +137,7 @@ export const EVENTOS: Evento[] = [
     locacion: "Laboratorio 4",
     cupo: 80,
     inscriptos: 80,
+    categoriaPrecio: null,
     precio: 0,
     disertante: "Comité de Innovación",
     area: "Secretaría de Vinculación",
@@ -141,7 +155,8 @@ export const EVENTOS: Evento[] = [
     locacion: "Auditorio B",
     cupo: 150,
     inscriptos: 41,
-    precio: 8_000,
+    categoriaPrecio: "general",
+    precio: 5_500,
     disertante: "Dr. Andrés Quiroga",
     area: "Facultad de Ciencias de la Salud",
     descripcion:
@@ -158,6 +173,7 @@ export const EVENTOS: Evento[] = [
     locacion: "Aula 302",
     cupo: 90,
     inscriptos: 63,
+    categoriaPrecio: null,
     precio: 0,
     disertante: "Dra. Sofía Mancini",
     area: "Facultad de Derecho",
@@ -175,6 +191,7 @@ export const EVENTOS: Evento[] = [
     locacion: "Hall Central",
     cupo: 400,
     inscriptos: 152,
+    categoriaPrecio: null,
     precio: 0,
     disertante: "Cuerpo docente",
     area: "Facultad de Ingeniería y Ciencias Exactas",
@@ -192,6 +209,7 @@ export const EVENTOS: Evento[] = [
     locacion: "Aula 108",
     cupo: 40,
     inscriptos: 39,
+    categoriaPrecio: "general",
     precio: 5_500,
     disertante: "Lic. Carla Bravo",
     area: "Centro de Escritura",

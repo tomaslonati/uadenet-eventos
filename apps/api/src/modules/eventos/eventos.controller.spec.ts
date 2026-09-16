@@ -16,7 +16,7 @@ describe('EventosController', () => {
     fechaInicio: new Date('2026-09-12T09:00:00Z'),
     fechaFin: new Date('2026-09-12T13:00:00Z'),
     esPago: false,
-    precio: null,
+    categoriaPrecio: null,
     creadoPor: 'seed-admin-demo',
   };
 
