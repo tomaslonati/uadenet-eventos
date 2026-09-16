@@ -12,7 +12,7 @@ export type EstadoEvento = { texto: string; tono: Tono };
  */
 export function estadoDe(evento: Evento, inscripto: boolean): EstadoEvento {
   if (evento.inscriptos >= evento.cupo) {
-    return { texto: "Lista de espera", tono: "atencion" };
+    return { texto: "Cupo completo", tono: "atencion" };
   }
   if (evento.inscriptos / evento.cupo > 0.85) {
     return { texto: "Últimos lugares", tono: "atencion" };
@@ -35,14 +35,6 @@ export function estaLleno(evento: Evento): boolean {
 
 export function ingresosDe(evento: Evento): number {
   return evento.precio * evento.inscriptos;
-}
-
-/**
- * Asistencia efectiva de ediciones anteriores. Valor simulado hasta que exista
- * el histórico real de acreditaciones.
- */
-export function asistenciaHistorica(evento: Evento): number {
-  return 72 + (evento.inscriptos % 21);
 }
 
 /**

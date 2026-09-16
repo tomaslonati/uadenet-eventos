@@ -13,12 +13,6 @@ import {
 
 import estilos from "./login.module.css";
 
-const CIFRAS = [
-  { valor: "3", label: "sedes activas" },
-  { valor: "48", label: "eventos este cuatrimestre" },
-  { valor: "6.204", label: "inscripciones" },
-];
-
 export default function Login() {
   const router = useRouter();
   const { ingresar } = useSesion();
@@ -51,14 +45,6 @@ export default function Login() {
             Un solo lugar para programar, difundir, cobrar y registrar la
             asistencia a jornadas, workshops y congresos de todas las sedes.
           </p>
-          <div className={estilos.cifras}>
-            {CIFRAS.map((cifra) => (
-              <div key={cifra.label} className={estilos.cifra}>
-                <span className={estilos.cifraValor}>{cifra.valor}</span>
-                <span className={estilos.cifraLabel}>{cifra.label}</span>
-              </div>
-            ))}
-          </div>
         </div>
         <span className={estilos.pie}>
           Prototipo · Módulo de Eventos Académicos

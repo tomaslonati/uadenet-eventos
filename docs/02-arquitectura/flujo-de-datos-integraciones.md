@@ -267,7 +267,7 @@ Lo publica el worker diario cuando `fechaInicio - hoy = 7 días`, una vez por in
 
 ## Estado de implementación
 
-Todos los endpoints `/api/v1` de este documento están implementados en `apps/api` con tests unitarios. El descuento de saldo de CORE está mockeado con saldo fijo en `common/core/saldo.service.ts`. El recordatorio (HU7) y los tres eventos hacia Analítica **todavía no se emiten**: no hay worker ni publisher, y el canal sigue sin definirse.
+Todos los endpoints `/api/v1` de este documento están implementados en `apps/api`, y cada módulo (`eventos`, `inscripciones`, `asistencia`, `locaciones`) tiene tests unitarios de su service. El descuento de saldo de CORE está mockeado con saldo fijo en `common/core/saldo.service.ts`. El recordatorio (HU7) y los tres eventos hacia Analítica **todavía no se emiten**: no hay worker ni publisher, y el canal sigue sin definirse.
 
 ## Qué falta confirmar
 

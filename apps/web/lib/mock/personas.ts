@@ -4,7 +4,12 @@ export type Persona = {
   rol: "Estudiante" | "Docente" | "Administrativo";
 };
 
-/** Padrón de prueba que alimenta el control de asistencia. */
+/**
+ * Padrón de prueba genérico para el control de asistencia. No corresponde a
+ * los inscriptos reales de ningún evento puntual — cuando exista el endpoint
+ * de inscripciones, este control tiene que leer de ahí (los inscriptos de
+ * `evento.id`), no de una lista de personas aparte.
+ */
 export const PADRON: Persona[] = [
   { nombre: "Martina Aguirre", legajo: "LU 104882", rol: "Estudiante" },
   { nombre: "Joaquín Peralta", legajo: "LU 099431", rol: "Estudiante" },

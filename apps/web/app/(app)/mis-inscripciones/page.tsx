@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { Boton, BotonLink, GrupoBotones } from "@/components/ui/boton";
+import { BotonLink, GrupoBotones } from "@/components/ui/boton";
 import { Credencial } from "@/components/ui/credencial";
 import { Encabezado, EstadoVacio, Seccion } from "@/components/ui/pantalla";
 import { codigoCredencial } from "@/lib/dominio";
@@ -12,7 +12,6 @@ import {
   pesos,
   sumarDias,
 } from "@/lib/formato";
-import { HISTORIAL_ASISTENCIA } from "@/lib/mock/movimientos";
 import { HOY, buscarEvento, type Evento } from "@/lib/mock/eventos";
 import { useSesion } from "@/lib/sesion";
 import { vistaDe } from "@/lib/vista-evento";
@@ -22,7 +21,7 @@ import estilos from "./mis-inscripciones.module.css";
 const RECORDATORIO_DIAS = 7;
 
 export default function MisInscripciones() {
-  const { inscripciones, liberar, mostrarToast } = useSesion();
+  const { inscripciones } = useSesion();
 
   const mis = inscripciones
     .map(buscarEvento)
@@ -30,11 +29,6 @@ export default function MisInscripciones() {
     .map((evento) => vistaDe(evento, true));
 
   const [proximo, ...otros] = mis;
-
-  const cancelar = (eventoId: string) => {
-    liberar(eventoId);
-    mostrarToast("Inscripción cancelada. Se liberó un lugar.");
-  };
 
   return (
     <>
@@ -103,13 +97,6 @@ export default function MisInscripciones() {
                 <BotonLink href={`/eventos/${proximo.id}`} tamano="sm">
                   Ver el evento
                 </BotonLink>
-                <Boton
-                  variante="destructivo"
-                  tamano="sm"
-                  onClick={() => cancelar(proximo.id)}
-                >
-                  Liberar mi lugar
-                </Boton>
               </GrupoBotones>
             </div>
 
@@ -148,13 +135,6 @@ export default function MisInscripciones() {
                     {codigoCredencial(evento.id, indice + 1)}
                   </span>
                 </div>
-                <Boton
-                  variante="destructivo"
-                  tamano="sm"
-                  onClick={() => cancelar(evento.id)}
-                >
-                  Liberar lugar
-                </Boton>
                 <Credencial
                   semilla={indice + 2}
                   codigo={codigoCredencial(evento.id, indice + 1)}
@@ -176,29 +156,6 @@ export default function MisInscripciones() {
           }
         />
       ) : null}
-
-      <Seccion titulo="Historial de asistencia">
-        <div className={estilos.historial}>
-          {HISTORIAL_ASISTENCIA.map((registro) => (
-            <div key={registro.titulo} className={estilos.filaHistorial}>
-              <span className={estilos.historialFecha}>{registro.fecha}</span>
-              <span className={estilos.historialTitulo}>{registro.titulo}</span>
-              <span className={estilos.celdaBadge}>
-                <Badge tono={registro.asistio ? "exito" : "atencion"}>
-                  {registro.asistio ? "Asistió" : "No asistió"}
-                </Badge>
-              </span>
-              <span
-                className={
-                  registro.asistio ? estilos.certificado : estilos.sinCertificado
-                }
-              >
-                {registro.certificado}
-              </span>
-            </div>
-          ))}
-        </div>
-      </Seccion>
     </>
   );
 }

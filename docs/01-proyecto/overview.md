@@ -14,7 +14,7 @@ Requisitos funcionales completos del módulo: ver `TPO - DEA II 2Q 2026.pdf` (ca
 |---|---|
 | 1° Entrega (mocks + flujo de datos) | 16/09/2026 |
 | 2° Entrega (funcional, integraciones mockeadas) | 11/11/2026 |
-| Entrega Final (integrado) | fin de cursada, sin fecha exacta confirmada aún |
+| Entrega Final (integrado) | 02/12/2026 |
 
 ## Board de gestión
 
@@ -26,7 +26,7 @@ Este módulo integra con:
 - **CORE** — autenticación (valida token que emite CORE), notificaciones, descuento/consulta de saldo institucional.
 - **Analítica Institucional** — consume eventos que emitimos (frecuencia, concurrencia, presentismo).
 - **Portal del Estudiante / Portal del Docente** — reciben notificaciones nuestras con link al detalle del evento.
-- **Backoffice Administrativo** — descartado como dependencia: el catálogo de sedes/locaciones se maneja directo en nuestra propia DB, no vía integración.
+- **Backoffice Administrativo** — descartado como dependencia: el catálogo de sedes/locaciones se maneja directo en nuestra propia DB, no vía integración (ver [ADR 0012](../decisions/0012-catalogo-de-locaciones-panel-propio.md)).
 
 El estado de estos contratos (definido / en negociación / pendiente) se trackea en [`../02-arquitectura/integraciones.md`](../02-arquitectura/integraciones.md).
 

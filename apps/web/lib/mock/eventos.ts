@@ -32,7 +32,7 @@ export type Evento = {
  * consumen la API, y un `new Date()` real haría divergir el render del servidor
  * y el del cliente.
  */
-export const HOY = "2026-08-05";
+export const HOY = "2026-09-05";
 
 /** Evento que el prototipo muestra "en curso" en el control de asistencia. */
 export const EVENTO_EN_CURSO = "e1";
@@ -45,6 +45,10 @@ export const LOCACIONES = [
   "Aula Magna B",
   "Salón de Actos",
   "Aula 302",
+  "Laboratorio 4",
+  "Auditorio B",
+  "Hall Central",
+  "Aula 108",
 ] as const;
 
 export const TIPOS_EVENTO: TipoEvento[] = [
@@ -202,21 +206,13 @@ export function buscarEvento(id: string): Evento | undefined {
 
 export type Reserva = { titulo: string; desde: string; hasta: string };
 
-/** Agenda ya ocupada por locación y fecha, contra la que se valida el alta. */
-export const RESERVAS: Record<string, Reserva[]> = {
-  "Auditorio Magno|2026-09-12": [
-    { titulo: "Jornada de IA Aplicada", desde: "09:00", hasta: "13:00" },
-    { titulo: "Ensayo de acto de colación", desde: "15:00", hasta: "17:00" },
-  ],
-  "Aula Magna B|2026-09-12": [
-    { titulo: "Workshop Arquitectura", desde: "10:00", hasta: "12:30" },
-  ],
-  "Salón de Actos|2026-09-12": [
-    { titulo: "Reunión de claustro", desde: "08:00", hasta: "09:30" },
-  ],
-  "Aula 302|2026-09-12": [],
-};
-
+/** Agenda ya ocupada por locación y fecha, derivada de los eventos ya publicados. */
 export function reservasDe(locacion: string, fecha: string): Reserva[] {
-  return RESERVAS[`${locacion}|${fecha}`] ?? [];
+  return EVENTOS.filter(
+    (evento) => evento.locacion === locacion && evento.fecha === fecha,
+  ).map((evento) => ({
+    titulo: evento.titulo,
+    desde: evento.desde,
+    hasta: evento.hasta,
+  }));
 }

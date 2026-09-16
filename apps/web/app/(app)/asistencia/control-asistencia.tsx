@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Boton } from "@/components/ui/boton";
@@ -13,16 +13,13 @@ import { useSesion } from "@/lib/sesion";
 
 import estilos from "./asistencia.module.css";
 
-type Metodo = "qr" | "codigo" | "manual";
+type Metodo = "qr" | "manual";
 
 const METODOS: { valor: Metodo; label: string }[] = [
   { valor: "qr", label: "Credencial QR" },
-  { valor: "codigo", label: "Código en sala" },
   { valor: "manual", label: "Lista manual" },
 ];
 
-/** El código proyectado en sala rota cada minuto. */
-const ROTACION_CODIGO = 60;
 const PRIMER_INGRESO = 9 * 60 + 6;
 const MINUTOS_ENTRE_INGRESOS = 3;
 
@@ -36,14 +33,6 @@ export function ControlAsistencia({ evento }: { evento: Evento }) {
   const { mostrarToast } = useSesion();
   const [metodo, setMetodo] = useState<Metodo>("qr");
   const [acreditados, setAcreditados] = useState<number[]>([]);
-  const [segundos, setSegundos] = useState(42);
-
-  useEffect(() => {
-    const intervalo = setInterval(() => {
-      setSegundos((actual) => (actual > 0 ? actual - 1 : ROTACION_CODIGO - 1));
-    }, 1000);
-    return () => clearInterval(intervalo);
-  }, []);
 
   const acreditar = (indice: number) => {
     const persona = PADRON[indice];
@@ -136,31 +125,6 @@ export function ControlAsistencia({ evento }: { evento: Evento }) {
                 onClick={() => acreditar(acreditados.length % PADRON.length)}
               >
                 Simular escaneo
-              </Boton>
-            </>
-          ) : null}
-
-          {metodo === "codigo" ? (
-            <>
-              <span className={estilos.metodoTitulo}>Código en pantalla</span>
-              <p className={estilos.metodoTexto}>
-                Se proyecta en la sala y rota cada 60 segundos. Sirve para
-                eventos masivos donde no hay control en puerta.
-              </p>
-              <div className={estilos.codigoPanel}>
-                <span className={estilos.codigo}>
-                  4{700 + (segundos % 90)}2
-                </span>
-                <span className={estilos.codigoRestante}>
-                  Se renueva en 00:{String(segundos).padStart(2, "0")}
-                </span>
-              </div>
-              <Boton
-                variante="primario"
-                bloque
-                onClick={() => acreditar(acreditados.length % PADRON.length)}
-              >
-                Simular ingreso de código
               </Boton>
             </>
           ) : null}
