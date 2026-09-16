@@ -82,7 +82,7 @@ export const CUENTAS_DEMO = ROLES.map((rol) => ({
 
 export const INICIO_POR_ROL: Record<Rol, string> = {
   admin: "/gestion",
-  docente: "/docente",
+  docente: "/cartelera",
   alumno: "/cartelera",
 };
 
