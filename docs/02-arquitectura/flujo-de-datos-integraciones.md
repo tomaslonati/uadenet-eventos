@@ -22,6 +22,8 @@ Base de la API: `/api/v1` — prefijo global `api` más versionado por URI (`app
 | — (consumo interno) | Entrada | Restful API | [`POST /api/v1/asistencia`](#post-apiv1asistencia) |
 | — (consumo interno) | Salida | Restful API | [`GET /api/v1/eventos/{id}/cupo`](#get-apiv1eventosidcupo) |
 | CORE | Salida / Entrada | Restful API | [`POST {CORE_BASE_URL}/saldo/descontar`](#core--descuento-de-saldo) |
+| Backoffice Administrativo | Entrada | Restful API | [`GET {BACKOFFICE_BASE_URL}/locaciones`](#backoffice--catálogo-de-locaciones) |
+| Backoffice Administrativo | Entrada | Restful API | [`GET {BACKOFFICE_BASE_URL}/tarifas/evento-inscripcion/{categoria}`](#backoffice--tarifa-de-inscripción) |
 | CORE | Salida | Message Queue | [`evento.recordatorio`](#core--recordatorio-de-evento) |
 | Analítica Institucional | Salida | Message Queue | [`evento.creado`](#analítica--eventoscreado) |
 | Analítica Institucional | Salida | Message Queue | [`inscripcion.registrada`](#analítica--inscripcionregistrada) |
@@ -51,21 +53,21 @@ Claims que consume `common/guards/core-jwt.guard.ts`. El usuario se cachea local
 
 ### `POST /api/v1/eventos`
 
-`Entrada` · `Restful API` · HU1. Responde `409` si la locación ya tiene un evento solapado en ese rango horario.
+`Entrada` · `Restful API` · HU1. Responde `409` si la locación ya tiene un evento solapado en ese rango horario, o si la locación no está `aptoEventos`.
 
 ```jsonc
 // Estructura
 { "titulo": "string", "descripcion": "string", "locacionId": "uuid",
   "cupoMaximo": "number (entero > 0)", "fechaInicio": "datetime ISO 8601",
   "fechaFin": "datetime ISO 8601 (posterior a fechaInicio)", "esPago": "boolean",
-  "precio": "number (entero > 0) | null — obligatorio si esPago = true" }
+  "categoriaPrecio": "general | especial | null — obligatorio si esPago = true" }
 
 // Ejemplo
 { "titulo": "Charla: Arquitectura de Software",
   "descripcion": "Charla abierta sobre patrones de arquitectura.",
   "locacionId": "c1a4e8d2-7b36-4f90-8e52-1d0a9c3b6f47", "cupoMaximo": 80,
   "fechaInicio": "2026-10-15T18:00:00-03:00", "fechaFin": "2026-10-15T20:00:00-03:00",
-  "esPago": false, "precio": null }
+  "esPago": false, "categoriaPrecio": null }
 ```
 
 ### `GET /api/v1/eventos?desde=&hasta=`
@@ -74,16 +76,17 @@ Claims que consume `common/guards/core-jwt.guard.ts`. El usuario se cachea local
 
 `desde` y `hasta` son ISO 8601 y opcionales; sin ellos devuelve todo. Filtran por **solapamiento**, no por fecha de inicio: un evento que arranca antes de `desde` y termina dentro de la ventana aparece igual.
 
-La locación viene resuelta y el cupo calculado a propósito: los portales piden un mes entero de una vez y no pueden hacer una llamada por evento. `yaInscripto` se calcula contra el usuario del JWT.
+La locación viene resuelta y el cupo calculado a propósito: los portales piden un mes entero de una vez y no pueden hacer una llamada por evento. `yaInscripto` se calcula contra el usuario del JWT. `precio` es un valor **resuelto** en el momento (no una columna): sale de consultar la tarifa vigente de Backoffice para `categoriaPrecio` — ver [ADR 0013](../decisions/0013-integracion-backoffice-tarifas-y-locaciones.md).
 
 ```jsonc
 // Estructura
 [{ "id": "uuid", "titulo": "string", "descripcion": "string", "locacionId": "uuid",
    "cupoMaximo": "number", "fechaInicio": "datetime", "fechaFin": "datetime",
-   "esPago": "boolean", "precio": "number | null",
+   "esPago": "boolean", "categoriaPrecio": "general | especial | null",
    "creadoPor": "string (id de usuario en CORE)",
    "locacion": { "nombre": "string", "sede": "string" },
-   "inscriptos": "number", "disponibles": "number", "yaInscripto": "boolean" }]
+   "inscriptos": "number", "disponibles": "number", "yaInscripto": "boolean",
+   "precio": "number | null — resuelto contra la tarifa vigente de Backoffice" }]
 
 // Ejemplo — GET /api/v1/eventos?desde=2026-10-01&hasta=2026-10-31
 [{ "id": "9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03",
@@ -91,9 +94,9 @@ La locación viene resuelta y el cupo calculado a propósito: los portales piden
    "descripcion": "Charla abierta sobre patrones de arquitectura.",
    "locacionId": "c1a4e8d2-7b36-4f90-8e52-1d0a9c3b6f47", "cupoMaximo": 80,
    "fechaInicio": "2026-10-15T18:00:00-03:00", "fechaFin": "2026-10-15T20:00:00-03:00",
-   "esPago": false, "precio": null, "creadoPor": "u-10432",
+   "esPago": false, "categoriaPrecio": null, "creadoPor": "u-10432",
    "locacion": { "nombre": "Aula Magna", "sede": "Monserrat" },
-   "inscriptos": 63, "disponibles": 17, "yaInscripto": false }]
+   "inscriptos": 63, "disponibles": 17, "yaInscripto": false, "precio": null }]
 ```
 
 Con `disponibles` y `yaInscripto` en la misma respuesta, el consumidor resuelve en una sola llamada el calendario, "a cuáles me puedo inscribir" (`disponibles > 0 && !yaInscripto`) y "a cuáles ya me inscribí" (`yaInscripto`).
@@ -117,15 +120,16 @@ Con `disponibles` y `yaInscripto` en la misma respuesta, el consumidor resuelve 
 
 ### `GET /api/v1/locaciones`
 
-`Salida` · `Restful API` · catálogo propio. **No** se integra con Backoffice Administrativo — decidido, ver [`integraciones.md`](integraciones.md).
+`Salida` · `Restful API` · catálogo sincronizado desde Backoffice Administrativo (ver [ADR 0013](../decisions/0013-integracion-backoffice-tarifas-y-locaciones.md)) — lo que exponemos acá es nuestra copia local, no una llamada directa a Backoffice por request.
 
 ```jsonc
 // Estructura
-[{ "id": "uuid", "nombre": "string", "sede": "string", "capacidad": "number" }]
+[{ "id": "uuid", "nombre": "string", "sede": "string", "capacidad": "number",
+   "aptoEventos": "boolean" }]
 
 // Ejemplo
 [{ "id": "c1a4e8d2-7b36-4f90-8e52-1d0a9c3b6f47", "nombre": "Aula Magna",
-   "sede": "Monserrat", "capacidad": 120 }]
+   "sede": "Monserrat", "capacidad": 120, "aptoEventos": true }]
 ```
 
 ## Inscripciones
@@ -195,6 +199,36 @@ Se llama **antes** de persistir la inscripción. Si el descuento falla, la inscr
 { "aprobado": false, "saldoRestante": 1200, "motivo": "SALDO_INSUFICIENTE" }
 ```
 
+## Backoffice — catálogo de locaciones
+
+`Entrada` · `Restful API` · `GET {BACKOFFICE_BASE_URL}/locaciones` · ver [ADR 0013](../decisions/0013-integracion-backoffice-tarifas-y-locaciones.md).
+
+Sincroniza nuestra copia local (la que expone `GET /api/v1/locaciones`). Frecuencia de sincronización todavía sin definir con Backoffice — ver "Qué falta confirmar" más abajo.
+
+```jsonc
+// Estructura
+[{ "id": "uuid", "nombre": "string", "sede": "string", "capacidad": "number",
+   "aptoEventos": "boolean" }]
+
+// Ejemplo
+[{ "id": "c1a4e8d2-7b36-4f90-8e52-1d0a9c3b6f47", "nombre": "Aula Magna",
+   "sede": "Monserrat", "capacidad": 120, "aptoEventos": true }]
+```
+
+## Backoffice — tarifa de inscripción
+
+`Entrada` · `Restful API` · `GET {BACKOFFICE_BASE_URL}/tarifas/evento-inscripcion/{categoria}` · HU4.
+
+Se consulta al listar eventos (para resolver `precio`) y al confirmar una inscripción paga (para fijar `Inscripcion.montoCobrado`). Reemplaza el precio libre que el admin tipeaba por evento.
+
+```jsonc
+// Estructura
+{ "categoria": "general | especial", "monto": "number (entero, en pesos)" }
+
+// Ejemplo
+{ "categoria": "especial", "monto": 12500 }
+```
+
 ## CORE — recordatorio de evento
 
 `Salida` · `Message Queue` · `evento.recordatorio` hacia la cola de notificaciones de CORE · HU7.
@@ -222,13 +256,13 @@ Lo publica el worker diario cuando `fechaInicio - hoy = 7 días`, una vez por in
 // Estructura
 { "tipo": "evento.creado", "eventoId": "uuid", "titulo": "string", "locacionId": "uuid",
   "sede": "string", "cupoMaximo": "number", "fechaInicio": "datetime", "fechaFin": "datetime",
-  "esPago": "boolean", "precio": "number | null", "emitidoEn": "datetime" }
+  "esPago": "boolean", "categoriaPrecio": "general | especial | null", "emitidoEn": "datetime" }
 
 // Ejemplo
 { "tipo": "evento.creado", "eventoId": "9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03",
   "titulo": "Workshop de Testing", "locacionId": "c1a4e8d2-7b36-4f90-8e52-1d0a9c3b6f47",
   "sede": "Monserrat", "cupoMaximo": 40, "fechaInicio": "2026-10-22T18:00:00-03:00",
-  "fechaFin": "2026-10-22T21:00:00-03:00", "esPago": true, "precio": 4500,
+  "fechaFin": "2026-10-22T21:00:00-03:00", "esPago": true, "categoriaPrecio": "especial",
   "emitidoEn": "2026-09-20T11:05:00-03:00" }
 ```
 
@@ -267,7 +301,7 @@ Lo publica el worker diario cuando `fechaInicio - hoy = 7 días`, una vez por in
 
 ## Estado de implementación
 
-Todos los endpoints `/api/v1` de este documento están implementados en `apps/api`, y cada módulo (`eventos`, `inscripciones`, `asistencia`, `locaciones`) tiene tests unitarios de su service. El descuento de saldo de CORE está mockeado con saldo fijo en `common/core/saldo.service.ts`. El recordatorio (HU7) y los tres eventos hacia Analítica **todavía no se emiten**: no hay worker ni publisher, y el canal sigue sin definirse.
+Todos los endpoints `/api/v1` de este documento están implementados en `apps/api`, y cada módulo (`eventos`, `inscripciones`, `asistencia`, `locaciones`) tiene tests unitarios de su service. El descuento de saldo de CORE está mockeado con saldo fijo en `common/core/saldo.service.ts`, y la tarifa de inscripción por categoría de Backoffice está mockeada con valores fijos en `common/backoffice/tarifas.service.ts`. El recordatorio (HU7) y los tres eventos hacia Analítica **todavía no se emiten**: no hay worker ni publisher, y el canal sigue sin definirse.
 
 ## Qué falta confirmar
 
@@ -279,3 +313,4 @@ Las estructuras de arriba son las que implementa nuestro módulo. Lo que todaví
 | Path real y shape de respuesta del descuento de saldo | CORE |
 | Canal del recordatorio: cola/topic vs endpoint REST | CORE |
 | Los tres eventos que consume Analítica | Analítica Institucional |
+| Path real y shape del catálogo de locaciones y de la tarifa por categoría, y frecuencia de sincronización | Backoffice Administrativo |
