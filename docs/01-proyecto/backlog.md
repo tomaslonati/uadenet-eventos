@@ -33,7 +33,7 @@ Como usuario quiero ver mis eventos inscriptos, para hacer seguimiento.
 
 **HU6 — Registrar asistencia** · Must (parcial: el registro existe, el mecanismo de verificación no)
 Como administrativo quiero registrar la asistencia de un inscripto, para llevar presentismo real.
-- El campo `Asistencia.metodo` está cerrado (`qr | codigo-en-sala | manual`, ver [`../02-arquitectura/modelo-dominio.md`](../02-arquitectura/modelo-dominio.md)) y `POST /api/v1/asistencia` guarda con cuál se tomó.
+- El campo `Asistencia.metodo` está cerrado (`qr | manual`, ver [`../02-arquitectura/modelo-dominio.md`](../02-arquitectura/modelo-dominio.md)) y `POST /api/v1/asistencia` guarda con cuál se tomó.
 - **Falta el mecanismo en sí.** El TP pide "desarrollar un método para comprobar la asistencia": guardar `metodo: "qr"` no es generar ni validar un QR. Sigue abierta la tarea técnica de más abajo.
 
 **HU7 — Recibir recordatorio de evento** · Must (bloqueada por contrato de notificaciones con CORE)
@@ -65,7 +65,7 @@ Salvedades del backend verde: HU4 descuenta contra el mock de saldo (`apps/api/s
 
 ## Tareas técnicas / Spikes (no son HU)
 
-~~Definir modelo de dominio~~ hecho (`../02-arquitectura/modelo-dominio.md`) · Definir roles y permisos · ~~Definir stack tecnológico~~ hecho (ver `../decisions/`) · Definir contrato de integración con CORE · Definir contrato de integración con Analítica · ~~Diseñar y documentar API (Swagger)~~ hecho, los 9 endpoints están en `/api/docs` · **Definir mecanismo de verificación de asistencia** (bloquea cerrar HU6) · Conectar `apps/web` a la API real · Diagrama de arquitectura general del sistema · ~~Setup del monorepo (`../04-guias/bootstrap.md`)~~ hecho.
+~~Definir modelo de dominio~~ hecho (`../02-arquitectura/modelo-dominio.md`) · Definir roles y permisos · ~~Definir stack tecnológico~~ hecho (ver `../decisions/`) · Definir contrato de integración con CORE · Definir contrato de integración con Analítica · Definir contrato de integración con Backoffice Administrativo (locaciones + tarifa de inscripción) · ~~Diseñar y documentar API (Swagger)~~ hecho, los 9 endpoints están en `/api/docs` · **Definir mecanismo de verificación de asistencia** (bloquea cerrar HU6) · Conectar `apps/web` a la API real · Diagrama de arquitectura general del sistema · ~~Setup del monorepo (`../04-guias/bootstrap.md`)~~ hecho.
 
 ## Estado de los mocks de vista (1ra Entrega)
 
@@ -77,7 +77,7 @@ Las cinco historias de mocks del board están implementadas como pantallas reale
 | Mock de vista - Listado y búsqueda de eventos | `/cartelera` (tarjetas / tabla / agenda) |
 | Mock de vista - Detalle e inscripción a evento | `/eventos/[id]` |
 | Mock de vista - Mis inscripciones | `/mis-inscripciones` |
-| Mock de vista - Marcado de asistencia | `/asistencia` (QR, código en sala, lista manual) |
+| Mock de vista - Marcado de asistencia | `/asistencia` (QR, lista manual) |
 
 Además, y sin historia propia en el board todavía: `/gestion` (panel del administrativo con indicadores), `/cuenta` (saldo institucional y movimientos), `/docente` y `/avisos` (centro de notificaciones + regla automática de recordatorio). Si el equipo las quiere trackear, hay que crearles el ticket.
 

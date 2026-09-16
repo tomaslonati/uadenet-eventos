@@ -13,6 +13,8 @@ export const inscripcionSchema = z.object({
   fechaInscripcion: z.coerce.date(),
   estado: z.literal("inscripto"),
   pagoConfirmado: z.boolean(),
+  /** Monto que Backoffice devolvió al confirmarse esta inscripción — no se recalcula si la tarifa cambia después (ver ADR 0013). */
+  montoCobrado: z.number().int().nullable(),
 });
 
 export type Inscripcion = z.infer<typeof inscripcionSchema>;

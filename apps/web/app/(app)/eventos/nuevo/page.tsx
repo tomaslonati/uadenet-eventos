@@ -24,8 +24,10 @@ import { fechaLarga, horario, minutos, pesos } from "@/lib/formato";
 import {
   LOCACIONES,
   SEDES,
+  TARIFAS_INSCRIPCION,
   TIPOS_EVENTO,
   reservasDe,
+  type CategoriaPrecio,
   type TipoEvento,
 } from "@/lib/mock/eventos";
 
@@ -69,7 +71,7 @@ type Formulario = {
   locacion: string;
   cupo: string;
   arancelado: boolean;
-  precio: string;
+  categoriaPrecio: CategoriaPrecio | null;
   opciones: boolean[];
 };
 
@@ -85,7 +87,7 @@ const INICIAL: Formulario = {
   locacion: "Auditorio Magno",
   cupo: "120",
   arancelado: false,
-  precio: "",
+  categoriaPrecio: null,
   opciones: [true, true],
 };
 
@@ -136,7 +138,9 @@ export default function NuevoEvento() {
       : []),
   ];
 
-  const precioNumero = soloNumeros(form.precio);
+  const precioNumero = form.categoriaPrecio
+    ? TARIFAS_INSCRIPCION[form.categoriaPrecio]
+    : 0;
   const cupoNumero = soloNumeros(form.cupo);
   const rango = horario(form.desde, form.hasta);
 
@@ -437,7 +441,12 @@ export default function NuevoEvento() {
                         ? estilos.modoPagoElegido
                         : ""
                     }`}
-                    onClick={() => editar({ arancelado: opcion.arancelado })}
+                    onClick={() =>
+                      editar({
+                        arancelado: opcion.arancelado,
+                        categoriaPrecio: opcion.arancelado ? "general" : null,
+                      })
+                    }
                   >
                     <span className={estilos.modoPagoLabel}>{opcion.label}</span>
                     <span className={estilos.modoPagoDesc}>{opcion.desc}</span>
@@ -447,18 +456,35 @@ export default function NuevoEvento() {
 
               {form.arancelado ? (
                 <div className={estilos.grillaDatos}>
-                  <Campo label="Arancel por persona">
-                    {(id) => (
-                      <input
-                        id={id}
-                        inputMode="numeric"
-                        className={claseControl}
-                        value={form.precio}
-                        placeholder="0"
-                        onChange={(evento) =>
-                          editar({ precio: evento.target.value })
-                        }
-                      />
+                  <Campo label="Categoría de precio">
+                    {() => (
+                      <div className={estilos.modosPago}>
+                        {(
+                          Object.entries(TARIFAS_INSCRIPCION) as [
+                            CategoriaPrecio,
+                            number,
+                          ][]
+                        ).map(([categoria, tarifa]) => (
+                          <button
+                            key={categoria}
+                            type="button"
+                            aria-pressed={form.categoriaPrecio === categoria}
+                            className={`${estilos.modoPago} ${
+                              form.categoriaPrecio === categoria
+                                ? estilos.modoPagoElegido
+                                : ""
+                            }`}
+                            onClick={() => editar({ categoriaPrecio: categoria })}
+                          >
+                            <span className={estilos.modoPagoLabel}>
+                              {categoria === "general" ? "General" : "Especial"}
+                            </span>
+                            <span className={estilos.modoPagoDesc}>
+                              {pesos(tarifa)} — definido por Backoffice
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </Campo>
                   <Campo label="Recaudación estimada al 100% del cupo">
