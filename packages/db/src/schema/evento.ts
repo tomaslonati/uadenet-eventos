@@ -1,6 +1,9 @@
-import { boolean, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { locaciones } from "./locacion.js";
 import { usuarios } from "./usuario.js";
+
+/** Definida por Backoffice Administrativo, no por este módulo (ver ADR 0013). */
+export const categoriaPrecio = pgEnum("categoria_precio", ["general", "especial"]);
 
 export const eventos = pgTable("eventos", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -13,7 +16,7 @@ export const eventos = pgTable("eventos", {
   fechaInicio: timestamp("fecha_inicio", { withTimezone: true }).notNull(),
   fechaFin: timestamp("fecha_fin", { withTimezone: true }).notNull(),
   esPago: boolean("es_pago").notNull(),
-  precio: integer("precio"),
+  categoriaPrecio: categoriaPrecio("categoria_precio"),
   creadoPor: text("creado_por")
     .notNull()
     .references(() => usuarios.id),

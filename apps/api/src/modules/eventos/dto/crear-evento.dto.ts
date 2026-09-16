@@ -22,6 +22,11 @@ export class CrearEventoDto {
   @ApiProperty()
   esPago!: boolean;
 
-  @ApiProperty({ required: false, nullable: true })
-  precio?: number | null;
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    enum: ["general", "especial"],
+    description: "Obligatoria si esPago = true. El monto lo resuelve Backoffice.",
+  })
+  categoriaPrecio?: "general" | "especial" | null;
 }
