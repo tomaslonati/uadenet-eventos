@@ -24,7 +24,8 @@ export class EventoDeCarteleraDto extends EventoDto {
 
   @ApiProperty({
     nullable: true,
-    description: 'Resuelto contra la tarifa vigente de Backoffice para categoriaPrecio.',
+    description:
+      'Resuelto contra la tarifa vigente de Backoffice para categoriaPrecio.',
   })
   precio!: number | null;
 }
