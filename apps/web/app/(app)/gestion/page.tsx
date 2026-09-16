@@ -36,10 +36,6 @@ export default function Gestion() {
           100,
       )
     : 0;
-  const recaudado = deLaSede.reduce(
-    (total, evento) => total + ingresosDe(evento),
-    0,
-  );
 
   const indicadores: Indicador[] = [
     {
@@ -56,11 +52,6 @@ export default function Gestion() {
       label: "Ocupación media",
       valor: `${ocupacionMedia}%`,
       sub: "sobre cupo publicado",
-    },
-    {
-      label: "Recaudado",
-      valor: pesos(recaudado),
-      sub: "vía cuenta institucional",
     },
   ];
 
