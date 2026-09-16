@@ -1,3 +1,5 @@
+> ⚠️ **Superseded por [ADR 0013](0013-integracion-backoffice-tarifas-y-locaciones.md)** — el intercambio real con Backoffice Administrativo confirmó lo contrario de lo que asume este ADR.
+
 # ADR 0012 — Catálogo de locaciones cargado desde el panel propio, sin integración con Backoffice
 
 **Contexto:** La consigna del TP asigna a Backoffice Administrativo la "gestión de sedes y espacios" (alta y mantenimiento del catálogo de sedes físicas). Nuestro módulo necesita que el administrativo indique una locación al crear cada evento.
