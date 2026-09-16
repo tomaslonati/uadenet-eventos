@@ -49,7 +49,7 @@ Sin estado explícito: ningún HU pide borradores ni cancelación de evento. Que
 - `id`
 - `inscripcionId` (FK)
 - `confirmadaEn` (timestamp)
-- `metodo` — `qr` | `codigo-en-sala` | `manual`. Son los tres que ya cubre el mock de `/asistencia`; se soportan los tres en vez de elegir uno, porque el mock los muestra como alternativas del mismo flujo.
+- `metodo` — `qr` | `manual`. Son los dos que ya cubre el mock de `/asistencia` — se descartó "código en sala" por ser el más débil en seguridad de los tres que se evaluaron (un mismo código sirve para toda la sala).
 
 ## Reglas de negocio a validar contra este modelo
 
@@ -60,9 +60,10 @@ Sin estado explícito: ningún HU pide borradores ni cancelación de evento. Que
 - El recordatorio se dispara cuando `fechaInicio - hoy = 7 días` para cada Inscripción activa.
 - El monto cobrado en una Inscripción se fija al confirmarse contra la tarifa vigente de Backoffice; no se recalcula si la tarifa cambia después.
 - No se puede crear un Evento en una Locación con `aptoEventos = false`.
+- No se puede crear un Evento con una `categoriaPrecio` para la que no haya tarifa vigente en el caché de Backoffice, ni confirmar una Inscripción paga si al momento de cobrar no hay tarifa vigente para la categoría del evento (ver [ADR 0014](../decisions/0014-cache-de-tarifas-por-polling.md)).
 
 ## Pendiente de decidir
 
-Nada del modelo en sí. Lo que falta no depende de nosotros: los contratos con CORE (firma del JWT, descuento de saldo, canal de notificaciones), con Analítica y con Backoffice Administrativo (path real del catálogo de locaciones y de la tarifa por categoría) — ver [`integraciones.md`](integraciones.md) y [`flujo-de-datos-integraciones.md`](flujo-de-datos-integraciones.md).
+Nada del modelo en sí. Con Backoffice el path y el shape de locaciones y tarifa ya están confirmados (ver ADR 0013/0014); lo que queda pendiente de ese lado es si van a embeber el nombre de la sede en la respuesta de espacios, y de nuestro lado la frecuencia del polling de tarifas. Lo que sigue sin depender de nosotros: los contratos con CORE (firma del JWT, descuento de saldo, canal de notificaciones) y con Analítica — ver [`integraciones.md`](integraciones.md) y [`flujo-de-datos-integraciones.md`](flujo-de-datos-integraciones.md).
 
 `Inscripcion.estado` y `Asistencia.metodo` estaban marcados como TBD y se cerraron con lo que ya estaba decidido en `../01-proyecto/backlog.md` (la cancelación quedó fuera de alcance) y en los mocks de vista (los tres métodos de asistencia). Si el equipo quiere revisarlos, son un cambio de schema con migration.
