@@ -63,6 +63,7 @@ export class InscripcionesService {
         eventoId: evento.id,
         usuarioId: USUARIO_DEMO_ID,
         pagoConfirmado: evento.esPago,
+        montoCobrado: evento.esPago ? evento.precio : null,
       })
       .returning();
 
