@@ -12,7 +12,6 @@ import {
 } from "react";
 
 import { iniciales } from "./formato";
-import { AVISOS } from "./mock/avisos";
 import { TODAS_LAS_SEDES, type Evento } from "./mock/eventos";
 
 export type Rol = "admin" | "docente" | "alumno";
@@ -89,8 +88,7 @@ export const INICIO_POR_ROL: Record<Rol, string> = {
 
 export type ItemNav = { href: string; label: string; badge?: string };
 
-export function navDe(rol: Rol, inscripciones: number, sinLeer: number): ItemNav[] {
-  const avisos = { href: "/avisos", label: "Avisos", badge: String(sinLeer) };
+export function navDe(rol: Rol, inscripciones: number): ItemNav[] {
   const cuenta = { href: "/cuenta", label: "Cuenta institucional" };
 
   if (rol === "admin") {
@@ -104,13 +102,11 @@ export function navDe(rol: Rol, inscripciones: number, sinLeer: number): ItemNav
         label: "Mis inscripciones",
         badge: String(inscripciones),
       },
-      avisos,
       cuenta,
     ];
   }
   if (rol === "docente") {
     return [
-      { href: "/docente", label: "Mis eventos" },
       { href: "/cartelera", label: "Cartelera" },
       {
         href: "/mis-inscripciones",
@@ -118,7 +114,6 @@ export function navDe(rol: Rol, inscripciones: number, sinLeer: number): ItemNav
         badge: String(inscripciones),
       },
       { href: "/asistencia", label: "Asistencia en vivo", badge: "live" },
-      avisos,
       cuenta,
     ];
   }
@@ -129,7 +124,6 @@ export function navDe(rol: Rol, inscripciones: number, sinLeer: number): ItemNav
       label: "Mis inscripciones",
       badge: String(inscripciones),
     },
-    avisos,
     cuenta,
   ];
 }
@@ -148,12 +142,6 @@ type Sesion = {
   estaInscripto: (eventoId: string) => boolean;
   inscribir: (evento: Evento, cobrar: boolean) => void;
 
-  avisosLeidos: boolean;
-  avisosDescartados: string[];
-  sinLeer: number;
-  marcarAvisosLeidos: () => void;
-  descartarAviso: (avisoId: string) => void;
-
   toast: string | null;
   mostrarToast: (mensaje: string) => void;
 };
@@ -169,8 +157,6 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   const [inscripciones, setInscripciones] = useState<string[]>(
     ESTADO_INICIAL_POR_ROL.admin.inscripciones,
   );
-  const [avisosLeidos, setAvisosLeidos] = useState(false);
-  const [avisosDescartados, setAvisosDescartados] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -191,17 +177,10 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     setRol(nuevoRol);
     setSaldo(inicial.saldo);
     setInscripciones(inicial.inscripciones);
-    setAvisosLeidos(false);
-    setAvisosDescartados([]);
   }, []);
 
   const valor = useMemo<Sesion>(() => {
     const datos = USUARIOS[rol];
-    const sinLeer = avisosLeidos
-      ? 0
-      : AVISOS.filter(
-          (aviso) => aviso.sinLeer && !avisosDescartados.includes(aviso.id),
-        ).length;
 
     return {
       rol,
@@ -222,28 +201,10 @@ export function SesionProvider({ children }: { children: ReactNode }) {
         if (cobrar) setSaldo((actual) => actual - evento.precio);
       },
 
-      avisosLeidos,
-      avisosDescartados,
-      sinLeer,
-      marcarAvisosLeidos: () => setAvisosLeidos(true),
-      descartarAviso: (avisoId) => {
-        setAvisosDescartados((actuales) => [...actuales, avisoId]);
-      },
-
       toast,
       mostrarToast,
     };
-  }, [
-    rol,
-    sede,
-    saldo,
-    inscripciones,
-    avisosLeidos,
-    avisosDescartados,
-    toast,
-    mostrarToast,
-    ingresar,
-  ]);
+  }, [rol, sede, saldo, inscripciones, toast, mostrarToast, ingresar]);
 
   return (
     <SesionContext.Provider value={valor}>{children}</SesionContext.Provider>
