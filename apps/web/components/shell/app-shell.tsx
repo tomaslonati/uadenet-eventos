@@ -9,20 +9,16 @@ import { pesos } from "@/lib/formato";
 import { SEDES, TODAS_LAS_SEDES } from "@/lib/mock/eventos";
 import { navDe, useSesion } from "@/lib/sesion";
 
-import { PanelAvisos } from "./panel-avisos";
-
 import estilos from "./app-shell.module.css";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { rol, usuario, sede, cambiarSede, saldo, inscripciones, sinLeer } =
+  const { rol, usuario, sede, cambiarSede, saldo, inscripciones } =
     useSesion();
-  const [avisosAbiertos, setAvisosAbiertos] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const campana = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
 
-  const nav = navDe(rol, inscripciones.length, sinLeer);
+  const nav = navDe(rol, inscripciones.length);
 
   useEffect(() => {
     if (!menuAbierto) return;
@@ -57,18 +53,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         <div className={estilos.espacio} />
-
-        <button
-          ref={campana}
-          type="button"
-          className={estilos.campana}
-          aria-label={`Avisos, ${sinLeer} sin leer`}
-          aria-expanded={avisosAbiertos}
-          onClick={() => setAvisosAbiertos((abierto) => !abierto)}
-        >
-          <span className={estilos.campanaIcono} />
-          {sinLeer > 0 ? <span className={estilos.campanaPunto} /> : null}
-        </button>
 
         <div ref={menu} className={estilos.menuUsuario}>
           <button
@@ -146,13 +130,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className={estilos.contenido}>{children}</div>
         </main>
       </div>
-
-      {avisosAbiertos ? (
-        <PanelAvisos
-          onCerrar={() => setAvisosAbiertos(false)}
-          disparador={campana}
-        />
-      ) : null}
     </div>
   );
 }

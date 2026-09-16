@@ -12,7 +12,6 @@ import {
   pesos,
   sumarDias,
 } from "@/lib/formato";
-import { HISTORIAL_ASISTENCIA } from "@/lib/mock/movimientos";
 import { HOY, buscarEvento, type Evento } from "@/lib/mock/eventos";
 import { useSesion } from "@/lib/sesion";
 import { vistaDe } from "@/lib/vista-evento";
@@ -157,29 +156,6 @@ export default function MisInscripciones() {
           }
         />
       ) : null}
-
-      <Seccion titulo="Historial de asistencia">
-        <div className={estilos.historial}>
-          {HISTORIAL_ASISTENCIA.map((registro) => (
-            <div key={registro.titulo} className={estilos.filaHistorial}>
-              <span className={estilos.historialFecha}>{registro.fecha}</span>
-              <span className={estilos.historialTitulo}>{registro.titulo}</span>
-              <span className={estilos.celdaBadge}>
-                <Badge tono={registro.asistio ? "exito" : "atencion"}>
-                  {registro.asistio ? "Asistió" : "No asistió"}
-                </Badge>
-              </span>
-              <span
-                className={
-                  registro.asistio ? estilos.certificado : estilos.sinCertificado
-                }
-              >
-                {registro.certificado}
-              </span>
-            </div>
-          ))}
-        </div>
-      </Seccion>
     </>
   );
 }

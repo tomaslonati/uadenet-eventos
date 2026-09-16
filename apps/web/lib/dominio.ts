@@ -38,14 +38,6 @@ export function ingresosDe(evento: Evento): number {
 }
 
 /**
- * Asistencia efectiva de ediciones anteriores. Valor simulado hasta que exista
- * el histórico real de acreditaciones.
- */
-export function asistenciaHistorica(evento: Evento): number {
-  return 72 + (evento.inscriptos % 21);
-}
-
-/**
  * Otro evento al que la persona ya está inscripta y que se pisa con éste.
  * El sistema no admite dos inscripciones concurrentes.
  */
