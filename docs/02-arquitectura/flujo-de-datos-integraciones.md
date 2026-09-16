@@ -153,24 +153,25 @@ Con `disponibles` y `yaInscripto` en la misma respuesta, el consumidor resuelve 
 ```jsonc
 // Estructura
 [{ "id": "uuid", "eventoId": "uuid", "usuarioId": "string", "fechaInscripcion": "datetime",
-   "estado": "inscripto", "pagoConfirmado": "boolean" }]
+   "estado": "inscripto", "pagoConfirmado": "boolean",
+   "montoCobrado": "number | null — congelado al confirmarse, no se recalcula si cambia la tarifa" }]
 
 // Ejemplo
 [{ "id": "5e8d0b31-9c47-4a26-b18f-72e4c0d95a68",
    "eventoId": "9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03", "usuarioId": "u-10432",
    "fechaInscripcion": "2026-09-30T14:22:10-03:00", "estado": "inscripto",
-   "pagoConfirmado": true }]
+   "pagoConfirmado": true, "montoCobrado": 12500 }]
 ```
 
 ## Asistencia
 
 ### `POST /api/v1/asistencia`
 
-`Entrada` · `Restful API` · HU6. Los tres métodos son los que ya cubre el mock de `/asistencia`. Responde `409` si no existe una inscripción activa para esa `inscripcionId`.
+`Entrada` · `Restful API` · HU6. Los dos métodos son los que ya cubre el mock de `/asistencia` (QR y manual — se descartó "código en sala" por ser el más débil en seguridad de los tres que se evaluaron). Responde `409` si no existe una inscripción activa para esa `inscripcionId`.
 
 ```jsonc
 // Estructura
-{ "inscripcionId": "uuid", "metodo": "qr | codigo-en-sala | manual" }
+{ "inscripcionId": "uuid", "metodo": "qr | manual" }
 
 // Ejemplo
 { "inscripcionId": "5e8d0b31-9c47-4a26-b18f-72e4c0d95a68", "metodo": "qr" }
