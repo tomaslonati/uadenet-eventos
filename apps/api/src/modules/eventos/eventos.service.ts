@@ -18,12 +18,14 @@ import {
   lte,
 } from '@repo/db';
 import type {
+  CategoriaPrecio,
   CrearEvento,
   Cupo,
   Evento,
   EventoDeCartelera,
   FiltroEventos,
 } from '@repo/contracts';
+import { TarifasService } from '../../common/backoffice/tarifas.service';
 import { USUARIO_DEMO_ID } from '../../common/usuario-demo';
 
 interface FilaConLocacion {
@@ -38,7 +40,24 @@ const columnas = {
 
 @Injectable()
 export class EventosService {
+  constructor(private readonly tarifasService: TarifasService) {}
+
   async crear(datos: CrearEvento): Promise<Evento> {
+    const locacion = await db
+      .select({ id: locaciones.id, aptoEventos: locaciones.aptoEventos })
+      .from(locaciones)
+      .where(eq(locaciones.id, datos.locacionId))
+      .limit(1);
+
+    if (locacion.length === 0) {
+      throw new NotFoundException('La locación no existe.');
+    }
+    if (!locacion[0]!.aptoEventos) {
+      throw new ConflictException(
+        'La locación no está habilitada para eventos.',
+      );
+    }
+
     const conflicto = await db
       .select({ id: eventos.id })
       .from(eventos)
@@ -142,16 +161,24 @@ export class EventosService {
     );
     const inscriptoEn = new Set(propias.map((fila) => fila.eventoId));
 
-    return filas.map(({ evento, locacion }) => {
-      const inscriptos = totalPorEvento.get(evento.id) ?? 0;
+    return Promise.all(
+      filas.map(async ({ evento, locacion }) => {
+        const inscriptos = totalPorEvento.get(evento.id) ?? 0;
 
-      return {
-        ...evento,
-        locacion,
-        inscriptos,
-        disponibles: evento.cupoMaximo - inscriptos,
-        yaInscripto: inscriptoEn.has(evento.id),
-      };
-    });
+        return {
+          ...evento,
+          locacion,
+          inscriptos,
+          disponibles: evento.cupoMaximo - inscriptos,
+          yaInscripto: inscriptoEn.has(evento.id),
+          precio: await this.precioDe(evento.categoriaPrecio),
+        };
+      }),
+    );
+  }
+
+  /** `null` si el evento es gratuito; si no, la tarifa vigente de Backoffice para esa categoría. */
+  private precioDe(categoria: CategoriaPrecio | null): Promise<number | null> {
+    return categoria ? this.tarifasService.consultar(categoria) : Promise.resolve(null);
   }
 }

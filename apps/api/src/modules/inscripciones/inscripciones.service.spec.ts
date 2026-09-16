@@ -36,17 +36,19 @@ describe('InscripcionesService', () => {
     fechaInicio: new Date('2026-10-15T18:00:00Z'),
     fechaFin: new Date('2026-10-15T20:00:00Z'),
     esPago: false,
-    precio: null,
+    categoriaPrecio: null,
     creadoPor: 'seed-admin-demo',
     locacion: { nombre: 'Aula Magna', sede: 'Monserrat' },
     inscriptos: 0,
     disponibles: 2,
     yaInscripto: false,
+    precio: null,
   };
 
   const eventoPago: EventoDeCartelera = {
     ...eventoGratuito,
     esPago: true,
+    categoriaPrecio: 'especial',
     precio: 4500,
   };
 
@@ -112,20 +114,22 @@ describe('InscripcionesService', () => {
     expect(insertar).not.toHaveBeenCalled();
   });
 
-  it('descuenta el saldo antes de persistir cuando el evento es pago', async () => {
+  it('descuenta el saldo y congela el monto cobrado cuando el evento es pago', async () => {
     construir(eventoPago);
     seleccionar.mockReturnValueOnce(superpuestas([]));
-    insertar.mockReturnValue({
-      values: () => ({
-        returning: () =>
-          Promise.resolve([{ ...inscripcionCreada, pagoConfirmado: true }]),
-      }),
+    const values = jest.fn().mockReturnValue({
+      returning: () =>
+        Promise.resolve([{ ...inscripcionCreada, pagoConfirmado: true }]),
     });
+    insertar.mockReturnValue({ values });
 
     await service.crear(datos);
 
     expect(descontar).toHaveBeenCalledWith(
       expect.objectContaining({ monto: 4500, usuarioId: 'seed-admin-demo' }),
+    );
+    expect(values).toHaveBeenCalledWith(
+      expect.objectContaining({ montoCobrado: 4500 }),
     );
   });
 
