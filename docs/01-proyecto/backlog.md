@@ -65,7 +65,7 @@ Salvedades del backend verde: HU4 descuenta contra el mock de saldo (`apps/api/s
 
 ## Tareas técnicas / Spikes (no son HU)
 
-~~Definir modelo de dominio~~ hecho (`../02-arquitectura/modelo-dominio.md`) · Definir roles y permisos · ~~Definir stack tecnológico~~ hecho (ver `../decisions/`) · Definir contrato de integración con CORE · Definir contrato de integración con Analítica · ~~Diseñar y documentar API (Swagger)~~ hecho, los 9 endpoints están en `/api/docs` · **Definir mecanismo de verificación de asistencia** (bloquea cerrar HU6) · Conectar `apps/web` a la API real · Diagrama de arquitectura general del sistema · ~~Setup del monorepo (`../04-guias/bootstrap.md`)~~ hecho.
+~~Definir modelo de dominio~~ hecho (`../02-arquitectura/modelo-dominio.md`) · Definir roles y permisos · ~~Definir stack tecnológico~~ hecho (ver `../decisions/`) · Definir contrato de integración con CORE · Definir contrato de integración con Analítica · Definir contrato de integración con Backoffice Administrativo (locaciones + tarifa de inscripción) · ~~Diseñar y documentar API (Swagger)~~ hecho, los 9 endpoints están en `/api/docs` · **Definir mecanismo de verificación de asistencia** (bloquea cerrar HU6) · Conectar `apps/web` a la API real · Diagrama de arquitectura general del sistema · ~~Setup del monorepo (`../04-guias/bootstrap.md`)~~ hecho.
 
 ## Estado de los mocks de vista (1ra Entrega)
 
