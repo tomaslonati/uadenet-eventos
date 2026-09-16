@@ -35,6 +35,7 @@ Esta carpeta es la memoria de `uadenet-eventos` entre sesiones y entre personas:
 
 **`03-diseno/`**
 - [`sistema-diseno.md`](03-diseno/sistema-diseno.md) — tokens, componentes y copy. Los valores viven como variables CSS en `apps/web/app/globals.css`.
+- [`justificacion-diseno-ux.md`](03-diseno/justificacion-diseno-ux.md) — por qué cada pantalla es como es: conecta la consigna del TPO, las reglas de negocio y lo implementado en `apps/web`.
 
 **`04-guias/`**
 - [`bootstrap.md`](04-guias/bootstrap.md) — inicialización del monorepo desde cero (ya ejecutada; se conserva como referencia del orden y del porqué).
