@@ -1,5 +1,6 @@
 import {
   boolean,
+  integer,
   pgEnum,
   pgTable,
   text,
@@ -31,6 +32,8 @@ export const inscripciones = pgTable(
       .defaultNow(),
     estado: estadoInscripcion("estado").notNull().default("inscripto"),
     pagoConfirmado: boolean("pago_confirmado").notNull(),
+    /** Monto que devolvió Backoffice al confirmarse; se congela acá, no se recalcula (ver ADR 0013). */
+    montoCobrado: integer("monto_cobrado"),
   },
   (tabla) => [unique().on(tabla.eventoId, tabla.usuarioId)],
 );

@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+export const categoriaPrecioSchema = z.enum(["general", "especial"]);
+
+export type CategoriaPrecio = z.infer<typeof categoriaPrecioSchema>;
+
 export const crearEventoSchema = z
   .object({
     titulo: z.string().min(1),
@@ -9,15 +13,15 @@ export const crearEventoSchema = z
     fechaInicio: z.coerce.date(),
     fechaFin: z.coerce.date(),
     esPago: z.boolean(),
-    precio: z.number().int().positive().nullable().optional(),
+    categoriaPrecio: categoriaPrecioSchema.nullable().optional(),
   })
   .refine((datos) => datos.fechaFin > datos.fechaInicio, {
     message: "fechaFin debe ser posterior a fechaInicio",
     path: ["fechaFin"],
   })
-  .refine((datos) => !datos.esPago || datos.precio != null, {
-    message: "precio es obligatorio cuando esPago es true",
-    path: ["precio"],
+  .refine((datos) => !datos.esPago || datos.categoriaPrecio != null, {
+    message: "categoriaPrecio es obligatoria cuando esPago es true",
+    path: ["categoriaPrecio"],
   });
 
 export type CrearEvento = z.infer<typeof crearEventoSchema>;
@@ -31,7 +35,7 @@ export const eventoSchema = z.object({
   fechaInicio: z.coerce.date(),
   fechaFin: z.coerce.date(),
   esPago: z.boolean(),
-  precio: z.number().int().nullable(),
+  categoriaPrecio: categoriaPrecioSchema.nullable(),
   creadoPor: z.string(),
 });
 
@@ -57,6 +61,8 @@ export const eventoDeCarteleraSchema = eventoSchema.extend({
   inscriptos: z.number().int(),
   disponibles: z.number().int(),
   yaInscripto: z.boolean(),
+  /** Resuelto contra la tarifa vigente de Backoffice para categoriaPrecio (ver ADR 0013), no una columna. */
+  precio: z.number().int().nullable(),
 });
 
 export type EventoDeCartelera = z.infer<typeof eventoDeCarteleraSchema>;

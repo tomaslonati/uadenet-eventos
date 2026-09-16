@@ -5,6 +5,7 @@ export const locacionSchema = z.object({
   nombre: z.string(),
   sede: z.string(),
   capacidad: z.number().int(),
+  aptoEventos: z.boolean(),
 });
 
 export type Locacion = z.infer<typeof locacionSchema>;

@@ -21,4 +21,10 @@ export class EventoDeCarteleraDto extends EventoDto {
 
   @ApiProperty({ description: 'Si el usuario del JWT ya está inscripto.' })
   yaInscripto!: boolean;
+
+  @ApiProperty({
+    nullable: true,
+    description: 'Resuelto contra la tarifa vigente de Backoffice para categoriaPrecio.',
+  })
+  precio!: number | null;
 }

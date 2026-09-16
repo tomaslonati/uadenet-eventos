@@ -12,4 +12,7 @@ export class LocacionDto {
 
   @ApiProperty()
   capacidad!: number;
+
+  @ApiProperty()
+  aptoEventos!: boolean;
 }

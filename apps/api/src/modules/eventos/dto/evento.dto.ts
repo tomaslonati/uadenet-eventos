@@ -25,8 +25,8 @@ export class EventoDto {
   @ApiProperty()
   esPago!: boolean;
 
-  @ApiProperty({ nullable: true })
-  precio!: number | null;
+  @ApiProperty({ nullable: true, enum: ["general", "especial"] })
+  categoriaPrecio!: "general" | "especial" | null;
 
   @ApiProperty()
   creadoPor!: string;

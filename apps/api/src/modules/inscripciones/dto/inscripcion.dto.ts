@@ -18,4 +18,7 @@ export class InscripcionDto {
 
   @ApiProperty()
   pagoConfirmado!: boolean;
+
+  @ApiProperty({ nullable: true })
+  montoCobrado!: number | null;
 }
