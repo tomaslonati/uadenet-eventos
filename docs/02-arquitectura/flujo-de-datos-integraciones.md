@@ -22,8 +22,8 @@ Base de la API: `/api/v1` — prefijo global `api` más versionado por URI (`app
 | — (consumo interno) | Entrada | Restful API | [`POST /api/v1/asistencia`](#post-apiv1asistencia) |
 | — (consumo interno) | Salida | Restful API | [`GET /api/v1/eventos/{id}/cupo`](#get-apiv1eventosidcupo) |
 | CORE | Salida / Entrada | Restful API | [`POST {CORE_BASE_URL}/saldo/descontar`](#core--descuento-de-saldo) |
-| Backoffice Administrativo | Entrada | Restful API | [`GET {BACKOFFICE_BASE_URL}/locaciones`](#backoffice--catálogo-de-locaciones) |
-| Backoffice Administrativo | Entrada | Restful API | [`GET {BACKOFFICE_BASE_URL}/tarifas/evento-inscripcion/{categoria}`](#backoffice--tarifa-de-inscripción) |
+| Backoffice Administrativo | Entrada | Restful API | [`GET /api/v1/backoffice/sedes/{sedeId}/espacios?aptoEventos=true`](#backoffice--espacios-por-sede) |
+| Backoffice Administrativo | Entrada | Restful API | [`GET /api/v1/backoffice/tarifas/vigente?concepto=&fecha=`](#backoffice--tarifa-vigente) |
 | CORE | Salida | Message Queue | [`evento.recordatorio`](#core--recordatorio-de-evento) |
 | Analítica Institucional | Salida | Message Queue | [`evento.creado`](#analítica--eventoscreado) |
 | Analítica Institucional | Salida | Message Queue | [`inscripcion.registrada`](#analítica--inscripcionregistrada) |
@@ -122,6 +122,8 @@ Con `disponibles` y `yaInscripto` en la misma respuesta, el consumidor resuelve 
 
 `Salida` · `Restful API` · catálogo sincronizado desde Backoffice Administrativo (ver [ADR 0013](../decisions/0013-integracion-backoffice-tarifas-y-locaciones.md)) — lo que exponemos acá es nuestra copia local, no una llamada directa a Backoffice por request.
 
+Se arma consultando `GET /api/v1/backoffice/sedes` (para tener el listado de sedes) y, por cada una, `GET /api/v1/backoffice/sedes/{sedeId}/espacios?aptoEventos=true` (ver [más abajo](#backoffice--espacios-por-sede)) — Backoffice no tiene un listado global. El nombre de la sede se resuelve con esa primera llamada; le pedimos a Backoffice que lo embeba directo en la respuesta de espacios para no tener que cruzar las dos llamadas, pendiente de que lo confirmen.
+
 ```jsonc
 // Estructura
 [{ "id": "uuid", "nombre": "string", "sede": "string", "capacidad": "number",
@@ -200,34 +202,43 @@ Se llama **antes** de persistir la inscripción. Si el descuento falla, la inscr
 { "aprobado": false, "saldoRestante": 1200, "motivo": "SALDO_INSUFICIENTE" }
 ```
 
-## Backoffice — catálogo de locaciones
+## Backoffice — espacios por sede
 
-`Entrada` · `Restful API` · `GET {BACKOFFICE_BASE_URL}/locaciones` · ver [ADR 0013](../decisions/0013-integracion-backoffice-tarifas-y-locaciones.md).
+`Entrada` · `Restful API` · `GET /api/v1/backoffice/sedes/{sedeId}/espacios?aptoEventos=true` · confirmado por Backoffice, ver [ADR 0013](../decisions/0013-integracion-backoffice-tarifas-y-locaciones.md).
 
-Sincroniza nuestra copia local (la que expone `GET /api/v1/locaciones`). Frecuencia de sincronización todavía sin definir con Backoffice — ver "Qué falta confirmar" más abajo.
+Se pide **por sede** — Backoffice no tiene un endpoint de listado global, así que armar nuestra copia local (`GET /api/v1/locaciones`) implica primero listar sedes (`GET /api/v1/backoffice/sedes`) y después pedir los espacios de cada una. La sede llega como `sedeId` (uuid), no como nombre: le pedimos a Backoffice que lo embeba en esta misma respuesta en vez de cruzarlo a mano con el listado de sedes — mientras no lo confirmen, seguimos resolviéndolo con la llamada aparte.
 
 ```jsonc
 // Estructura
-[{ "id": "uuid", "nombre": "string", "sede": "string", "capacidad": "number",
-   "aptoEventos": "boolean" }]
+{ "id": "uuid", "sedeId": "uuid", "codigo": "string", "nombre": "string",
+  "tipo": "string (ej. SALA_EVENTOS)", "capacidad": "number", "aptoEventos": "boolean",
+  "estado": "string (ej. ACTIVO)" }
 
 // Ejemplo
-[{ "id": "c1a4e8d2-7b36-4f90-8e52-1d0a9c3b6f47", "nombre": "Aula Magna",
-   "sede": "Monserrat", "capacidad": 120, "aptoEventos": true }]
+{ "id": "e4f1a2b3-...", "sedeId": "c1a4e8d2-7b36-4f90-8e52-1d0a9c3b6f47", "codigo": "A-305",
+  "nombre": "Auditorio Principal", "tipo": "SALA_EVENTOS", "capacidad": 200,
+  "aptoEventos": true, "estado": "ACTIVO" }
 ```
 
-## Backoffice — tarifa de inscripción
+## Backoffice — tarifa vigente
 
-`Entrada` · `Restful API` · `GET {BACKOFFICE_BASE_URL}/tarifas/evento-inscripcion/{categoria}` · HU4.
+`Entrada` · `Restful API` · `GET /api/v1/backoffice/tarifas/vigente?concepto=EVENTO_INSCRIPCION_GENERAL|EVENTO_INSCRIPCION_ESPECIAL&fecha=` · HU4, confirmado por Backoffice, ver [ADR 0013](../decisions/0013-integracion-backoffice-tarifas-y-locaciones.md) y [ADR 0014](../decisions/0014-cache-de-tarifas-por-polling.md).
 
-Se consulta al listar eventos (para resolver `precio`) y al confirmar una inscripción paga (para fijar `Inscripcion.montoCobrado`). Reemplaza el precio libre que el admin tipeaba por evento.
+Backoffice pide resolver la tarifa **al momento del cobro**, no al crear el evento, para tomar siempre la versión vigente. Para no depender de una llamada síncrona en cada inscripción, esto se implementa con un caché local en `tarifas.service.ts` que se refresca con polling periódico no agresivo (frecuencia a definir — ver ADR 0014); "al momento del cobro" lee ese caché ya actualizado, no dispara una llamada nueva. Devuelve `404` si no hay ninguna versión vigente para esa fecha/concepto — en ese caso **no se permite crear el evento** con esa categoría **ni confirmar la inscripción**.
 
 ```jsonc
 // Estructura
-{ "categoria": "general | especial", "monto": "number (entero, en pesos)" }
+{ "concepto": "EVENTO_INSCRIPCION_GENERAL | EVENTO_INSCRIPCION_ESPECIAL",
+  "sede": "string | null", "ambitoResuelto": "string (ej. GLOBAL)",
+  "monto": "number (decimal)", "moneda": "string (ej. ARS)",
+  "unidad": "string (ej. MONTO_FIJO)",
+  "vigencia": { "desde": "date", "hasta": "date | null" }, "tarifaId": "uuid" }
 
 // Ejemplo
-{ "categoria": "especial", "monto": 12500 }
+{ "concepto": "EVENTO_INSCRIPCION_GENERAL", "sede": null, "ambitoResuelto": "GLOBAL",
+  "monto": 1800.00, "moneda": "ARS", "unidad": "MONTO_FIJO",
+  "vigencia": { "desde": "2026-10-01", "hasta": null },
+  "tarifaId": "8f1e2d3c-4b5a-6789-0abc-def123456789" }
 ```
 
 ## CORE — recordatorio de evento
@@ -302,7 +313,7 @@ Lo publica el worker diario cuando `fechaInicio - hoy = 7 días`, una vez por in
 
 ## Estado de implementación
 
-Todos los endpoints `/api/v1` de este documento están implementados en `apps/api`, y cada módulo (`eventos`, `inscripciones`, `asistencia`, `locaciones`) tiene tests unitarios de su service. El descuento de saldo de CORE está mockeado con saldo fijo en `common/core/saldo.service.ts`, y la tarifa de inscripción por categoría de Backoffice está mockeada con valores fijos en `common/backoffice/tarifas.service.ts`. El recordatorio (HU7) y los tres eventos hacia Analítica **todavía no se emiten**: no hay worker ni publisher, y el canal sigue sin definirse.
+Todos los endpoints `/api/v1` de este documento están implementados en `apps/api`, y cada módulo (`eventos`, `inscripciones`, `asistencia`, `locaciones`) tiene tests unitarios de su service. El descuento de saldo de CORE está mockeado con saldo fijo en `common/core/saldo.service.ts`. La tarifa de inscripción de Backoffice está mockeada en `common/backoffice/tarifas.service.ts`, pero **todavía con el shape viejo** (`categoria: general | especial` a secas, monto entero, sin `concepto`/`vigencia`/`tarifaId`, sin caché por polling) — Backoffice ya confirmó el contrato real (ver más arriba y ADR 0014), falta actualizar el mock y los contratos para que coincidan. El recordatorio (HU7) y los tres eventos hacia Analítica **todavía no se emiten**: no hay worker ni publisher, y el canal sigue sin definirse.
 
 ## Qué falta confirmar
 
@@ -314,4 +325,5 @@ Las estructuras de arriba son las que implementa nuestro módulo. Lo que todaví
 | Path real y shape de respuesta del descuento de saldo | CORE |
 | Canal del recordatorio: cola/topic vs endpoint REST | CORE |
 | Los tres eventos que consume Analítica | Analítica Institucional |
-| Path real y shape del catálogo de locaciones y de la tarifa por categoría, y frecuencia de sincronización | Backoffice Administrativo |
+| Si Backoffice embebe el nombre de la sede en la respuesta de espacios (se lo pedimos, todavía no confirmaron) | Backoffice Administrativo |
+| Frecuencia del polling de tarifas (ver ADR 0014) | Nuestro | 

@@ -86,7 +86,7 @@ sequenceDiagram
     end
 
     Note over Admin,DB: FASE 4 — Registrar asistencia (HU6), el día del evento
-    Admin->>Web: marca asistencia del inscripto (mecanismo pendiente: QR, código en sala o manual — ver modelo-dominio.md)
+    Admin->>Web: marca asistencia del inscripto (QR o manual — ver modelo-dominio.md)
     Web->>API: POST /asistencia
     API->>DB: valida que exista una inscripción activa
     API->>DB: INSERT asistencia (confirmadaEn)
