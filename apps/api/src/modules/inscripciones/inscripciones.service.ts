@@ -1,11 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { and, db, eq, eventos, gt, inscripciones, lt } from '@repo/db';
-import type { CrearInscripcion, Inscripcion } from '@repo/contracts';
+import type {
+  CrearInscripcion,
+  Inscripcion,
+  RolUsuarioDominio,
+} from '@repo/contracts';
 import { AnaliticaService } from '../../common/analitica/analitica.service';
 import { SaldoService } from '../../common/core/saldo.service';
-import { USUARIO_DEMO_ID, USUARIO_DEMO_ROL } from '../../common/usuario-demo';
+import { USUARIO_DEMO, USUARIO_DEMO_ID } from '../../common/usuario-demo';
 import { EventosService } from '../eventos/eventos.service';
+
+export interface ActorInscripcion {
+  id: string;
+  rol: RolUsuarioDominio;
+}
 
 @Injectable()
 export class InscripcionesService {
@@ -15,8 +24,14 @@ export class InscripcionesService {
     private readonly analiticaService: AnaliticaService,
   ) {}
 
-  async crear(datos: CrearInscripcion): Promise<Inscripcion> {
-    const evento = await this.eventosService.obtener(datos.eventoId);
+  async crear(
+    datos: CrearInscripcion,
+    usuario: ActorInscripcion = USUARIO_DEMO,
+  ): Promise<Inscripcion> {
+    const evento = await this.eventosService.obtener(
+      datos.eventoId,
+      usuario.id,
+    );
 
     if (evento.disponibles <= 0) {
       throw new ConflictException('El evento no tiene cupo disponible.');
@@ -28,7 +43,7 @@ export class InscripcionesService {
       .innerJoin(eventos, eq(inscripciones.eventoId, eventos.id))
       .where(
         and(
-          eq(inscripciones.usuarioId, USUARIO_DEMO_ID),
+          eq(inscripciones.usuarioId, usuario.id),
           lt(eventos.fechaInicio, evento.fechaFin),
           gt(eventos.fechaFin, evento.fechaInicio),
         ),
@@ -42,6 +57,7 @@ export class InscripcionesService {
     }
 
     const id = randomUUID();
+    let transaccionId: string | undefined;
 
     if (evento.esPago) {
       if (evento.precio === null) {
@@ -51,7 +67,7 @@ export class InscripcionesService {
       }
 
       const descuento = await this.saldoService.descontar({
-        usuarioId: USUARIO_DEMO_ID,
+        usuarioId: usuario.id,
         monto: evento.precio,
         concepto: `Inscripción a evento: ${evento.titulo}`,
         referenciaId: id,
@@ -62,36 +78,49 @@ export class InscripcionesService {
           `No se pudo descontar el saldo institucional: ${descuento.motivo}`,
         );
       }
+      transaccionId = descuento.transaccionId;
     }
 
-    const creadas = await db
-      .insert(inscripciones)
-      .values({
-        id,
-        eventoId: evento.id,
-        usuarioId: USUARIO_DEMO_ID,
-        pagoConfirmado: evento.esPago,
-        montoCobrado: evento.esPago ? evento.precio : null,
-      })
-      .returning();
-    const creada = creadas[0]!;
+    let creada: Inscripcion;
+    try {
+      const creadas = await db
+        .insert(inscripciones)
+        .values({
+          id,
+          eventoId: evento.id,
+          usuarioId: usuario.id,
+          pagoConfirmado: evento.esPago,
+          montoCobrado: evento.esPago ? evento.precio : null,
+        })
+        .returning();
+      creada = creadas[0]!;
+    } catch (error) {
+      if (transaccionId && evento.precio !== null) {
+        await this.saldoService.revertir?.(
+          transaccionId,
+          'Fallo al persistir inscripción en módulo Eventos',
+          evento.precio,
+        );
+      }
+      throw error;
+    }
 
     this.analiticaService.inscripcionRegistrada({
       inscripcionId: creada.id,
       eventoId: creada.eventoId,
       usuarioId: creada.usuarioId,
-      rol: USUARIO_DEMO_ROL,
+      rol: usuario.rol,
       pagoConfirmado: creada.pagoConfirmado,
     });
 
     return creada;
   }
 
-  async listar(): Promise<Inscripcion[]> {
+  async listar(usuarioId: string = USUARIO_DEMO_ID): Promise<Inscripcion[]> {
     return db
       .select()
       .from(inscripciones)
-      .where(eq(inscripciones.usuarioId, USUARIO_DEMO_ID))
+      .where(eq(inscripciones.usuarioId, usuarioId))
       .orderBy(inscripciones.fechaInscripcion);
   }
 }
