@@ -13,10 +13,11 @@ jest.mock('@repo/db', () => {
   };
 });
 
+import type { AnaliticaService } from '../../common/analitica/analitica.service';
 import { AsistenciaService } from './asistencia.service';
 
 /** `db.select(...).from(...).where(...).limit(1)` */
-const filas = (resultado: { id: string }[]) => ({
+const filas = (resultado: Record<string, string>[]) => ({
   from: () => ({ where: () => ({ limit: () => Promise.resolve(resultado) }) }),
 });
 
@@ -33,23 +34,39 @@ describe('AsistenciaService', () => {
     metodo: 'qr',
   } as Asistencia;
 
+  const inscripcion = {
+    id: datos.inscripcionId,
+    eventoId: '9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03',
+    usuarioId: 'seed-admin-demo',
+  };
+
   let service: AsistenciaService;
+  let asistenciaConfirmada: jest.Mock;
 
   beforeEach(() => {
-    service = new AsistenciaService();
+    asistenciaConfirmada = jest.fn();
+    service = new AsistenciaService({
+      asistenciaConfirmada,
+    } as unknown as AnaliticaService);
     seleccionar.mockReset();
     insertar.mockReset();
   });
 
   it('registra la asistencia de una inscripción existente', async () => {
     seleccionar
-      .mockReturnValueOnce(filas([{ id: datos.inscripcionId }]))
+      .mockReturnValueOnce(filas([inscripcion]))
       .mockReturnValueOnce(filas([]));
     insertar.mockReturnValue({
       values: () => ({ returning: () => Promise.resolve([asistenciaCreada]) }),
     });
 
     await expect(service.registrar(datos)).resolves.toEqual(asistenciaCreada);
+    expect(asistenciaConfirmada).toHaveBeenCalledWith({
+      inscripcionId: datos.inscripcionId,
+      eventoId: inscripcion.eventoId,
+      usuarioId: inscripcion.usuarioId,
+      confirmadaEn: '2026-10-22T18:07:44.000Z',
+    });
   });
 
   it('rechaza cuando no existe la inscripción', async () => {
@@ -63,12 +80,13 @@ describe('AsistenciaService', () => {
 
   it('rechaza cuando la asistencia ya fue registrada', async () => {
     seleccionar
-      .mockReturnValueOnce(filas([{ id: datos.inscripcionId }]))
+      .mockReturnValueOnce(filas([inscripcion]))
       .mockReturnValueOnce(filas([{ id: asistenciaCreada.id }]));
 
     await expect(service.registrar(datos)).rejects.toBeInstanceOf(
       ConflictException,
     );
     expect(insertar).not.toHaveBeenCalled();
+    expect(asistenciaConfirmada).not.toHaveBeenCalled();
   });
 });

@@ -32,6 +32,7 @@ Esta carpeta es la memoria de `uadenet-eventos` entre sesiones y entre personas:
 - [`flujo-de-datos-integraciones.md`](02-arquitectura/flujo-de-datos-integraciones.md) — contrato punto por punto: qué estructura viaja en cada entrada/salida del módulo. Versión navegable del entregable en planilla.
 - [`modelo-dominio.md`](02-arquitectura/modelo-dominio.md) — entidades y reglas de negocio (tiene TBDs a propósito).
 - [`integraciones.md`](02-arquitectura/integraciones.md) — estado de cada contrato con CORE, Analítica y los portales.
+- [`estado-integraciones-y-faltantes.md`](02-arquitectura/estado-integraciones-y-faltantes.md) — detalle exhaustivo de integraciones implementadas, disclaimers y puntos pendientes con CORE, Backoffice y Analítica.
 
 **`03-diseno/`**
 - [`sistema-diseno.md`](03-diseno/sistema-diseno.md) — tokens, componentes y copy. Los valores viven como variables CSS en `apps/web/app/globals.css`.

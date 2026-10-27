@@ -13,6 +13,7 @@ jest.mock('@repo/db', () => {
   };
 });
 
+import type { AnaliticaService } from '../../common/analitica/analitica.service';
 import type { SaldoService } from '../../common/core/saldo.service';
 import type { EventosService } from '../eventos/eventos.service';
 import { InscripcionesService } from './inscripciones.service';
@@ -65,6 +66,7 @@ describe('InscripcionesService', () => {
 
   let descontar: jest.Mock;
   let obtener: jest.Mock;
+  let inscripcionRegistrada: jest.Mock;
   let service: InscripcionesService;
 
   const construir = (evento: EventoDeCartelera) => {
@@ -74,9 +76,11 @@ describe('InscripcionesService', () => {
       saldoRestante: 5500,
       motivo: null,
     });
+    inscripcionRegistrada = jest.fn();
     service = new InscripcionesService(
       { obtener } as unknown as EventosService,
       { descontar } as unknown as SaldoService,
+      { inscripcionRegistrada } as unknown as AnaliticaService,
     );
   };
 
@@ -94,6 +98,35 @@ describe('InscripcionesService', () => {
 
     await expect(service.crear(datos)).resolves.toEqual(inscripcionCreada);
     expect(descontar).not.toHaveBeenCalled();
+  });
+
+  it('emite inscripcion.registrada hacia Analítica una vez persistida', async () => {
+    seleccionar.mockReturnValueOnce(superpuestas([]));
+    insertar.mockReturnValue({
+      values: () => ({ returning: () => Promise.resolve([inscripcionCreada]) }),
+    });
+
+    await service.crear(datos);
+
+    expect(inscripcionRegistrada).toHaveBeenCalledWith({
+      inscripcionId: inscripcionCreada.id,
+      eventoId: inscripcionCreada.eventoId,
+      usuarioId: 'seed-admin-demo',
+      rol: 'administrativo',
+      pagoConfirmado: false,
+    });
+  });
+
+  it('rechaza una inscripción paga cuando no hay tarifa vigente', async () => {
+    construir({ ...eventoPago, precio: null });
+    seleccionar.mockReturnValueOnce(superpuestas([]));
+
+    await expect(service.crear(datos)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(descontar).not.toHaveBeenCalled();
+    expect(insertar).not.toHaveBeenCalled();
+    expect(inscripcionRegistrada).not.toHaveBeenCalled();
   });
 
   it('rechaza cuando el evento ya llegó al cupo máximo', async () => {
@@ -146,5 +179,6 @@ describe('InscripcionesService', () => {
       ConflictException,
     );
     expect(insertar).not.toHaveBeenCalled();
+    expect(inscripcionRegistrada).not.toHaveBeenCalled();
   });
 });
