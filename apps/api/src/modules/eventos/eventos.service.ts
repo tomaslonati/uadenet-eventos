@@ -45,7 +45,10 @@ export class EventosService {
     private readonly analiticaService: AnaliticaService,
   ) {}
 
-  async crear(datos: CrearEvento): Promise<Evento> {
+  async crear(
+    datos: CrearEvento,
+    usuarioId: string = USUARIO_DEMO_ID,
+  ): Promise<Evento> {
     const locacion = await db
       .select({
         id: locaciones.id,
@@ -89,7 +92,7 @@ export class EventosService {
 
     const creados = await db
       .insert(eventos)
-      .values({ ...datos, creadoPor: USUARIO_DEMO_ID })
+      .values({ ...datos, creadoPor: usuarioId })
       .returning();
     const creado = creados[0]!;
 
@@ -108,7 +111,10 @@ export class EventosService {
     return creado;
   }
 
-  async listar(filtro: FiltroEventos): Promise<EventoDeCartelera[]> {
+  async listar(
+    filtro: FiltroEventos,
+    usuarioId: string = USUARIO_DEMO_ID,
+  ): Promise<EventoDeCartelera[]> {
     const filas = await db
       .select(columnas)
       .from(eventos)
@@ -121,10 +127,13 @@ export class EventosService {
       )
       .orderBy(eventos.fechaInicio);
 
-    return this.enriquecer(filas);
+    return this.enriquecer(filas, usuarioId);
   }
 
-  async obtener(id: string): Promise<EventoDeCartelera> {
+  async obtener(
+    id: string,
+    usuarioId: string = USUARIO_DEMO_ID,
+  ): Promise<EventoDeCartelera> {
     const filas = await db
       .select(columnas)
       .from(eventos)
@@ -136,7 +145,7 @@ export class EventosService {
       throw new NotFoundException('El evento no existe.');
     }
 
-    const enriquecidos = await this.enriquecer(filas);
+    const enriquecidos = await this.enriquecer(filas, usuarioId);
     return enriquecidos[0]!;
   }
 
@@ -157,6 +166,7 @@ export class EventosService {
    */
   private async enriquecer(
     filas: FilaConLocacion[],
+    usuarioId: string,
   ): Promise<EventoDeCartelera[]> {
     if (filas.length === 0) {
       return [];
@@ -175,7 +185,7 @@ export class EventosService {
       .from(inscripciones)
       .where(
         and(
-          eq(inscripciones.usuarioId, USUARIO_DEMO_ID),
+          eq(inscripciones.usuarioId, usuarioId),
           inArray(inscripciones.eventoId, ids),
         ),
       );

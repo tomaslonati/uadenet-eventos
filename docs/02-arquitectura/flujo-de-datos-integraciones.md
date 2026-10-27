@@ -315,9 +315,9 @@ Lo publica el worker diario cuando `fechaInicio - hoy = 7 días`, una vez por in
 
 Todos los endpoints `/api/v1` de este documento están implementados en `apps/api`, y cada módulo (`eventos`, `inscripciones`, `asistencia`, `locaciones`, `usuarios`) tiene tests unitarios de sus services y controllers.
 
-- **Backoffice Administrativo**: implementado contra los endpoints reales (`/api/v1/backoffice/sedes`, `/sedes/{sedeId}/espacios?aptoEventos=true`, `/tarifas/vigente?concepto=&fecha=`, `/usuarios/{id}`) vía `BackofficeClient`, con contratos Zod en `@repo/contracts`, sincronización en `LocacionesSyncService` y caché con polling en `TarifasService` (ADR 0014).
-- **Analítica Institucional**: los 3 eventos (`evento.creado`, `inscripcion.registrada`, `asistencia.confirmada`) se emiten y validan formalmente a través de `AnaliticaService` en los flujos de creación, inscripción y asistencia.
-- **CORE Saldo**: se mantiene desacoplado en `SaldoService` (`apps/api/src/common/core/saldo.service.ts`) por falta de ambiente compartido y definición de auth/endpoints en vivo.
+- **Backoffice Administrativo**: implementado contra los endpoints (`/api/v1/backoffice/sedes`, `/sedes/{sedeId}/espacios?aptoEventos=true`, `/tarifas/vigente?concepto=&fecha=`, `/usuarios/{id}`) vía `BackofficeClient`, con contratos Zod en `@repo/contracts`, sincronización en `LocacionesSyncService` y caché con polling en `TarifasService` (ADR 0014).
+- **Analítica Institucional**: los 3 eventos (`evento.creado`, `inscripcion.registrada`, `asistencia.confirmada`) se validan con Zod y se publican hacia el bus de CORE (`POST /internal/v1/events`) a través de `AnaliticaService`.
+- **CORE (Autenticación, Billetera, Bus de Eventos y Notificaciones)**: implementado en `CoreJwtGuard` + `CoreJwksService` (validación RS256 contra `/.well-known/jwks.json`, RBAC `campus-events:manage` y upsert en tabla `usuarios`), `CoreTokenService` (`POST /internal/v1/service-auth/token`), `SaldoService` (`GET /api/v1/wallets/me`, `POST /internal/v1/wallets/{userId}/debits`, `POST /internal/v1/wallet-transactions/{transactionId}/reversals`, `GET /internal/v1/wallet-transactions/by-reference`) y `NotificacionesService` + `RecordatoriosService` (HU7 — `POST /internal/v1/notifications`).
 
 Ver desglose exhaustivo y acuerdos pendientes en [`estado-integraciones-y-faltantes.md`](estado-integraciones-y-faltantes.md).
 

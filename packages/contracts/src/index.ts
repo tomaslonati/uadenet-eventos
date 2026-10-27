@@ -5,3 +5,5 @@ export * from "./asistencia.schema.js";
 export * from "./cupo.schema.js";
 export * from "./backoffice.schema.js";
 export * from "./analitica.schema.js";
+export * from "./core.schema.js";
+
