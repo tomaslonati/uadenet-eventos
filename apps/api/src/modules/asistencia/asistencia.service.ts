@@ -1,12 +1,19 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { asistencias, db, eq, inscripciones } from '@repo/db';
 import type { Asistencia, RegistrarAsistencia } from '@repo/contracts';
+import { AnaliticaService } from '../../common/analitica/analitica.service';
 
 @Injectable()
 export class AsistenciaService {
+  constructor(private readonly analiticaService: AnaliticaService) {}
+
   async registrar(datos: RegistrarAsistencia): Promise<Asistencia> {
     const encontradas = await db
-      .select({ id: inscripciones.id })
+      .select({
+        id: inscripciones.id,
+        eventoId: inscripciones.eventoId,
+        usuarioId: inscripciones.usuarioId,
+      })
       .from(inscripciones)
       .where(eq(inscripciones.id, datos.inscripcionId))
       .limit(1);
@@ -30,7 +37,15 @@ export class AsistenciaService {
     }
 
     const registradas = await db.insert(asistencias).values(datos).returning();
+    const registrada = registradas[0]!;
 
-    return registradas[0]!;
+    this.analiticaService.asistenciaConfirmada({
+      inscripcionId: registrada.inscripcionId,
+      eventoId: encontradas[0]!.eventoId,
+      usuarioId: encontradas[0]!.usuarioId,
+      confirmadaEn: registrada.confirmadaEn.toISOString(),
+    });
+
+    return registrada;
   }
 }

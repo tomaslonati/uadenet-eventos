@@ -1,8 +1,10 @@
 import { db } from "./client.js";
-import { locaciones, usuarios } from "./schema/index.js";
+import { usuarios } from "./schema/index.js";
 
 /**
  * Usuario demo hasta que exista JWT real de CORE (ver apps/api EventosService).
+ * Las locaciones ya no se siembran: `apps/api` las sincroniza desde el catálogo
+ * de Backoffice (ver ADR 0013), así que alcanza con levantar la API.
  */
 async function seed() {
   await db
@@ -14,20 +16,6 @@ async function seed() {
       rol: "administrativo",
     })
     .onConflictDoNothing();
-
-  const existentes = await db
-    .select({ id: locaciones.id })
-    .from(locaciones)
-    .limit(1);
-
-  if (existentes.length === 0) {
-    await db.insert(locaciones).values([
-      { nombre: "Auditorio Magno", sede: "Sede Centro", capacidad: 300 },
-      { nombre: "Aula Magna B", sede: "Sede Centro", capacidad: 80 },
-      { nombre: "Salón de Actos", sede: "Sede Norte", capacidad: 150 },
-      { nombre: "Aula 302", sede: "Sede Norte", capacidad: 40 },
-    ]);
-  }
 
   console.log("Seed OK");
 }

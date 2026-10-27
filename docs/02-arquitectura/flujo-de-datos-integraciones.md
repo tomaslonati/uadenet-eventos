@@ -313,17 +313,25 @@ Lo publica el worker diario cuando `fechaInicio - hoy = 7 días`, una vez por in
 
 ## Estado de implementación
 
-Todos los endpoints `/api/v1` de este documento están implementados en `apps/api`, y cada módulo (`eventos`, `inscripciones`, `asistencia`, `locaciones`) tiene tests unitarios de su service. El descuento de saldo de CORE está mockeado con saldo fijo en `common/core/saldo.service.ts`. La tarifa de inscripción de Backoffice está mockeada en `common/backoffice/tarifas.service.ts`, pero **todavía con el shape viejo** (`categoria: general | especial` a secas, monto entero, sin `concepto`/`vigencia`/`tarifaId`, sin caché por polling) — Backoffice ya confirmó el contrato real (ver más arriba y ADR 0014), falta actualizar el mock y los contratos para que coincidan. El recordatorio (HU7) y los tres eventos hacia Analítica **todavía no se emiten**: no hay worker ni publisher, y el canal sigue sin definirse.
+Todos los endpoints `/api/v1` de este documento están implementados en `apps/api`, y cada módulo (`eventos`, `inscripciones`, `asistencia`, `locaciones`, `usuarios`) tiene tests unitarios de sus services y controllers.
 
-## Qué falta confirmar
+- **Backoffice Administrativo**: implementado contra los endpoints reales (`/api/v1/backoffice/sedes`, `/sedes/{sedeId}/espacios?aptoEventos=true`, `/tarifas/vigente?concepto=&fecha=`, `/usuarios/{id}`) vía `BackofficeClient`, con contratos Zod en `@repo/contracts`, sincronización en `LocacionesSyncService` y caché con polling en `TarifasService` (ADR 0014).
+- **Analítica Institucional**: los 3 eventos (`evento.creado`, `inscripcion.registrada`, `asistencia.confirmada`) se emiten y validan formalmente a través de `AnaliticaService` en los flujos de creación, inscripción y asistencia.
+- **CORE Saldo**: se mantiene desacoplado en `SaldoService` (`apps/api/src/common/core/saldo.service.ts`) por falta de ambiente compartido y definición de auth/endpoints en vivo.
 
-Las estructuras de arriba son las que implementa nuestro módulo. Lo que todavía no está acordado con el otro grupo — seguimiento en [`integraciones.md`](integraciones.md):
+Ver desglose exhaustivo y acuerdos pendientes en [`estado-integraciones-y-faltantes.md`](estado-integraciones-y-faltantes.md).
 
-| Punto | De quién depende |
+## Puntos de integración con otros módulos
+
+Siguiendo las directivas generales de cátedra (Gonza UADE):
+- **Tráfico y autenticación:** El tráfico del usuario pasa por CORE (`/api/v1/{modulo}/...`). La firma del JWT se valida localmente mediante el **JWKS de CORE**.
+- **Llamadas directas entre módulos:** Eventos puede consultar directo a Backoffice (sedes, espacios, tarifas, usuarios) enviando un **token de servicio** emitido por CORE (`clientId`/`secret`, cacheado 15 min), el cual Backoffice valida contra el JWKS de CORE.
+- **Eventos y Notificaciones:** Todo aviso entre módulos pasa por CORE, que los distribuye por **RabbitMQ** (ej. hacia Analítica). La campanita del portal la gestiona CORE.
+
+| Punto | Estado |
 |---|---|
-| Mecanismo de firma del JWT (secreto compartido vs JWKS) | CORE |
-| Path real y shape de respuesta del descuento de saldo | CORE |
-| Canal del recordatorio: cola/topic vs endpoint REST | CORE |
-| Los tres eventos que consume Analítica | Analítica Institucional |
-| Si Backoffice embebe el nombre de la sede en la respuesta de espacios (se lo pedimos, todavía no confirmaron) | Backoffice Administrativo |
-| Frecuencia del polling de tarifas (ver ADR 0014) | Nuestro | 
+| Firma JWT de CORE vía JWKS | Confirmado por cátedra (falta URL de JWKS en dev) |
+| Token de servicio para llamadas a Backoffice | Confirmado por cátedra |
+| Distribución de eventos a Analítica por RabbitMQ | Confirmado: Eventos entrega a CORE y CORE distribuye |
+| Canal de recordatorio (`evento.recordatorio`) | Confirmado: se entrega a CORE para la campanita del portal |
+| Despliegue de ambiente compartido (`BACKOFFICE_BASE_URL` y CORE) | Pendiente de deploy de los otros equipos | 
