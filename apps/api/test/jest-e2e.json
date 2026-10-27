@@ -3,7 +3,22 @@
   "rootDir": ".",
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
+  "setupFiles": ["<rootDir>/../src/jest.setup.ts"],
+  "moduleNameMapper": {
+    "^@repo/db$": "<rootDir>/../../../packages/db/src/index.ts",
+    "^@repo/contracts$": "<rootDir>/../../../packages/contracts/src/index.ts",
+    "^@repo/env$": "<rootDir>/../../../packages/env/src/index.ts",
+    "^(\\.{1,2}/.*)\\.js$": "$1"
+  },
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": {
+          "module": "commonjs",
+          "moduleResolution": "node"
+        }
+      }
+    ]
   }
 }

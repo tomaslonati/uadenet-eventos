@@ -2,8 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { and, db, eq, eventos, gt, inscripciones, lt } from '@repo/db';
 import type { CrearInscripcion, Inscripcion } from '@repo/contracts';
+import { AnaliticaService } from '../../common/analitica/analitica.service';
 import { SaldoService } from '../../common/core/saldo.service';
-import { USUARIO_DEMO_ID } from '../../common/usuario-demo';
+import { USUARIO_DEMO_ID, USUARIO_DEMO_ROL } from '../../common/usuario-demo';
 import { EventosService } from '../eventos/eventos.service';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class InscripcionesService {
   constructor(
     private readonly eventosService: EventosService,
     private readonly saldoService: SaldoService,
+    private readonly analiticaService: AnaliticaService,
   ) {}
 
   async crear(datos: CrearInscripcion): Promise<Inscripcion> {
@@ -42,9 +44,15 @@ export class InscripcionesService {
     const id = randomUUID();
 
     if (evento.esPago) {
+      if (evento.precio === null) {
+        throw new ConflictException(
+          'No hay una tarifa vigente en Backoffice para este evento; no se puede confirmar la inscripción.',
+        );
+      }
+
       const descuento = await this.saldoService.descontar({
         usuarioId: USUARIO_DEMO_ID,
-        monto: evento.precio!,
+        monto: evento.precio,
         concepto: `Inscripción a evento: ${evento.titulo}`,
         referenciaId: id,
       });
@@ -66,8 +74,17 @@ export class InscripcionesService {
         montoCobrado: evento.esPago ? evento.precio : null,
       })
       .returning();
+    const creada = creadas[0]!;
 
-    return creadas[0]!;
+    this.analiticaService.inscripcionRegistrada({
+      inscripcionId: creada.id,
+      eventoId: creada.eventoId,
+      usuarioId: creada.usuarioId,
+      rol: USUARIO_DEMO_ROL,
+      pagoConfirmado: creada.pagoConfirmado,
+    });
+
+    return creada;
   }
 
   async listar(): Promise<Inscripcion[]> {

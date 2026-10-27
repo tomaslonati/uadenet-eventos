@@ -10,13 +10,21 @@ jest.mock('@repo/db', () => {
   };
 });
 
+import type { BackofficeClient } from '../../common/backoffice/backoffice.client';
 import { LocacionesService } from './locaciones.service';
 
 describe('LocacionesService', () => {
+  let listarSedesMock: jest.Mock;
   let service: LocacionesService;
 
   beforeEach(() => {
-    service = new LocacionesService();
+    listarSedesMock = jest.fn().mockResolvedValue([
+      { id: 's1', nombre: 'Sede Centro' },
+      { id: 's2', nombre: 'Sede Norte' },
+    ]);
+    service = new LocacionesService({
+      listarSedes: listarSedesMock,
+    } as unknown as BackofficeClient);
     seleccionar.mockReset();
   });
 
@@ -30,5 +38,11 @@ describe('LocacionesService', () => {
     });
 
     await expect(service.listar()).resolves.toEqual(filas);
+  });
+
+  it('lista las sedes consumiendo BackofficeClient', async () => {
+    const sedes = await service.listarSedes();
+    expect(sedes).toHaveLength(2);
+    expect(listarSedesMock).toHaveBeenCalledTimes(1);
   });
 });

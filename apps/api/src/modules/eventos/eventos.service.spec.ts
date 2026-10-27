@@ -13,11 +13,14 @@ jest.mock('@repo/db', () => {
   };
 });
 
+import type { AnaliticaService } from '../../common/analitica/analitica.service';
 import type { TarifasService } from '../../common/backoffice/tarifas.service';
 import { EventosService } from './eventos.service';
 
-/** `.from(locaciones).where(...).limit(1)` — existencia + aptoEventos en crear() */
-const filaLocacion = (filas: { id: string; aptoEventos: boolean }[]) => ({
+/** `.from(locaciones).where(...).limit(1)` — existencia + sede + aptoEventos en crear() */
+const filaLocacion = (
+  filas: { id: string; sede: string; aptoEventos: boolean }[],
+) => ({
   from: () => ({ where: () => ({ limit: () => Promise.resolve(filas) }) }),
 });
 
@@ -77,27 +80,74 @@ describe('EventosService', () => {
   const locacion = { nombre: 'Aula Magna', sede: 'Monserrat' };
   const fila = { evento, locacion };
 
-  let consultarTarifa: jest.Mock;
+  let precioDe: jest.Mock;
+  let exigirPrecio: jest.Mock;
+  let eventoCreado: jest.Mock;
 
   beforeEach(() => {
-    consultarTarifa = jest.fn().mockResolvedValue(12_500);
-    service = new EventosService({
-      consultar: consultarTarifa,
-    } as unknown as TarifasService);
+    precioDe = jest.fn((categoria: string | null) =>
+      categoria ? 12_500 : null,
+    );
+    exigirPrecio = jest.fn().mockReturnValue(12_500);
+    eventoCreado = jest.fn();
+    service = new EventosService(
+      { precioDe, exigirPrecio } as unknown as TarifasService,
+      { eventoCreado } as unknown as AnaliticaService,
+    );
     seleccionar.mockReset();
     insertar.mockReset();
   });
 
   it('crea el evento cuando la locación es apta y no hay conflicto de horario', async () => {
     seleccionar
-      .mockReturnValueOnce(filaLocacion([{ id: 'l1', aptoEventos: true }]))
+      .mockReturnValueOnce(
+        filaLocacion([{ id: 'l1', sede: 'Monserrat', aptoEventos: true }]),
+      )
       .mockReturnValueOnce(solapamiento([]));
-    const eventoCreado = { ...evento };
+    const eventoPersistido = { ...evento };
     insertar.mockReturnValue({
-      values: () => ({ returning: () => Promise.resolve([eventoCreado]) }),
+      values: () => ({ returning: () => Promise.resolve([eventoPersistido]) }),
     });
 
-    await expect(service.crear(datos)).resolves.toEqual(eventoCreado);
+    await expect(service.crear(datos)).resolves.toEqual(eventoPersistido);
+  });
+
+  it('emite evento.creado hacia Analítica con la sede de la locación', async () => {
+    seleccionar
+      .mockReturnValueOnce(
+        filaLocacion([{ id: 'l1', sede: 'Monserrat', aptoEventos: true }]),
+      )
+      .mockReturnValueOnce(solapamiento([]));
+    insertar.mockReturnValue({
+      values: () => ({ returning: () => Promise.resolve([evento]) }),
+    });
+
+    await service.crear(datos);
+
+    expect(eventoCreado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventoId: 'e1',
+        sede: 'Monserrat',
+        fechaInicio: '2026-09-12T10:00:00.000Z',
+        categoriaPrecio: null,
+      }),
+    );
+  });
+
+  it('rechaza con ConflictException si no hay tarifa vigente para la categoría del evento pago', async () => {
+    seleccionar.mockReturnValueOnce(
+      filaLocacion([{ id: 'l1', sede: 'Monserrat', aptoEventos: true }]),
+    );
+    exigirPrecio.mockImplementation(() => {
+      throw new ConflictException('Sin tarifa vigente');
+    });
+
+    await expect(
+      service.crear({ ...datos, esPago: true, categoriaPrecio: 'especial' }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(exigirPrecio).toHaveBeenCalledWith('especial');
+    expect(insertar).not.toHaveBeenCalled();
+    expect(eventoCreado).not.toHaveBeenCalled();
   });
 
   it('rechaza con NotFoundException si la locación no existe', async () => {
@@ -111,7 +161,7 @@ describe('EventosService', () => {
 
   it('rechaza con ConflictException si la locación no está habilitada para eventos', async () => {
     seleccionar.mockReturnValueOnce(
-      filaLocacion([{ id: 'l1', aptoEventos: false }]),
+      filaLocacion([{ id: 'l1', sede: 'Monserrat', aptoEventos: false }]),
     );
 
     await expect(service.crear(datos)).rejects.toBeInstanceOf(
@@ -122,7 +172,9 @@ describe('EventosService', () => {
 
   it('rechaza con ConflictException si la locación ya tiene un evento superpuesto', async () => {
     seleccionar
-      .mockReturnValueOnce(filaLocacion([{ id: 'l1', aptoEventos: true }]))
+      .mockReturnValueOnce(
+        filaLocacion([{ id: 'l1', sede: 'Monserrat', aptoEventos: true }]),
+      )
       .mockReturnValueOnce(solapamiento([{ id: 'otro-evento' }]));
 
     await expect(service.crear(datos)).rejects.toBeInstanceOf(
@@ -147,7 +199,6 @@ describe('EventosService', () => {
         precio: null,
       },
     ]);
-    expect(consultarTarifa).not.toHaveBeenCalled();
   });
 
   it('resuelve el precio contra la tarifa vigente cuando el evento es pago', async () => {
@@ -159,7 +210,7 @@ describe('EventosService', () => {
 
     const [resultado] = await service.listar({});
 
-    expect(consultarTarifa).toHaveBeenCalledWith('especial');
+    expect(precioDe).toHaveBeenCalledWith('especial');
     expect(resultado).toMatchObject({ precio: 12_500 });
   });
 

@@ -2,3 +2,5 @@
 // pero @repo/env valida DATABASE_URL al importarse, así que necesita un valor
 // sintácticamente válido presente antes de que corra cualquier spec.
 process.env.DATABASE_URL ??= 'postgres://test:test@localhost:5432/test';
+process.env.CORE_CLIENT_ID ??= 'events-service';
+process.env.CORE_CLIENT_SECRET ??= 'test-client-secret';
