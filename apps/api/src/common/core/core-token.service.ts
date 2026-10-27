@@ -1,18 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { serviceTokenResponseSchema } from '@repo/contracts';
 import { env } from '@repo/env';
-
-export interface TokenRespuesta {
-  access_token?: string;
-  accessToken?: string;
-  token?: string;
-  token_type?: string;
-  expires_in?: number;
-  expiresIn?: number;
-}
+import {
+  firmarJwtCore,
+  obtenerCoreBaseUrl,
+  USA_CORE_MOCK,
+} from './core-crypto';
 
 /**
- * Gestiona el token de servicio emitido por CORE para llamadas directas
- * entre módulos (ej: Eventos -> Backoffice), cacheándolo ~15 minutos.
+ * Gestiona el token de servicio M2M emitido por CORE (`POST /internal/v1/service-auth/token`)
+ * para llamadas entre módulos (Eventos -> CORE y Eventos -> Backoffice), cacheándolo ~15 min.
  */
 @Injectable()
 export class CoreTokenService {
@@ -30,16 +27,9 @@ export class CoreTokenService {
       return this.tokenCache;
     }
 
-    if (!env.CORE_BASE_URL) {
-      // Sin CORE_BASE_URL en local/tests, generamos token simulado con el clientId
-      this.tokenCache = `mock-service-token-${env.CORE_CLIENT_ID}`;
-      this.expiraEn = ahora + 15 * 60 * 1000;
-      return this.tokenCache;
-    }
-
     try {
       const res = await fetch(
-        `${env.CORE_BASE_URL}/internal/v1/service-auth/token`,
+        `${obtenerCoreBaseUrl()}/internal/v1/service-auth/token`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -58,14 +48,32 @@ export class CoreTokenService {
         return null;
       }
 
-      const datos = (await res.json()) as TokenRespuesta;
-      const ttlSegundos = datos.expires_in ?? datos.expiresIn ?? 15 * 60;
+      const datos = serviceTokenResponseSchema.parse(await res.json());
+      const ttlSegundos = datos.expiresIn ?? datos.expires_in ?? 15 * 60;
       const ttlMs = ttlSegundos * 1000 - 30_000;
       this.tokenCache =
-        datos.access_token ?? datos.accessToken ?? datos.token ?? null;
+        datos.accessToken ?? datos.access_token ?? datos.token ?? null;
       this.expiraEn = ahora + Math.max(ttlMs, 60_000);
       return this.tokenCache;
     } catch (err) {
+      if (USA_CORE_MOCK) {
+        this.tokenCache = firmarJwtCore(
+          {
+            sub: env.CORE_CLIENT_ID,
+            roles: ['SERVICE'],
+            permissions: [
+              'wallet:debit:any',
+              'wallet:read:any',
+              'events:publish',
+              'notifications:send',
+            ],
+          },
+          900,
+        );
+        this.expiraEn = ahora + 14 * 60_000;
+        return this.tokenCache;
+      }
+
       this.logger.warn(
         `No se pudo obtener el token de servicio de CORE: ${String(err)}`,
       );

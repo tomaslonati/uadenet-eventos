@@ -1,8 +1,10 @@
+import { randomUUID } from 'node:crypto';
 import type { Server } from 'node:http';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, VersioningType } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
+import { firmarJwtCore } from '../src/common/core/core-crypto';
 
 describe('AppModule (e2e)', () => {
   let app: INestApplication<Server>;
@@ -50,17 +52,131 @@ describe('AppModule (e2e)', () => {
     });
   });
 
-  it('GET /api/v1/usuarios/me devuelve los datos del usuario logueado desde Backoffice', async () => {
+  it('GET /api/v1/usuarios/me resuelve el usuario del JWT RS256 validado contra el JWKS de CORE', async () => {
+    const jwtAlumno = firmarJwtCore({
+      sub: 'seed-alumno-demo',
+      email: 't.vidal@uadenet.edu',
+      roles: ['STUDENT'],
+      permissions: ['wallet:read:self', 'wallet:credit:self'],
+      careerIds: ['ing-informatica'],
+    });
+
     const res = await request(app.getHttpServer())
       .get('/api/v1/usuarios/me')
+      .set('Authorization', `Bearer ${jwtAlumno}`)
       .expect(200);
 
     expect(res.body).toMatchObject({
-      id: 'seed-admin-demo',
-      nombre: 'Mariana Ibarra',
-      email: 'm.ibarra@uadenet.edu',
-      rol: 'administrativo',
+      id: 'seed-alumno-demo',
+      nombre: 'Tomás Vidal',
+      email: 't.vidal@uadenet.edu',
+      rol: 'estudiante',
       sede: 'Sede Centro',
+    });
+  });
+
+  it('GET /api/v1/usuarios/me/saldo consulta el saldo institucional en CORE', async () => {
+    const jwtAlumno = firmarJwtCore({
+      sub: 'seed-alumno-demo',
+      email: 't.vidal@uadenet.edu',
+      roles: ['STUDENT'],
+      permissions: ['wallet:read:self', 'wallet:credit:self'],
+    });
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/usuarios/me/saldo')
+      .set('Authorization', `Bearer ${jwtAlumno}`)
+      .expect(200);
+
+    expect(res.body).toMatchObject({
+      userId: 'seed-alumno-demo',
+      balance: '10000.00',
+      currency: 'ARS',
+      status: 'ACTIVE',
+    });
+  });
+
+  it('POST /api/v1/eventos rechaza con 403 cuando el JWT no posee el permiso campus-events:manage', async () => {
+    const jwtAlumno = firmarJwtCore({
+      sub: 'seed-alumno-demo',
+      email: 't.vidal@uadenet.edu',
+      roles: ['STUDENT'],
+      permissions: ['wallet:read:self'],
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/eventos')
+      .set('Authorization', `Bearer ${jwtAlumno}`)
+      .send({
+        titulo: 'Intento sin permiso',
+        descripcion: 'No debería autorizarse',
+        locacionId: 'b0b0b0b0-0000-4000-8000-000000000001',
+        cupoMaximo: 30,
+        fechaInicio: '2026-11-10T10:00:00.000Z',
+        fechaFin: '2026-11-10T12:00:00.000Z',
+        esPago: false,
+      })
+      .expect(403);
+  });
+
+  it('CORE Wallets: debita con idempotencia, concilia por referencia y permite revertir', async () => {
+    const idempotencyKey = randomUUID();
+    const referencia = randomUUID();
+
+    const debitoRes = await request(app.getHttpServer())
+      .post('/api/v1/core/internal/v1/wallets/u-10432/debits')
+      .set('Idempotency-Key', idempotencyKey)
+      .send({
+        amount: '1800.00',
+        currency: 'ARS',
+        concept: 'EVENT_REGISTRATION',
+        sourceModule: 'events',
+        externalReference: referencia,
+      })
+      .expect(201);
+
+    const tx = debitoRes.body as {
+      transactionId: string;
+      balanceAfter: string;
+    };
+    expect(tx.balanceAfter).toBe('8200.00');
+
+    // Reintento idempotente con misma clave y mismo body devuelve exactamente la misma transacción
+    const reintentoRes = await request(app.getHttpServer())
+      .post('/api/v1/core/internal/v1/wallets/u-10432/debits')
+      .set('Idempotency-Key', idempotencyKey)
+      .send({
+        amount: '1800.00',
+        currency: 'ARS',
+        concept: 'EVENT_REGISTRATION',
+        sourceModule: 'events',
+        externalReference: referencia,
+      })
+      .expect(201);
+    expect(reintentoRes.body).toEqual(debitoRes.body);
+
+    // Conciliación por referencia
+    const conciliarRes = await request(app.getHttpServer())
+      .get(
+        `/api/v1/core/internal/v1/wallet-transactions/by-reference?sourceModule=events&externalReference=${referencia}`,
+      )
+      .expect(200);
+    expect(conciliarRes.body).toMatchObject({
+      transactionId: tx.transactionId,
+      status: 'POSTED',
+    });
+
+    // Reversa devuelve el saldo a 10000.00
+    const reversaRes = await request(app.getHttpServer())
+      .post(
+        `/api/v1/core/internal/v1/wallet-transactions/${tx.transactionId}/reversals`,
+      )
+      .set('Idempotency-Key', randomUUID())
+      .send({ reason: 'Cancelación técnica' })
+      .expect(201);
+    expect(reversaRes.body).toMatchObject({
+      type: 'REVERSAL',
+      balanceAfter: '10000.00',
     });
   });
 
