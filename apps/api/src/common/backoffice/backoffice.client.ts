@@ -14,11 +14,21 @@ import { env } from '@repo/env';
 import { z } from 'zod';
 
 import { CoreTokenService } from '../core/core-token.service';
+import {
+  obtenerEspaciosMock,
+  obtenerSedesMock,
+  obtenerTarifaVigenteMock,
+  obtenerUsuarioMock,
+} from './backoffice-mock.controller';
 
 const TIMEOUT_MS = 5_000;
 
 /** Sin `BACKOFFICE_BASE_URL` se usa el Backoffice simulado que sirve esta misma API. */
 export const USA_BACKOFFICE_MOCK = env.BACKOFFICE_BASE_URL === undefined;
+
+function usarMockEnMemoria(): boolean {
+  return USA_BACKOFFICE_MOCK && process.env.VERCEL === '1';
+}
 
 function obtenerBaseUrl(): string {
   return (
@@ -32,6 +42,9 @@ export class BackofficeClient {
   constructor(private readonly coreTokenService?: CoreTokenService) {}
 
   listarSedes(): Promise<SedeBackoffice[]> {
+    if (usarMockEnMemoria()) {
+      return Promise.resolve(obtenerSedesMock());
+    }
     return this.pedir(
       '/api/v1/backoffice/sedes',
       z.array(sedeBackofficeSchema),
@@ -43,6 +56,17 @@ export class BackofficeClient {
     sedeId: string,
     filtro: { aptoEventos: boolean },
   ): Promise<EspacioBackoffice[]> {
+    if (usarMockEnMemoria()) {
+      const lista = obtenerEspaciosMock(sedeId, filtro.aptoEventos);
+      if (!lista) {
+        return Promise.reject(
+          new Error(
+            `Backoffice respondió 404 en /api/v1/backoffice/sedes/${sedeId}/espacios`,
+          ),
+        );
+      }
+      return Promise.resolve(lista);
+    }
     const query = new URLSearchParams({
       aptoEventos: String(filtro.aptoEventos),
     });
@@ -57,6 +81,9 @@ export class BackofficeClient {
     concepto: ConceptoTarifa,
     fecha: string,
   ): Promise<TarifaVigente | null> {
+    if (usarMockEnMemoria()) {
+      return obtenerTarifaVigenteMock(concepto, fecha);
+    }
     const query = new URLSearchParams({ concepto, fecha });
     return this.pedir(
       `/api/v1/backoffice/tarifas/vigente?${query.toString()}`,
@@ -66,6 +93,9 @@ export class BackofficeClient {
   }
 
   obtenerUsuario(id: string): Promise<UsuarioBackoffice> {
+    if (usarMockEnMemoria()) {
+      return Promise.resolve(obtenerUsuarioMock(id));
+    }
     return this.pedir(
       `/api/v1/backoffice/usuarios/${encodeURIComponent(id)}`,
       usuarioBackofficeSchema,

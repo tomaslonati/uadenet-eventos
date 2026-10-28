@@ -12,7 +12,7 @@ export const INTERVALO_SYNC_MS = 10 * 60_000;
 @Injectable()
 export class LocacionesSyncService implements OnModuleDestroy {
   private readonly logger = new Logger(LocacionesSyncService.name);
-  private temporizador?: NodeJS.Timeout;
+  private temporizador?: ReturnType<typeof setInterval>;
 
   constructor(private readonly backoffice: BackofficeClient) {}
 
@@ -20,11 +20,15 @@ export class LocacionesSyncService implements OnModuleDestroy {
   iniciarSincronizacion(intervaloMs = INTERVALO_SYNC_MS): void {
     void this.sincronizar();
     this.temporizador = setInterval(() => void this.sincronizar(), intervaloMs);
-    this.temporizador.unref();
+    if (typeof this.temporizador === 'object') {
+      this.temporizador.unref?.();
+    }
   }
 
   onModuleDestroy(): void {
-    clearInterval(this.temporizador);
+    if (this.temporizador !== undefined) {
+      clearInterval(this.temporizador);
+    }
   }
 
   async sincronizar(): Promise<void> {

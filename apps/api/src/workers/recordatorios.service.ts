@@ -22,18 +22,22 @@ export const INTERVALO_RECORDATORIOS_MS = 24 * 60 * 60_000;
 @Injectable()
 export class RecordatoriosService implements OnModuleDestroy {
   private readonly logger = new Logger(RecordatoriosService.name);
-  private temporizador?: NodeJS.Timeout;
+  private temporizador?: ReturnType<typeof setInterval>;
 
   constructor(private readonly notificaciones: NotificacionesService) {}
 
   iniciarWorker(intervaloMs = INTERVALO_RECORDATORIOS_MS): void {
     void this.ejecutar();
     this.temporizador = setInterval(() => void this.ejecutar(), intervaloMs);
-    this.temporizador.unref();
+    if (typeof this.temporizador === 'object') {
+      this.temporizador.unref?.();
+    }
   }
 
   onModuleDestroy(): void {
-    clearInterval(this.temporizador);
+    if (this.temporizador !== undefined) {
+      clearInterval(this.temporizador);
+    }
   }
 
   async ejecutar(ahora = new Date()): Promise<number> {
