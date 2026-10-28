@@ -31,7 +31,9 @@ function hoy(): string {
 export class TarifasService implements OnModuleDestroy {
   private readonly logger = new Logger(TarifasService.name);
   private readonly cache = new Map<CategoriaPrecio, TarifaVigente>();
-  private temporizador?: NodeJS.Timeout;
+  private temporizador?: ReturnType<typeof setInterval>;
+  private cargadoInicial = false;
+  private cargaEnCurso?: Promise<void>;
 
   constructor(private readonly backoffice: BackofficeClient) {}
 
@@ -39,11 +41,26 @@ export class TarifasService implements OnModuleDestroy {
   iniciarPolling(intervaloMs = INTERVALO_POLLING_MS): void {
     void this.refrescar();
     this.temporizador = setInterval(() => void this.refrescar(), intervaloMs);
-    this.temporizador.unref();
+    if (typeof this.temporizador === 'object') {
+      this.temporizador.unref?.();
+    }
   }
 
   onModuleDestroy(): void {
-    clearInterval(this.temporizador);
+    if (this.temporizador !== undefined) {
+      clearInterval(this.temporizador);
+    }
+  }
+
+  /** Garantiza al menos una carga inicial en arranques serverless (cold start). */
+  async asegurarCargado(): Promise<void> {
+    if (this.cargadoInicial) {
+      return;
+    }
+    this.cargaEnCurso ??= this.refrescar().finally(() => {
+      this.cargaEnCurso = undefined;
+    });
+    await this.cargaEnCurso;
   }
 
   async refrescar(): Promise<void> {
@@ -61,6 +78,7 @@ export class TarifasService implements OnModuleDestroy {
           } else {
             this.cache.delete(categoria);
           }
+          this.cargadoInicial = true;
         } catch (error) {
           // Ante una falla de red se conserva la última tarifa conocida.
           this.logger.warn(

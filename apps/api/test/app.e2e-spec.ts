@@ -325,7 +325,9 @@ describe('AppModule (e2e)', () => {
       .set('Authorization', `Bearer ${jwtAdmin}`)
       .expect(200);
 
-    expect(res.body).toHaveProperty('general');
-    expect(res.body).toHaveProperty('especial');
+    expect(res.body).toEqual({
+      general: 5500,
+      especial: 12500,
+    });
   });
 });

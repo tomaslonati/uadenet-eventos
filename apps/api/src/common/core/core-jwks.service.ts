@@ -112,7 +112,7 @@ export class CoreJwksService {
     if (
       !this.claves.has(kid) &&
       kid === CORE_DEMO_KID &&
-      env.NODE_ENV !== 'production'
+      (USA_CORE_MOCK || env.NODE_ENV !== 'production')
     ) {
       this.claves.set(
         CORE_DEMO_KID,

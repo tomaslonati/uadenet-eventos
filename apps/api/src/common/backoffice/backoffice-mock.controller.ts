@@ -129,6 +129,80 @@ const MONTOS: Record<ConceptoTarifa, number> = {
 
 const VIGENTE_DESDE = '2026-01-01';
 
+export function obtenerSedesMock(): SedeBackoffice[] {
+  return SEDES;
+}
+
+export function obtenerEspaciosMock(
+  sedeId: string,
+  aptoEventos?: boolean,
+): EspacioBackoffice[] | null {
+  if (!SEDES.some((sede) => sede.id === sedeId)) {
+    return null;
+  }
+
+  return ESPACIOS.filter(
+    (espacio) =>
+      espacio.sedeId === sedeId && (!aptoEventos || espacio.aptoEventos),
+  );
+}
+
+export function obtenerTarifaVigenteMock(
+  concepto: string,
+  fecha: string,
+): TarifaVigente | null {
+  if (!(concepto in MONTOS) || !fecha || fecha < VIGENTE_DESDE) {
+    return null;
+  }
+
+  return {
+    concepto: concepto as ConceptoTarifa,
+    sede: null,
+    ambitoResuelto: 'GLOBAL',
+    monto: MONTOS[concepto as ConceptoTarifa],
+    moneda: 'ARS',
+    unidad: 'MONTO_FIJO',
+    vigencia: { desde: VIGENTE_DESDE, hasta: null },
+    tarifaId: '8f1e2d3c-4b5a-4789-8abc-def123456789',
+  };
+}
+
+export function obtenerUsuarioMock(id: string): UsuarioBackoffice {
+  const demos: Record<string, UsuarioBackoffice> = {
+    'seed-admin-demo': {
+      id: 'seed-admin-demo',
+      nombre: 'Mariana Ibarra',
+      email: 'm.ibarra@uadenet.edu',
+      rol: 'administrativo',
+      sede: 'Sede Centro',
+    },
+    'seed-docente-demo': {
+      id: 'seed-docente-demo',
+      nombre: 'Dr. Esteban Ruiz',
+      email: 'e.ruiz@uadenet.edu',
+      rol: 'docente',
+      sede: 'Sede Centro',
+    },
+    'seed-alumno-demo': {
+      id: 'seed-alumno-demo',
+      nombre: 'Tomás Vidal',
+      email: 't.vidal@uadenet.edu',
+      rol: 'estudiante',
+      sede: 'Sede Centro',
+    },
+  };
+
+  return (
+    demos[id] ?? {
+      id,
+      nombre: 'Usuario Demo',
+      email: `${id}@uadenet.edu`,
+      rol: 'estudiante',
+      sede: 'Sede Centro',
+    }
+  );
+}
+
 /**
  * Backoffice Administrativo simulado, sobre los paths que ellos publicaron.
  * Solo se monta sin `BACKOFFICE_BASE_URL`; con la variable definida el cliente
@@ -139,7 +213,7 @@ const VIGENTE_DESDE = '2026-01-01';
 export class BackofficeMockController {
   @Get('sedes')
   sedes(): SedeBackoffice[] {
-    return SEDES;
+    return obtenerSedesMock();
   }
 
   @Get('sedes/:sedeId/espacios')
@@ -147,15 +221,11 @@ export class BackofficeMockController {
     @Param('sedeId') sedeId: string,
     @Query('aptoEventos') aptoEventos?: string,
   ): EspacioBackoffice[] {
-    if (!SEDES.some((sede) => sede.id === sedeId)) {
+    const lista = obtenerEspaciosMock(sedeId, aptoEventos === 'true');
+    if (!lista) {
       throw new NotFoundException('La sede no existe.');
     }
-
-    return ESPACIOS.filter(
-      (espacio) =>
-        espacio.sedeId === sedeId &&
-        (aptoEventos !== 'true' || espacio.aptoEventos),
-    );
+    return lista;
   }
 
   @Get('tarifas/vigente')
@@ -163,56 +233,15 @@ export class BackofficeMockController {
     @Query('concepto') concepto: string,
     @Query('fecha') fecha: string,
   ): TarifaVigente {
-    if (!(concepto in MONTOS) || !fecha || fecha < VIGENTE_DESDE) {
+    const tarifa = obtenerTarifaVigenteMock(concepto, fecha);
+    if (!tarifa) {
       throw new NotFoundException('No hay tarifa vigente.');
     }
-
-    return {
-      concepto: concepto as ConceptoTarifa,
-      sede: null,
-      ambitoResuelto: 'GLOBAL',
-      monto: MONTOS[concepto as ConceptoTarifa],
-      moneda: 'ARS',
-      unidad: 'MONTO_FIJO',
-      vigencia: { desde: VIGENTE_DESDE, hasta: null },
-      tarifaId: '8f1e2d3c-4b5a-4789-8abc-def123456789',
-    };
+    return tarifa;
   }
 
   @Get('usuarios/:id')
   usuario(@Param('id') id: string): UsuarioBackoffice {
-    const demos: Record<string, UsuarioBackoffice> = {
-      'seed-admin-demo': {
-        id: 'seed-admin-demo',
-        nombre: 'Mariana Ibarra',
-        email: 'm.ibarra@uadenet.edu',
-        rol: 'administrativo',
-        sede: 'Sede Centro',
-      },
-      'seed-docente-demo': {
-        id: 'seed-docente-demo',
-        nombre: 'Dr. Esteban Ruiz',
-        email: 'e.ruiz@uadenet.edu',
-        rol: 'docente',
-        sede: 'Sede Centro',
-      },
-      'seed-alumno-demo': {
-        id: 'seed-alumno-demo',
-        nombre: 'Tomás Vidal',
-        email: 't.vidal@uadenet.edu',
-        rol: 'estudiante',
-        sede: 'Sede Centro',
-      },
-    };
-
-    return (
-      demos[id] ?? {
-        id,
-        nombre: 'Usuario Demo',
-        email: `${id}@uadenet.edu`,
-        rol: 'estudiante',
-        sede: 'Sede Centro',
-      }
-    );
+    return obtenerUsuarioMock(id);
   }
 }

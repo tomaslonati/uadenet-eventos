@@ -83,4 +83,12 @@ describe('TarifasService', () => {
 
     expect(service.precioDe('general')).toBe(1_800);
   });
+
+  it('asegurarCargado hidrata el caché en frío una sola vez', async () => {
+    await Promise.all([service.asegurarCargado(), service.asegurarCargado()]);
+
+    expect(service.precioDe('general')).toBe(1_800);
+    expect(service.precioDe('especial')).toBe(4_500);
+    expect(tarifaVigente).toHaveBeenCalledTimes(2);
+  });
 });

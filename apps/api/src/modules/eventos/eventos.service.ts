@@ -69,6 +69,7 @@ export class EventosService {
     }
 
     if (datos.esPago && datos.categoriaPrecio) {
+      await this.tarifasService.asegurarCargado?.();
       this.tarifasService.exigirPrecio(datos.categoriaPrecio);
     }
 
@@ -194,6 +195,8 @@ export class EventosService {
       conteos.map((fila) => [fila.eventoId, fila.total]),
     );
     const inscriptoEn = new Set(propias.map((fila) => fila.eventoId));
+
+    await this.tarifasService.asegurarCargado?.();
 
     return filas.map(({ evento, locacion }) => {
       const inscriptos = totalPorEvento.get(evento.id) ?? 0;

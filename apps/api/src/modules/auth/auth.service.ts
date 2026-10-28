@@ -16,6 +16,7 @@ import { env } from '@repo/env';
 import {
   firmarJwtCore,
   obtenerCoreBaseUrl,
+  USA_CORE_MOCK,
 } from '../../common/core/core-crypto';
 import type { UsuarioAutenticado } from '../../common/usuario-demo';
 
@@ -108,7 +109,7 @@ export class AuthService {
         };
       }
 
-      if (env.NODE_ENV !== 'production') {
+      if (USA_CORE_MOCK || env.NODE_ENV !== 'production') {
         const demo = this.autenticarDemo(credenciales);
         if (demo) {
           return { respuesta: demo };
@@ -123,7 +124,7 @@ export class AuthService {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      if (env.NODE_ENV !== 'production') {
+      if (USA_CORE_MOCK || env.NODE_ENV !== 'production') {
         const demo = this.autenticarDemo(credenciales);
         if (demo) {
           return { respuesta: demo };

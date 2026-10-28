@@ -1,7 +1,22 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
-  "globalEnv": ["DATABASE_URL", "NODE_ENV"],
+  "globalEnv": [
+    "DATABASE_URL",
+    "NODE_ENV",
+    "PORT",
+    "VERCEL",
+    "VERCEL_ENV",
+    "VERCEL_URL",
+    "BACKOFFICE_BASE_URL",
+    "CORE_BASE_URL",
+    "CORE_CLIENT_ID",
+    "CORE_CLIENT_SECRET",
+    "CORE_GATEWAY_SECRET",
+    "FRONTEND_BASE_URL",
+    "NEXT_PUBLIC_API_URL",
+    "NEXT_PUBLIC_CORE_URL"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

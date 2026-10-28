@@ -23,13 +23,34 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, swaggerDocument);
+  const esVercel = process.env.VERCEL === '1';
+  SwaggerModule.setup(
+    'api/docs',
+    app,
+    swaggerDocument,
+    esVercel
+      ? {
+          customCssUrl:
+            'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.18.2/swagger-ui.min.css',
+          customJs: [
+            'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.18.2/swagger-ui-bundle.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.18.2/swagger-ui-standalone-preset.min.js',
+          ],
+        }
+      : undefined,
+  );
+
+  if (esVercel) {
+    await app.get(TarifasService).asegurarCargado();
+  }
 
   await app.listen(process.env.PORT ?? 3000);
 
-  // Después del listen: con Backoffice/CORE simulados, el primer pedido apunta a esta misma API.
-  app.get(TarifasService).iniciarPolling();
-  app.get(LocacionesSyncService).iniciarSincronizacion();
-  app.get(RecordatoriosService).iniciarWorker();
+  if (!esVercel) {
+    // Después del listen: con Backoffice/CORE simulados en proceso local, el primer pedido apunta a esta misma API.
+    app.get(TarifasService).iniciarPolling();
+    app.get(LocacionesSyncService).iniciarSincronizacion();
+    app.get(RecordatoriosService).iniciarWorker();
+  }
 }
 void bootstrap();

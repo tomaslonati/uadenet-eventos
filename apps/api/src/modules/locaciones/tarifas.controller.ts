@@ -20,7 +20,8 @@ export class TarifasController {
     description:
       'Tarifas vigentes de inscripción a eventos parametrizadas por Backoffice Administrativo',
   })
-  obtenerVigentes(): TarifasVigentesResponse {
+  async obtenerVigentes(): Promise<TarifasVigentesResponse> {
+    await this.tarifasService.asegurarCargado();
     return {
       general: this.tarifasService.precioDe('general'),
       especial: this.tarifasService.precioDe('especial'),
