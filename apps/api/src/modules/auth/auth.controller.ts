@@ -17,7 +17,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import type { CoreAuthUser, CoreLoginResponse } from '@repo/contracts';
-import type { Response } from 'express';
+import type { Response as ExpressResponse } from 'express';
 import { UsuarioActual } from '../../common/decorators/usuario-actual.decorator';
 import { CoreJwtGuard } from '../../common/guards/core-jwt.guard';
 import {
@@ -43,7 +43,7 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Credenciales inválidas' })
   async login(
     @Body() body: unknown,
-    @Res({ passthrough: true }) res?: Response,
+    @Res({ passthrough: true }) res?: ExpressResponse,
   ): Promise<CoreLoginResponse> {
     const { respuesta, setCookie } = await this.authService.login(body);
     if (setCookie && res) {
@@ -65,7 +65,7 @@ export class AuthController {
   async refresh(
     @Headers('cookie') cookieHeader?: string,
     @Headers('authorization') authHeader?: string,
-    @Res({ passthrough: true }) res?: Response,
+    @Res({ passthrough: true }) res?: ExpressResponse,
   ): Promise<CoreLoginResponse> {
     const { respuesta, setCookie } = await this.authService.refresh(
       cookieHeader,

@@ -111,4 +111,25 @@ describe('BackofficeClient', () => {
 
     await expect(cliente.listarSedes()).rejects.toThrow();
   });
+
+  it('resuelve en memoria sin llamadas HTTP a localhost cuando corre en Vercel serverless sin BACKOFFICE_BASE_URL', async () => {
+    const previo = process.env.VERCEL;
+    process.env.VERCEL = '1';
+    try {
+      const sedes = await cliente.listarSedes();
+      const tarifa = await cliente.tarifaVigente(
+        'EVENTO_INSCRIPCION_GENERAL',
+        '2026-10-20',
+      );
+      expect(sedes.length).toBeGreaterThan(0);
+      expect(tarifa?.monto).toBe(5500);
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      if (previo === undefined) {
+        delete process.env.VERCEL;
+      } else {
+        process.env.VERCEL = previo;
+      }
+    }
+  });
 });
