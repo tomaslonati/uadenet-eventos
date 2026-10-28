@@ -6,6 +6,7 @@ import { CoreMockModule } from './common/core/core-mock.module';
 import { CoreModule } from './common/core/core.module';
 import { HealthModule } from './health/health.module';
 import { AsistenciaModule } from './modules/asistencia/asistencia.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { EventosModule } from './modules/eventos/eventos.module';
 import { InscripcionesModule } from './modules/inscripciones/inscripciones.module';
 import { LocacionesModule } from './modules/locaciones/locaciones.module';
@@ -16,6 +17,7 @@ import { RecordatoriosService } from './workers/recordatorios.service';
   imports: [
     CoreModule,
     HealthModule,
+    AuthModule,
     EventosModule,
     LocacionesModule,
     InscripcionesModule,

@@ -13,8 +13,15 @@ import estilos from "./app-shell.module.css";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { rol, usuario, sede, cambiarSede, saldo, inscripciones } =
-    useSesion();
+  const {
+    rol,
+    usuario,
+    sede,
+    cambiarSede,
+    saldo,
+    inscripciones,
+    cerrarSesion,
+  } = useSesion();
   const [menuAbierto, setMenuAbierto] = useState(false);
   const menu = useRef<HTMLDivElement>(null);
 
@@ -78,7 +85,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                 href="/"
                 role="menuitem"
                 className={estilos.menuItem}
-                onClick={() => setMenuAbierto(false)}
+                onClick={() => {
+                  setMenuAbierto(false);
+                  void cerrarSesion();
+                }}
               >
                 Cerrar sesión
               </Link>

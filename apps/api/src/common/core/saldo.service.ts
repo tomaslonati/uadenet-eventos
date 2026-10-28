@@ -102,6 +102,7 @@ export class SaldoService {
             concept: 'EVENT_REGISTRATION',
             sourceModule: 'events',
             externalReference: datos.referenciaId,
+            description: datos.concepto,
           }),
           signal: AbortSignal.timeout(5_000),
         },
@@ -111,7 +112,7 @@ export class SaldoService {
         const tx = walletTransactionSchema.parse(await res.json());
         return {
           aprobado: true,
-          saldoRestante: Math.round(Number.parseFloat(tx.balanceAfter)),
+          saldoRestante: Math.round(Number.parseFloat(tx.balanceAfter ?? '0')),
           motivo: null,
           transaccionId: tx.transactionId,
         };
@@ -131,7 +132,7 @@ export class SaldoService {
           return {
             aprobado: true,
             saldoRestante: Math.round(
-              Number.parseFloat(conciliada.balanceAfter),
+              Number.parseFloat(conciliada.balanceAfter ?? '0'),
             ),
             motivo: null,
             transaccionId: conciliada.transactionId,
@@ -159,7 +160,9 @@ export class SaldoService {
       if (conciliada && conciliada.status === 'POSTED') {
         return {
           aprobado: true,
-          saldoRestante: Math.round(Number.parseFloat(conciliada.balanceAfter)),
+          saldoRestante: Math.round(
+            Number.parseFloat(conciliada.balanceAfter ?? '0'),
+          ),
           motivo: null,
           transaccionId: conciliada.transactionId,
         };

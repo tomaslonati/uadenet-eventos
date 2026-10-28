@@ -25,10 +25,11 @@ export class UsuariosService {
   ): Promise<WalletBalance> {
     if (!this.saldoService) {
       return {
+        walletId: '00000000-0000-4000-8000-000000000000',
         userId: usuarioId,
         balance: '10000.00',
         currency: 'ARS',
-        status: 'ACTIVE',
+        updatedAt: new Date().toISOString(),
       };
     }
     return this.saldoService.consultarSaldo(usuarioId, tokenUsuario);

@@ -7,7 +7,7 @@ import {
   CUENTAS_DEMO,
   DOMINIO_MAIL,
   INICIO_POR_ROL,
-  autenticar,
+  autenticarEnCore,
   useSesion,
 } from "@/lib/sesion";
 
@@ -19,16 +19,27 @@ export default function Login() {
   const [mail, setMail] = useState("m.ibarra");
   const [contrasena, setContrasena] = useState("");
   const [error, setError] = useState(false);
+  const [cargando, setCargando] = useState(false);
 
-  const entrar = (evento: FormEvent) => {
+  const entrar = async (evento: FormEvent) => {
     evento.preventDefault();
-    const rol = autenticar(`${mail}${DOMINIO_MAIL}`, contrasena);
-    if (!rol) {
+    setCargando(true);
+    setError(false);
+
+    const limpio = mail.trim();
+    const emailCompleto = limpio.includes("@")
+      ? limpio
+      : `${limpio}${DOMINIO_MAIL}`;
+
+    const resultado = await autenticarEnCore(emailCompleto, contrasena);
+    setCargando(false);
+
+    if (!resultado) {
       setError(true);
       return;
     }
-    ingresar(rol);
-    router.push(INICIO_POR_ROL[rol]);
+    ingresar(resultado.rol, resultado);
+    router.push(INICIO_POR_ROL[resultado.rol]);
   };
 
   return (
@@ -112,8 +123,12 @@ export default function Login() {
             )}
           </div>
 
-          <button type="submit" className={estilos.continuar}>
-            Continuar
+          <button
+            type="submit"
+            className={estilos.continuar}
+            disabled={cargando}
+          >
+            {cargando ? "Validando en CORE…" : "Continuar"}
           </button>
 
           <div className={estilos.cuentas}>

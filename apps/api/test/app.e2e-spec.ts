@@ -92,6 +92,40 @@ describe('AppModule (e2e)', () => {
       userId: 'seed-alumno-demo',
       balance: '10000.00',
       currency: 'ARS',
+    });
+    expect(typeof (res.body as { walletId?: string }).walletId).toBe('string');
+    expect(typeof (res.body as { updatedAt?: string }).updatedAt).toBe(
+      'string',
+    );
+  });
+
+  it('POST /api/v1/auth/login autentica contra CORE y GET /api/v1/auth/me devuelve el perfil', async () => {
+    const loginRes = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({
+        email: 'm.ibarra@uadenet.edu',
+        password: 'admin.2026',
+      })
+      .expect(200);
+
+    const body = loginRes.body as {
+      accessToken: string;
+      expiresIn: number;
+      user: { id: string; email: string; roles: string[] };
+    };
+    expect(typeof body.accessToken).toBe('string');
+    expect(body.expiresIn).toBe(900);
+    expect(body.user.email).toBe('m.ibarra@uadenet.edu');
+
+    const meRes = await request(app.getHttpServer())
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${body.accessToken}`)
+      .expect(200);
+
+    expect(meRes.body).toMatchObject({
+      id: 'seed-admin-demo',
+      email: 'm.ibarra@uadenet.edu',
+      roles: ['OPERATIONS_ADMIN'],
       status: 'ACTIVE',
     });
   });

@@ -87,7 +87,7 @@ export class AnaliticaService {
         correlationId: randomUUID(),
         causationId: null,
         actor: {
-          type: 'SERVICE',
+          type: 'service',
           id: env.CORE_CLIENT_ID,
         },
         data: evento,

@@ -11,18 +11,24 @@ import {
   Param,
   Post,
   Query,
+  UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import {
   coreEventEnvelopeSchema,
+  coreIntrospectRequestSchema,
+  coreLoginRequestSchema,
   coreNotificationRequestSchema,
   serviceTokenRequestSchema,
   walletDebitRequestSchema,
   walletReversalRequestSchema,
+  type CoreAuthUser,
   type CoreEventAck,
   type CoreEventEnvelope,
-  type CoreNotificationAck,
+  type CoreIntrospectResponse,
+  type CoreLoginResponse,
+  type CoreNotification,
   type CoreNotificationRequest,
   type JwksResponse,
   type ServiceTokenResponse,
@@ -34,16 +40,80 @@ import { firmarJwtCore, obtenerJwkPublicaDemo } from './core-crypto';
 
 const SALDO_INICIAL_PESOS = 10_000;
 
+interface CuentaDemoCore {
+  user: CoreAuthUser;
+  nombre: string;
+  password: string;
+}
+
+const CUENTAS_DEMO_CORE: CuentaDemoCore[] = [
+  {
+    user: {
+      id: 'seed-admin-demo',
+      email: 'm.ibarra@uadenet.edu',
+      careerIds: [],
+      roles: ['OPERATIONS_ADMIN'],
+      permissions: [
+        'campus-events:manage',
+        'wallet:read:self',
+        'wallet:credit:self',
+      ],
+      status: 'ACTIVE',
+    },
+    nombre: 'Mariana Ibarra',
+    password: 'admin.2026',
+  },
+  {
+    user: {
+      id: 'seed-docente-demo',
+      email: 'e.ruiz@uadenet.edu',
+      careerIds: [],
+      roles: ['TEACHER'],
+      permissions: ['wallet:read:self', 'wallet:credit:self'],
+      status: 'ACTIVE',
+    },
+    nombre: 'Dr. Esteban Ruiz',
+    password: 'docente.2026',
+  },
+  {
+    user: {
+      id: 'seed-alumno-demo',
+      email: 't.vidal@uadenet.edu',
+      careerIds: ['ing-informatica'],
+      roles: ['STUDENT'],
+      permissions: ['wallet:read:self', 'wallet:credit:self'],
+      status: 'ACTIVE',
+    },
+    nombre: 'Tomás Vidal',
+    password: 'alumno.2026',
+  },
+  {
+    user: {
+      id: '3dc2f950-355b-4a86-9832-279ceae95d18',
+      email: 'student@uade.edu.ar',
+      careerIds: ['ing-informatica'],
+      roles: ['STUDENT'],
+      permissions: ['wallet:read:self', 'wallet:credit:self'],
+      status: 'ACTIVE',
+    },
+    nombre: 'Estudiante UADE',
+    password: 'StrongPass123!',
+  },
+];
+
 /**
- * CORE simulado sobre los contratos oficiales de G10 (IAM/JWKS, Wallets,
- * Event Bus y Notificaciones). Solo se monta cuando `CORE_BASE_URL` no está
- * definido; con `CORE_BASE_URL` configurado los servicios consumen el CORE real.
+ * CORE simulado sobre los contratos oficiales de G10 (Authentication, IAM/JWKS,
+ * Wallets, Event Bus y Notificaciones). Solo se monta cuando `CORE_BASE_URL`
+ * no está definido o en entorno de test; con `CORE_BASE_URL` configurado los
+ * servicios consumen el CORE real.
  */
 @ApiExcludeController()
 @Controller({ path: 'core', version: '1' })
 export class CoreMockController {
   private readonly saldos = new Map<string, number>();
+  private readonly walletIds = new Map<string, string>();
   private readonly transaccionesPorId = new Map<string, WalletTransaction>();
+  private readonly propietarioPorTransaccion = new Map<string, string>();
   private readonly transaccionesPorReferencia = new Map<
     string,
     WalletTransaction
@@ -66,6 +136,123 @@ export class CoreMockController {
     };
   }
 
+  @Post('api/v1/auth/login')
+  @HttpCode(200)
+  login(@Body() body: unknown): CoreLoginResponse {
+    const parsed = coreLoginRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        detail: 'Credenciales inválidas.',
+      });
+    }
+
+    const emailBuscado = parsed.data.email.trim().toLowerCase();
+    const cuenta = CUENTAS_DEMO_CORE.find(
+      (c) =>
+        c.user.email.toLowerCase() === emailBuscado &&
+        c.password === parsed.data.password,
+    );
+
+    if (!cuenta) {
+      throw new UnauthorizedException({
+        code: 'AUTH_INVALID_CREDENTIALS',
+        detail: 'Invalid email or password',
+      });
+    }
+
+    const accessToken = firmarJwtCore(
+      {
+        sub: cuenta.user.id,
+        email: cuenta.user.email,
+        nombre: cuenta.nombre,
+        roles: cuenta.user.roles,
+        permissions: cuenta.user.permissions,
+        careerIds: cuenta.user.careerIds,
+      },
+      900,
+    );
+
+    return {
+      accessToken,
+      expiresIn: 900,
+      user: cuenta.user,
+    };
+  }
+
+  @Post('api/v1/auth/refresh')
+  @HttpCode(200)
+  refresh(@Headers('authorization') authHeader?: string): CoreLoginResponse {
+    const sub = this.extraerSubDeAuth(authHeader) ?? 'seed-admin-demo';
+    const cuenta =
+      CUENTAS_DEMO_CORE.find((c) => c.user.id === sub) ?? CUENTAS_DEMO_CORE[0]!;
+
+    const accessToken = firmarJwtCore(
+      {
+        sub: cuenta.user.id,
+        email: cuenta.user.email,
+        nombre: cuenta.nombre,
+        roles: cuenta.user.roles,
+        permissions: cuenta.user.permissions,
+        careerIds: cuenta.user.careerIds,
+      },
+      900,
+    );
+
+    return {
+      accessToken,
+      expiresIn: 900,
+      user: cuenta.user,
+    };
+  }
+
+  @Post('api/v1/auth/logout')
+  @HttpCode(204)
+  logout(): void {
+    return;
+  }
+
+  @Get('api/v1/auth/me')
+  me(@Headers('authorization') authHeader?: string): CoreAuthUser {
+    const sub = this.extraerSubDeAuth(authHeader);
+    if (!sub) {
+      throw new UnauthorizedException({
+        code: 'UNAUTHORIZED',
+        detail: 'Bearer token requerido.',
+      });
+    }
+    const cuenta = CUENTAS_DEMO_CORE.find((c) => c.user.id === sub);
+    if (cuenta) {
+      return cuenta.user;
+    }
+    return {
+      id: sub,
+      email: `${sub}@uade.edu.ar`,
+      careerIds: [],
+      roles: ['STUDENT'],
+      permissions: ['wallet:read:self', 'wallet:credit:self'],
+      status: 'ACTIVE',
+    };
+  }
+
+  @Post('internal/v1/auth/introspect')
+  @HttpCode(200)
+  introspect(@Body() body: unknown): CoreIntrospectResponse {
+    const parsed = coreIntrospectRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return { active: false };
+    }
+    const sub = this.extraerSubDeAuth(`Bearer ${parsed.data.token}`);
+    if (!sub) {
+      return { active: false };
+    }
+    return {
+      active: true,
+      sub,
+      kind: sub.startsWith('service:') ? 'service' : 'user',
+    };
+  }
+
   @Post('internal/v1/service-auth/token')
   @HttpCode(200)
   emitirTokenServicio(@Body() body: unknown): ServiceTokenResponse {
@@ -82,10 +269,10 @@ export class CoreMockController {
         sub: parsed.data.clientId,
         roles: ['SERVICE'],
         permissions: [
-          'wallet:debit:any',
-          'wallet:read:any',
           'events:publish',
-          'notifications:send',
+          'wallet:debit:any',
+          'notifications:write',
+          'webhooks:manage',
         ],
       },
       900,
@@ -173,19 +360,19 @@ export class CoreMockController {
 
     const transaccion: WalletTransaction = {
       transactionId: randomUUID(),
-      userId,
-      type: 'DEBIT',
       status: 'POSTED',
+      type: 'DEBIT',
+      concept: datos.concept,
       amount: monto.toFixed(2),
       currency: 'ARS',
       balanceAfter: nuevoSaldo.toFixed(2),
-      concept: datos.concept,
-      sourceModule: datos.sourceModule,
       externalReference: datos.externalReference,
+      originalTransactionId: null,
       createdAt: new Date().toISOString(),
     };
 
     this.transaccionesPorId.set(transaccion.transactionId, transaccion);
+    this.propietarioPorTransaccion.set(transaccion.transactionId, userId);
     this.transaccionesPorReferencia.set(claveReferencia, transaccion);
     this.idempotencia.set(idempotencyKey, { fingerprint, transaccion });
 
@@ -215,7 +402,8 @@ export class CoreMockController {
     }
 
     const original = this.transaccionesPorId.get(transactionId);
-    if (!original) {
+    const userId = this.propietarioPorTransaccion.get(transactionId);
+    if (!original || !userId) {
       throw new NotFoundException({
         code: 'WALLET_TRANSACTION_NOT_FOUND',
         detail: 'La transacción a revertir no existe.',
@@ -246,23 +434,23 @@ export class CoreMockController {
     const montoReversa = parsed.data.amount
       ? Number.parseFloat(parsed.data.amount)
       : Number.parseFloat(original.amount);
-    const saldoActual = this.obtenerSaldoNumerico(original.userId);
+    const saldoActual = this.obtenerSaldoNumerico(userId);
     const nuevoSaldo = saldoActual + montoReversa;
-    this.saldos.set(original.userId, nuevoSaldo);
+    this.saldos.set(userId, nuevoSaldo);
 
     original.status = 'REVERSED';
 
     const reversa: WalletTransaction = {
       transactionId: randomUUID(),
-      userId: original.userId,
-      type: 'REVERSAL',
       status: 'POSTED',
+      type: 'REVERSAL',
+      concept: 'REFUND',
       amount: montoReversa.toFixed(2),
       currency: 'ARS',
       balanceAfter: nuevoSaldo.toFixed(2),
-      concept: parsed.data.reason,
-      sourceModule: original.sourceModule,
-      externalReference: original.externalReference,
+      externalReference:
+        parsed.data.externalReference ?? original.externalReference,
+      originalTransactionId: original.transactionId,
       createdAt: new Date().toISOString(),
     };
 
@@ -310,8 +498,8 @@ export class CoreMockController {
   }
 
   @Post('internal/v1/notifications')
-  @HttpCode(202)
-  recibirNotificacion(@Body() body: unknown): CoreNotificationAck {
+  @HttpCode(201)
+  recibirNotificacion(@Body() body: unknown): CoreNotification {
     const parsed = coreNotificationRequestSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException({
@@ -322,8 +510,17 @@ export class CoreMockController {
 
     this.notificacionesRecibidas.push(parsed.data);
     return {
-      notificationId: randomUUID(),
-      status: 'QUEUED',
+      id: randomUUID(),
+      userId: parsed.data.userId,
+      type: parsed.data.type,
+      title: parsed.data.title,
+      message: parsed.data.message,
+      actionUrl: parsed.data.actionUrl ?? null,
+      sourceModule: parsed.data.sourceModule,
+      sourceReference: parsed.data.sourceReference,
+      readAt: null,
+      expiresAt: parsed.data.expiresAt ?? null,
+      createdAt: new Date().toISOString(),
     };
   }
 
@@ -334,13 +531,21 @@ export class CoreMockController {
     return this.saldos.get(userId)!;
   }
 
+  private obtenerWalletId(userId: string): string {
+    if (!this.walletIds.has(userId)) {
+      this.walletIds.set(userId, randomUUID());
+    }
+    return this.walletIds.get(userId)!;
+  }
+
   private obtenerBalance(userId: string): WalletBalance {
     const saldo = this.obtenerSaldoNumerico(userId);
     return {
+      walletId: this.obtenerWalletId(userId),
       userId,
       balance: saldo.toFixed(2),
       currency: 'ARS',
-      status: 'ACTIVE',
+      updatedAt: new Date().toISOString(),
     };
   }
 
