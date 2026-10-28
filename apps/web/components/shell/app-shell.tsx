@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Select } from "@/components/ui/select";
+import { TODAS_LAS_SEDES } from "@/lib/api";
 import { pesos } from "@/lib/formato";
-import { SEDES, TODAS_LAS_SEDES } from "@/lib/mock/eventos";
 import { navDe, useSesion } from "@/lib/sesion";
 
 import estilos from "./app-shell.module.css";
@@ -17,6 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     rol,
     usuario,
     sede,
+    sedes,
     cambiarSede,
     saldo,
     inscripciones,
@@ -54,7 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             etiqueta="Sede"
             className={estilos.sedeSelect}
             valor={sede}
-            opciones={[TODAS_LAS_SEDES, ...SEDES]}
+            opciones={[TODAS_LAS_SEDES, ...sedes]}
             onCambiar={cambiarSede}
           />
         </div>
