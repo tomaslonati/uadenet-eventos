@@ -56,11 +56,12 @@ export class NotificacionesService {
 
     const payloadNotificacion = coreNotificationRequestSchema.parse({
       userId: recordatorio.usuarioId,
-      type: 'evento.recordatorio',
+      type: 'EVENT_REMINDER',
       title: `Recordatorio: ${recordatorio.titulo}`,
       message: `Falta 1 semana para "${recordatorio.titulo}" en ${recordatorio.locacion}.`,
-      link: recordatorio.url,
-      metadata: recordatorio,
+      actionUrl: recordatorio.url,
+      sourceModule: 'events',
+      sourceReference: `evento/${recordatorio.eventoId}`,
     });
 
     const envelope = coreEventEnvelopeSchema.parse({
@@ -73,7 +74,7 @@ export class NotificacionesService {
       correlationId: randomUUID(),
       causationId: null,
       actor: {
-        type: 'SERVICE',
+        type: 'service',
         id: env.CORE_CLIENT_ID,
       },
       data: recordatorio,
@@ -95,7 +96,7 @@ export class NotificacionesService {
         }),
       ]);
 
-      return resNotif.ok && resEvent.ok;
+      return (resNotif.ok || resNotif.status === 409) && resEvent.ok;
     } catch (err) {
       this.logger.warn(
         `No se pudo entregar recordatorio a CORE para ${recordatorio.usuarioId}: ${String(err)}`,

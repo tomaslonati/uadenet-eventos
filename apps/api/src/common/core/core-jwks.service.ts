@@ -6,7 +6,9 @@ import {
   type CoreJwtClaims,
   type Jwk,
 } from '@repo/contracts';
+import { env } from '@repo/env';
 import {
+  CORE_DEMO_KID,
   obtenerCoreBaseUrl,
   obtenerJwkPublicaDemo,
   USA_CORE_MOCK,
@@ -107,6 +109,16 @@ export class CoreJwksService {
     }
 
     await this.refrescarJwks();
+    if (
+      !this.claves.has(kid) &&
+      kid === CORE_DEMO_KID &&
+      env.NODE_ENV !== 'production'
+    ) {
+      this.claves.set(
+        CORE_DEMO_KID,
+        createPublicKey({ key: obtenerJwkPublicaDemo(), format: 'jwk' }),
+      );
+    }
     return this.claves.get(kid) ?? null;
   }
 

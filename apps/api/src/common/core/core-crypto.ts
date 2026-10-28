@@ -10,14 +10,15 @@ import { env } from '@repo/env';
 
 export const CORE_DEMO_KID = 'core-rsa-key-1';
 
-/** Sin `CORE_BASE_URL` se monta el controlador simulado de CORE en esta misma API. */
-export const USA_CORE_MOCK = env.CORE_BASE_URL === undefined;
+/** Sin `CORE_BASE_URL` (o en entorno de test) se monta el controlador simulado de CORE en esta misma API. */
+export const USA_CORE_MOCK =
+  env.CORE_BASE_URL === undefined || env.NODE_ENV === 'test';
 
 export function obtenerCoreBaseUrl(): string {
-  return (
-    env.CORE_BASE_URL ??
-    `http://localhost:${process.env.PORT ?? 3000}/api/v1/core`
-  );
+  if (env.NODE_ENV === 'test' || !env.CORE_BASE_URL) {
+    return `http://localhost:${process.env.PORT ?? 3000}/api/v1/core`;
+  }
+  return env.CORE_BASE_URL;
 }
 
 let parClavesDemo: { privateKey: KeyObject; publicKey: KeyObject } | null =
