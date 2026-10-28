@@ -4,18 +4,18 @@ import { Badge } from "@/components/ui/badge";
 import { BotonLink } from "@/components/ui/boton";
 import { BarraCupo } from "@/components/ui/controles";
 import { Datacards, Encabezado, type Indicador } from "@/components/ui/pantalla";
+import { TODAS_LAS_SEDES } from "@/lib/api";
 import { ingresosDe } from "@/lib/dominio";
 import { numero, pesos } from "@/lib/formato";
-import { EVENTOS, TODAS_LAS_SEDES } from "@/lib/mock/eventos";
 import { useSesion } from "@/lib/sesion";
 import { vistaDe } from "@/lib/vista-evento";
 
 import estilos from "./gestion.module.css";
 
 export default function Gestion() {
-  const { sede, estaInscripto } = useSesion();
+  const { sede, sedes, eventos: catalogo, estaInscripto } = useSesion();
 
-  const deLaSede = EVENTOS.filter(
+  const deLaSede = catalogo.filter(
     (evento) => sede === TODAS_LAS_SEDES || evento.sede === sede,
   );
   const eventos = deLaSede.map((evento) =>
@@ -41,7 +41,7 @@ export default function Gestion() {
     {
       label: "Eventos activos",
       valor: String(deLaSede.length),
-      sub: `en ${sede === TODAS_LAS_SEDES ? "3 sedes" : sede}`,
+      sub: `en ${sede === TODAS_LAS_SEDES ? `${sedes.length || 3} sedes` : sede}`,
     },
     {
       label: "Inscriptos",

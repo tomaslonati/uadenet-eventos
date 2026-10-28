@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Boton } from "@/components/ui/boton";
@@ -14,9 +14,10 @@ import {
   ModalHeader,
   ModalPie,
 } from "@/components/ui/modal";
+import { EstadoVacio } from "@/components/ui/pantalla";
+import { fetchEventoPorIdApi, type Evento } from "@/lib/api";
 import { conflictoDe } from "@/lib/dominio";
-import { horario, iniciales, pesos } from "@/lib/formato";
-import type { Evento } from "@/lib/mock/eventos";
+import { anio, horario, iniciales, pesos } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import { vistaDe } from "@/lib/vista-evento";
 
@@ -24,17 +25,66 @@ import estilos from "./detalle.module.css";
 
 type Dialogo = "checkout" | "conflicto" | "confirmado" | null;
 
-export function DetalleEvento({ evento }: { evento: Evento }) {
+export function DetalleEvento({ eventoId }: { eventoId: string }) {
   const router = useRouter();
-  const { rol, saldo, inscripciones, estaInscripto, inscribir } = useSesion();
+  const {
+    rol,
+    accessToken,
+    saldo,
+    eventos: catalogo,
+    estaInscripto,
+    inscribir,
+    mostrarToast,
+  } = useSesion();
+  const [eventoDirecto, setEventoDirecto] = useState<Evento | null>(null);
+  const [buscando, setBuscando] = useState(false);
+  const [procesando, setProcesando] = useState(false);
   const [dialogo, setDialogo] = useState<Dialogo>(null);
 
+  const enCatalogo = catalogo.find((e) => e.id === eventoId);
+  const evento = enCatalogo ?? eventoDirecto;
+
+  useEffect(() => {
+    if (enCatalogo) return;
+    let cancelado = false;
+
+    const cargar = async () => {
+      setBuscando(true);
+      try {
+        const remoto = await fetchEventoPorIdApi(eventoId, accessToken);
+        if (!cancelado) setEventoDirecto(remoto);
+      } catch {
+        if (!cancelado) setEventoDirecto(null);
+      } finally {
+        if (!cancelado) setBuscando(false);
+      }
+    };
+
+    void cargar();
+    return () => {
+      cancelado = true;
+    };
+  }, [eventoId, accessToken, enCatalogo]);
+
+  if (!evento) {
+    return (
+      <EstadoVacio
+        texto={
+          buscando
+            ? "Cargando detalle del evento…"
+            : "No encontramos el evento solicitado."
+        }
+      />
+    );
+  }
+
   const vista = vistaDe(evento, estaInscripto(evento.id));
-  const conflicto = conflictoDe(evento, inscripciones);
+  const eventosInscriptos = catalogo.filter((e) => estaInscripto(e.id));
+  const conflicto = conflictoDe(evento, eventosInscriptos);
   const saldoPosterior = saldo - evento.precio;
 
   const meta = [
-    { clave: "Fecha", valor: `${vista.fechaLarga} de 2026` },
+    { clave: "Fecha", valor: `${vista.fechaLarga} de ${anio(evento.fecha)}` },
     { clave: "Horario", valor: `${vista.rangoHorario} h` },
     { clave: "Sede", valor: evento.sede },
     { clave: "Locación", valor: evento.locacion },
@@ -45,24 +95,43 @@ export function DetalleEvento({ evento }: { evento: Evento }) {
     },
   ];
 
-  const ctaLabel = vista.inscripto
-    ? "Ya estás inscripto"
-    : vista.lleno
-      ? "Cupo completo"
-      : evento.precio
-        ? `Inscribirme por ${pesos(evento.precio)}`
-        : "Inscribirme";
+  const ctaLabel = procesando
+    ? "Confirmando…"
+    : vista.inscripto
+      ? "Ya estás inscripto"
+      : vista.lleno
+        ? "Cupo completo"
+        : evento.precio
+          ? `Inscribirme por ${pesos(evento.precio)}`
+          : "Inscribirme";
 
   const ctaHint = vista.inscripto
     ? "Ya tenés tu lugar confirmado."
     : vista.lleno
       ? "No quedan lugares disponibles."
       : evento.precio
-        ? "Se descuenta de tu cuenta institucional al confirmar."
+        ? "Se descuenta de tu cuenta institucional en CORE al confirmar."
         : "Sin costo. Se te asigna una credencial digital al confirmar.";
 
+  const ejecutarInscripcion = async () => {
+    setProcesando(true);
+    try {
+      await inscribir(evento);
+      setDialogo("confirmado");
+    } catch (err) {
+      setDialogo(null);
+      mostrarToast(
+        err instanceof Error
+          ? err.message
+          : "No se pudo completar la inscripción.",
+      );
+    } finally {
+      setProcesando(false);
+    }
+  };
+
   const intentarInscribir = () => {
-    if (vista.inscripto || vista.lleno) return;
+    if (vista.inscripto || vista.lleno || procesando) return;
     if (conflicto) {
       setDialogo("conflicto");
       return;
@@ -71,8 +140,7 @@ export function DetalleEvento({ evento }: { evento: Evento }) {
       setDialogo("checkout");
       return;
     }
-    inscribir(evento, false);
-    setDialogo("confirmado");
+    void ejecutarInscripcion();
   };
 
   const confirmarPago = () => {
@@ -81,13 +149,15 @@ export function DetalleEvento({ evento }: { evento: Evento }) {
       router.push("/cuenta");
       return;
     }
-    inscribir(evento, true);
-    setDialogo("confirmado");
+    void ejecutarInscripcion();
   };
 
   return (
     <>
-      <Link href={rol === "admin" ? "/gestion" : "/cartelera"} className={estilos.volver}>
+      <Link
+        href={rol === "admin" ? "/gestion" : "/cartelera"}
+        className={estilos.volver}
+      >
         ← Volver
       </Link>
 
@@ -127,10 +197,14 @@ export function DetalleEvento({ evento }: { evento: Evento }) {
             <Cupo texto={vista.cupoLabel} porcentaje={vista.porcentaje} alta />
             <Boton
               variante={
-                vista.inscripto ? "secundario" : vista.lleno ? "secundario" : "primario"
+                vista.inscripto
+                  ? "secundario"
+                  : vista.lleno
+                    ? "secundario"
+                    : "primario"
               }
               bloque
-              disabled={vista.inscripto || vista.lleno}
+              disabled={vista.inscripto || vista.lleno || procesando}
               onClick={intentarInscribir}
             >
               {ctaLabel}
@@ -156,7 +230,10 @@ export function DetalleEvento({ evento }: { evento: Evento }) {
       </div>
 
       {dialogo === "checkout" ? (
-        <Modal etiqueta="Confirmar inscripción" onCerrar={() => setDialogo(null)}>
+        <Modal
+          etiqueta="Confirmar inscripción"
+          onCerrar={() => setDialogo(null)}
+        >
           <ModalHeader etiqueta="Confirmar inscripción" titulo={evento.titulo} />
           <ModalCuerpo>
             <div className={estilos.lineaCheckout}>
@@ -167,7 +244,9 @@ export function DetalleEvento({ evento }: { evento: Evento }) {
               <span>Saldo actual</span>
               <span>{pesos(saldo)}</span>
             </div>
-            <div className={`${estilos.lineaCheckout} ${estilos.lineaSecundaria}`}>
+            <div
+              className={`${estilos.lineaCheckout} ${estilos.lineaSecundaria}`}
+            >
               <span>Sede y locación</span>
               <span>
                 {evento.sede} · {evento.locacion}
@@ -194,16 +273,24 @@ export function DetalleEvento({ evento }: { evento: Evento }) {
             <Boton onClick={() => setDialogo(null)}>Cancelar</Boton>
             <Boton
               variante={saldoPosterior < 0 ? "destructivo" : "primario"}
+              disabled={procesando}
               onClick={confirmarPago}
             >
-              {saldoPosterior < 0 ? "Ver mi cuenta" : "Confirmar y pagar"}
+              {saldoPosterior < 0
+                ? "Ver mi cuenta"
+                : procesando
+                  ? "Procesando pago en CORE…"
+                  : "Confirmar y pagar"}
             </Boton>
           </ModalPie>
         </Modal>
       ) : null}
 
       {dialogo === "conflicto" && conflicto ? (
-        <Modal etiqueta="Conflicto de horario" onCerrar={() => setDialogo(null)}>
+        <Modal
+          etiqueta="Conflicto de horario"
+          onCerrar={() => setDialogo(null)}
+        >
           <div className={estilos.conflictoHeader}>
             <span className={estilos.puntoError} />
             <span className={estilos.conflictoTitulo}>
@@ -244,12 +331,15 @@ export function DetalleEvento({ evento }: { evento: Evento }) {
       ) : null}
 
       {dialogo === "confirmado" ? (
-        <Modal etiqueta="Inscripción confirmada" onCerrar={() => setDialogo(null)}>
+        <Modal
+          etiqueta="Inscripción confirmada"
+          onCerrar={() => setDialogo(null)}
+        >
           <ModalConfirmacion
             titulo={evento.precio ? "Pago confirmado" : "Inscripción confirmada"}
             texto={
               evento.precio
-                ? `Se descontaron ${pesos(evento.precio)} de tu cuenta institucional. Ya tenés tu credencial digital para «${evento.titulo}».`
+                ? `Se descontaron ${pesos(evento.precio)} de tu cuenta institucional en CORE. Ya tenés tu credencial digital para «${evento.titulo}».`
                 : `Ya tenés tu credencial digital para «${evento.titulo}». Te recordamos por mail una semana antes.`
             }
           />

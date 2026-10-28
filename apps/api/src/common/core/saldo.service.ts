@@ -3,8 +3,10 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import {
   walletBalanceSchema,
   walletTransactionSchema,
+  walletTransactionsPageSchema,
   type WalletBalance,
   type WalletTransaction,
+  type WalletTransactionsPage,
 } from '@repo/contracts';
 import { obtenerCoreBaseUrl } from './core-crypto';
 import { CoreTokenService } from './core-token.service';
@@ -76,6 +78,75 @@ export class SaldoService {
       );
     }
     return walletBalanceSchema.parse(await res.json());
+  }
+
+  async listarMovimientos(
+    usuarioId: string,
+    tokenUsuario?: string,
+    limit = 20,
+  ): Promise<WalletTransactionsPage> {
+    const baseUrl = obtenerCoreBaseUrl();
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    if (tokenUsuario) {
+      headers.Authorization = `Bearer ${tokenUsuario}`;
+      headers['X-User-Id'] = usuarioId;
+    } else {
+      const serviceToken = await this.tokenService?.obtenerToken();
+      if (serviceToken) {
+        headers.Authorization = `Bearer ${serviceToken}`;
+      }
+    }
+
+    const ruta = tokenUsuario
+      ? `${baseUrl}/api/v1/wallets/me/transactions?limit=${limit}`
+      : `${baseUrl}/internal/v1/wallets/${encodeURIComponent(usuarioId)}/transactions?limit=${limit}`;
+
+    const res = await fetch(ruta, {
+      headers,
+      signal: AbortSignal.timeout(5_000),
+    });
+
+    if (!res.ok) {
+      return { items: [], nextCursor: null };
+    }
+
+    return walletTransactionsPageSchema.parse(await res.json());
+  }
+
+  async recargarSaldo(
+    usuarioId: string,
+    monto: number,
+    tokenUsuario?: string,
+  ): Promise<WalletTransaction> {
+    const baseUrl = obtenerCoreBaseUrl();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'Idempotency-Key': randomUUID(),
+      'X-User-Id': usuarioId,
+    };
+    if (tokenUsuario) {
+      headers.Authorization = `Bearer ${tokenUsuario}`;
+    }
+
+    const res = await fetch(`${baseUrl}/api/v1/wallets/me/top-ups`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        amount: monto.toFixed(2),
+        currency: 'ARS',
+        paymentMethodToken: 'mock-approved',
+      }),
+      signal: AbortSignal.timeout(5_000),
+    });
+
+    if (!res.ok) {
+      throw new Error(
+        `CORE respondió ${res.status} en POST /api/v1/wallets/me/top-ups`,
+      );
+    }
+
+    return walletTransactionSchema.parse(await res.json());
   }
 
   async descontar(datos: DescuentoSaldo): Promise<ResultadoDescuento> {

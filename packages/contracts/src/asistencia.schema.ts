@@ -23,3 +23,18 @@ export const asistenciaSchema = z.object({
 });
 
 export type Asistencia = z.infer<typeof asistenciaSchema>;
+
+export const asistenteEventoSchema = z.object({
+  inscripcionId: z.uuid(),
+  eventoId: z.uuid(),
+  usuario: z.object({
+    id: z.string(),
+    nombre: z.string(),
+    email: z.string(),
+    rol: z.enum(["estudiante", "docente", "administrativo"]),
+  }),
+  acreditado: z.boolean(),
+  asistencia: asistenciaSchema.nullable(),
+});
+
+export type AsistenteEvento = z.infer<typeof asistenteEventoSchema>;

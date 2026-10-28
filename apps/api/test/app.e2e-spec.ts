@@ -275,4 +275,57 @@ describe('AppModule (e2e)', () => {
       )
       .expect(404);
   });
+
+  it('POST /api/v1/usuarios/me/recargas y GET /api/v1/usuarios/me/movimientos sincronizan billetera con CORE', async () => {
+    const jwtAlumno = firmarJwtCore({
+      sub: 'u-topup-demo',
+      email: 't.vidal@uadenet.edu',
+      roles: ['STUDENT'],
+      permissions: ['wallet:read:self', 'wallet:credit:self'],
+    });
+
+    const topupRes = await request(app.getHttpServer())
+      .post('/api/v1/usuarios/me/recargas')
+      .set('Authorization', `Bearer ${jwtAlumno}`)
+      .send({ monto: 5000 })
+      .expect(201);
+
+    expect(topupRes.body).toMatchObject({
+      type: 'CREDIT',
+      concept: 'TOP_UP',
+      amount: '5000.00',
+      balanceAfter: '15000.00',
+    });
+
+    const movRes = await request(app.getHttpServer())
+      .get('/api/v1/usuarios/me/movimientos')
+      .set('Authorization', `Bearer ${jwtAlumno}`)
+      .expect(200);
+
+    expect(movRes.body).toMatchObject({
+      nextCursor: null,
+    });
+    expect(
+      (movRes.body as { items: Array<{ concept: string }> }).items[0],
+    ).toMatchObject({
+      concept: 'TOP_UP',
+    });
+  });
+
+  it('GET /api/v1/tarifas devuelve las tarifas vigentes para el alta de eventos', async () => {
+    const jwtAdmin = firmarJwtCore({
+      sub: 'seed-admin-demo',
+      email: 'm.ibarra@uadenet.edu',
+      roles: ['OPERATIONS_ADMIN'],
+      permissions: ['campus-events:manage'],
+    });
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/tarifas')
+      .set('Authorization', `Bearer ${jwtAdmin}`)
+      .expect(200);
+
+    expect(res.body).toHaveProperty('general');
+    expect(res.body).toHaveProperty('especial');
+  });
 });

@@ -195,6 +195,27 @@ export const walletTransactionSchema = z.object({
 
 export type WalletTransaction = z.infer<typeof walletTransactionSchema>;
 
+/** `GET /api/v1/wallets/me/transactions` */
+export const walletTransactionsPageSchema = z.object({
+  items: z.array(walletTransactionSchema),
+  nextCursor: z.string().nullable(),
+});
+
+export type WalletTransactionsPage = z.infer<
+  typeof walletTransactionsPageSchema
+>;
+
+/** `POST /api/v1/wallets/me/top-ups` */
+export const walletTopUpRequestSchema = z.object({
+  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  currency: z.literal("ARS"),
+  paymentMethodToken: z
+    .enum(["mock-approved", "mock-rejected", "mock-pending"])
+    .optional(),
+});
+
+export type WalletTopUpRequest = z.infer<typeof walletTopUpRequestSchema>;
+
 /** Sobre estándar de eventos del bus de CORE (`POST /internal/v1/events`). */
 export const coreEventEnvelopeSchema = z.object({
   specVersion: z.literal("1.0"),
@@ -268,3 +289,18 @@ export type CoreNotification = z.infer<typeof coreNotificationSchema>;
 
 export const coreNotificationAckSchema = coreNotificationSchema;
 export type CoreNotificationAck = CoreNotification;
+
+/** `GET /api/v1/notifications` */
+export const coreNotificationsPageSchema = z.object({
+  items: z.array(coreNotificationSchema),
+  nextCursor: z.string().nullable(),
+});
+
+export type CoreNotificationsPage = z.infer<typeof coreNotificationsPageSchema>;
+
+/** `GET /api/v1/notifications/unread-count` */
+export const coreUnreadCountSchema = z.object({
+  unreadCount: z.number().int().nonnegative(),
+});
+
+export type CoreUnreadCount = z.infer<typeof coreUnreadCountSchema>;

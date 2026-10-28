@@ -3,7 +3,9 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import {
   coreEventEnvelopeSchema,
   coreNotificationRequestSchema,
+  coreNotificationsPageSchema,
   recordatorioEventoSchema,
+  type CoreNotificationsPage,
   type RecordatorioEvento,
 } from '@repo/contracts';
 import { env } from '@repo/env';
@@ -102,6 +104,29 @@ export class NotificacionesService {
         `No se pudo entregar recordatorio a CORE para ${recordatorio.usuarioId}: ${String(err)}`,
       );
       return false;
+    }
+  }
+
+  async listarDelUsuario(
+    tokenUsuario?: string,
+  ): Promise<CoreNotificationsPage> {
+    if (!tokenUsuario) {
+      return { items: [], nextCursor: null };
+    }
+    try {
+      const res = await fetch(`${obtenerCoreBaseUrl()}/api/v1/notifications`, {
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${tokenUsuario}`,
+        },
+        signal: AbortSignal.timeout(5_000),
+      });
+      if (!res.ok) {
+        return { items: [], nextCursor: null };
+      }
+      return coreNotificationsPageSchema.parse(await res.json());
+    } catch {
+      return { items: [], nextCursor: null };
     }
   }
 }
