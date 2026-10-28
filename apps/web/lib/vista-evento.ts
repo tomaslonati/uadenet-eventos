@@ -14,7 +14,7 @@ import {
   mesCorto,
   pesos,
 } from "./formato";
-import type { Evento } from "./mock/eventos";
+import type { Evento } from "./api";
 
 export type EventoVista = Evento & {
   estado: EstadoEvento;

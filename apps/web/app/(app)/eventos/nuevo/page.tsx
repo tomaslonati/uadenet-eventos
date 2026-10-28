@@ -19,17 +19,17 @@ import {
 } from "@/components/ui/modal";
 import { Encabezado } from "@/components/ui/pantalla";
 import { Select } from "@/components/ui/select";
-import { choquesDe, estaLibre, primeraFranjaLibre } from "@/lib/dominio";
-import { fechaLarga, horario, minutos, pesos } from "@/lib/formato";
 import {
-  LOCACIONES,
-  SEDES,
-  TARIFAS_INSCRIPCION,
   TIPOS_EVENTO,
-  reservasDe,
+  crearEventoApi,
+  hoyIso,
+  reservasDeEventos,
   type CategoriaPrecio,
   type TipoEvento,
-} from "@/lib/mock/eventos";
+} from "@/lib/api";
+import { choquesDe, estaLibre, primeraFranjaLibre } from "@/lib/dominio";
+import { fechaLarga, horario, minutos, pesos, sumarDias } from "@/lib/formato";
+import { useSesion } from "@/lib/sesion";
 
 import estilos from "./nuevo.module.css";
 
@@ -55,7 +55,7 @@ const OPCIONES = [
   },
   {
     label: "Recordatorio automático 7 días antes",
-    desc: "Mail institucional y aviso en el portal.",
+    desc: "Mail institucional y aviso en el portal vía CORE.",
   },
 ];
 
@@ -75,31 +75,65 @@ type Formulario = {
   opciones: boolean[];
 };
 
-const INICIAL: Formulario = {
-  titulo: "",
-  tipo: "Workshop",
-  disertante: "",
-  descripcion: "",
-  fecha: "2026-09-12",
-  desde: "10:00",
-  hasta: "13:00",
-  sede: "Sede Centro",
-  locacion: "Auditorio Magno",
-  cupo: "120",
-  arancelado: false,
-  categoriaPrecio: null,
-  opciones: [true, true],
-};
-
 function soloNumeros(valor: string): number {
   return Number.parseInt(valor.replace(/\D/g, ""), 10) || 0;
 }
 
 export default function NuevoEvento() {
   const router = useRouter();
+  const {
+    accessToken,
+    sedes,
+    locaciones,
+    tarifas,
+    eventos,
+    recargarDatos,
+    mostrarToast,
+  } = useSesion();
+
+  const sedesOpciones =
+    sedes.length > 0
+      ? sedes
+      : Array.from(new Set(locaciones.map((l) => l.sede)));
+
   const [paso, setPaso] = useState(1);
-  const [form, setForm] = useState<Formulario>(INICIAL);
+  const [form, setForm] = useState<Formulario>(() => ({
+    titulo: "",
+    tipo: "Workshop",
+    disertante: "",
+    descripcion: "",
+    fecha: sumarDias(hoyIso(), 7),
+    desde: "10:00",
+    hasta: "13:00",
+    sede: sedesOpciones[0] ?? "Sede Centro",
+    locacion: locaciones[0]?.nombre ?? "Auditorio Magno",
+    cupo: "120",
+    arancelado: false,
+    categoriaPrecio: null,
+    opciones: [true, true],
+  }));
+  const [publicando, setPublicando] = useState(false);
   const [publicado, setPublicado] = useState(false);
+
+  const sedeEfectiva =
+    sedesOpciones.includes(form.sede)
+      ? form.sede
+      : (sedesOpciones[0] ?? form.sede);
+
+  const locacionesDeSede = locaciones.filter(
+    (l) => l.aptoEventos && l.sede === sedeEfectiva,
+  );
+  const catalogoLocaciones =
+    locacionesDeSede.length > 0
+      ? locacionesDeSede
+      : locaciones.filter((l) => l.aptoEventos);
+  const nombresLocaciones = catalogoLocaciones.map((l) => l.nombre);
+
+  const locacionSeleccionada =
+    catalogoLocaciones.find((l) => l.nombre === form.locacion) ??
+    catalogoLocaciones[0];
+  const nombreLocacionEfectiva =
+    locacionSeleccionada?.nombre ?? form.locacion;
 
   const editar = (cambios: Partial<Formulario>) =>
     setForm((actual) => ({ ...actual, ...cambios }));
@@ -107,17 +141,22 @@ export default function NuevoEvento() {
   const enUltimoPaso = paso === PASOS.length;
 
   const franja = { desde: form.desde, hasta: form.hasta };
-  const reservas = reservasDe(form.locacion, form.fecha);
+  const reservas = reservasDeEventos(
+    eventos,
+    nombreLocacionEfectiva,
+    form.fecha,
+  );
   const choque = choquesDe(franja, reservas)[0];
   const hayConflicto = choque !== undefined;
-  const bloqueado = enUltimoPaso && hayConflicto;
+  const bloqueado = enUltimoPaso && (hayConflicto || publicando);
 
-  // Sólo se ofrecen alternativas que realmente resuelven el choque.
-  const otrasLocaciones = LOCACIONES.filter(
-    (locacion) =>
-      locacion !== form.locacion &&
-      estaLibre(franja, reservasDe(locacion, form.fecha)),
-  ).slice(0, 2);
+  const otrasLocaciones = nombresLocaciones
+    .filter(
+      (loc) =>
+        loc !== nombreLocacionEfectiva &&
+        estaLibre(franja, reservasDeEventos(eventos, loc, form.fecha)),
+    )
+    .slice(0, 2);
   const otroHorario = primeraFranjaLibre(
     minutos(form.hasta) - minutos(form.desde),
     reservas,
@@ -139,18 +178,59 @@ export default function NuevoEvento() {
   ];
 
   const precioNumero = form.categoriaPrecio
-    ? TARIFAS_INSCRIPCION[form.categoriaPrecio]
+    ? tarifas[form.categoriaPrecio]
     : 0;
   const cupoNumero = soloNumeros(form.cupo);
   const rango = horario(form.desde, form.hasta);
 
-  const avanzar = () => {
+  const avanzar = async () => {
+    if (paso === 1 && !form.titulo.trim()) {
+      mostrarToast("Ingresá un título para el evento.");
+      return;
+    }
     if (!enUltimoPaso) {
       setPaso((actual) => actual + 1);
       return;
     }
-    if (hayConflicto) return;
-    setPublicado(true);
+    if (hayConflicto || publicando) return;
+    if (!locacionSeleccionada) {
+      mostrarToast("No hay una locación sincronizada disponible en esta sede.");
+      return;
+    }
+    if (cupoNumero <= 0) {
+      mostrarToast("El cupo máximo debe ser mayor a 0.");
+      return;
+    }
+
+    setPublicando(true);
+    try {
+      await crearEventoApi(
+        {
+          titulo: form.titulo,
+          tipo: form.tipo,
+          disertante: form.disertante,
+          descripcion: form.descripcion,
+          locacionId: locacionSeleccionada.id,
+          cupoMaximo: cupoNumero,
+          fecha: form.fecha,
+          desde: form.desde,
+          hasta: form.hasta,
+          esPago: form.arancelado,
+          categoriaPrecio: form.arancelado ? form.categoriaPrecio : null,
+        },
+        accessToken,
+      );
+      await recargarDatos();
+      setPublicado(true);
+    } catch (err) {
+      mostrarToast(
+        err instanceof Error
+          ? err.message
+          : "No se pudo publicar el evento.",
+      );
+    } finally {
+      setPublicando(false);
+    }
   };
 
   return (
@@ -205,7 +285,9 @@ export default function NuevoEvento() {
                     className={claseControl}
                     value={form.titulo}
                     placeholder="Ej. Jornada de Innovación Educativa"
-                    onChange={(evento) => editar({ titulo: evento.target.value })}
+                    onChange={(evento) =>
+                      editar({ titulo: evento.target.value })
+                    }
                   />
                 )}
               </Campo>
@@ -266,7 +348,9 @@ export default function NuevoEvento() {
                       type="date"
                       className={claseControl}
                       value={form.fecha}
-                      onChange={(evento) => editar({ fecha: evento.target.value })}
+                      onChange={(evento) =>
+                        editar({ fecha: evento.target.value })
+                      }
                     />
                   )}
                 </Campo>
@@ -277,7 +361,9 @@ export default function NuevoEvento() {
                       type="time"
                       className={claseControl}
                       value={form.desde}
-                      onChange={(evento) => editar({ desde: evento.target.value })}
+                      onChange={(evento) =>
+                        editar({ desde: evento.target.value })
+                      }
                     />
                   )}
                 </Campo>
@@ -288,7 +374,9 @@ export default function NuevoEvento() {
                       type="time"
                       className={claseControl}
                       value={form.hasta}
-                      onChange={(evento) => editar({ hasta: evento.target.value })}
+                      onChange={(evento) =>
+                        editar({ hasta: evento.target.value })
+                      }
                     />
                   )}
                 </Campo>
@@ -300,9 +388,21 @@ export default function NuevoEvento() {
                       id={id}
                       etiqueta="Sede"
                       className={claseControl}
-                      valor={form.sede}
-                      opciones={SEDES}
-                      onCambiar={(valor) => editar({ sede: valor })}
+                      valor={sedeEfectiva}
+                      opciones={
+                        sedesOpciones.length > 0
+                          ? sedesOpciones
+                          : [sedeEfectiva]
+                      }
+                      onCambiar={(valor) => {
+                        const primeraLoc = locaciones.find(
+                          (l) => l.aptoEventos && l.sede === valor,
+                        );
+                        editar({
+                          sede: valor,
+                          ...(primeraLoc ? { locacion: primeraLoc.nombre } : {}),
+                        });
+                      }}
                     />
                   )}
                 </Campo>
@@ -312,8 +412,12 @@ export default function NuevoEvento() {
                       id={id}
                       etiqueta="Locación"
                       className={hayConflicto ? claseControlError : claseControl}
-                      valor={form.locacion}
-                      opciones={LOCACIONES}
+                      valor={nombreLocacionEfectiva}
+                      opciones={
+                        nombresLocaciones.length > 0
+                          ? nombresLocaciones
+                          : [nombreLocacionEfectiva]
+                      }
                       onCambiar={(valor) => editar({ locacion: valor })}
                     />
                   )}
@@ -325,7 +429,9 @@ export default function NuevoEvento() {
                       inputMode="numeric"
                       className={claseControl}
                       value={form.cupo}
-                      onChange={(evento) => editar({ cupo: evento.target.value })}
+                      onChange={(evento) =>
+                        editar({ cupo: evento.target.value })
+                      }
                     />
                   )}
                 </Campo>
@@ -334,7 +440,7 @@ export default function NuevoEvento() {
               <div className={estilos.ocupacion}>
                 <div className={estilos.ocupacionHeader}>
                   <span className={estilos.ocupacionTitulo}>
-                    Ocupación de {form.locacion}
+                    Ocupación de {nombreLocacionEfectiva}
                   </span>
                   <span className={estilos.ocupacionFecha}>
                     {fechaLarga(form.fecha)}
@@ -343,7 +449,7 @@ export default function NuevoEvento() {
                 <div className={estilos.pista}>
                   {reservas.map((reserva) => (
                     <div
-                      key={reserva.titulo}
+                      key={`${reserva.titulo}-${reserva.desde}`}
                       className={estilos.reserva}
                       style={{
                         left: `${posicion(reserva.desde)}%`,
@@ -381,9 +487,9 @@ export default function NuevoEvento() {
                     </span>
                   </div>
                   <p className={estilos.conflictoTexto}>
-                    «{choque.titulo}» ocupa {form.locacion} de {choque.desde} a{" "}
-                    {choque.hasta}. No se puede reservar la misma locación para
-                    dos eventos concurrentes.
+                    «{choque.titulo}» ocupa {nombreLocacionEfectiva} de{" "}
+                    {choque.desde} a {choque.hasta}. No se puede reservar la
+                    misma locación para dos eventos concurrentes.
                   </p>
                   {alternativas.length > 0 ? (
                     <div>
@@ -409,7 +515,8 @@ export default function NuevoEvento() {
                 <div className={estilos.disponible}>
                   <span className={estilos.puntoOk} />
                   <span className={estilos.disponibleTexto}>
-                    Locación disponible. Ninguna reserva se superpone con {rango}.
+                    Locación disponible. Ninguna reserva se superpone con{" "}
+                    {rango}.
                   </span>
                 </div>
               )}
@@ -429,7 +536,7 @@ export default function NuevoEvento() {
                   {
                     arancelado: true,
                     label: "Arancelado",
-                    desc: "Se descuenta del saldo institucional.",
+                    desc: "Se descuenta del saldo institucional en CORE.",
                   },
                 ].map((opcion) => (
                   <button
@@ -448,7 +555,9 @@ export default function NuevoEvento() {
                       })
                     }
                   >
-                    <span className={estilos.modoPagoLabel}>{opcion.label}</span>
+                    <span className={estilos.modoPagoLabel}>
+                      {opcion.label}
+                    </span>
                     <span className={estilos.modoPagoDesc}>{opcion.desc}</span>
                   </button>
                 ))}
@@ -460,10 +569,7 @@ export default function NuevoEvento() {
                     {() => (
                       <div className={estilos.modosPago}>
                         {(
-                          Object.entries(TARIFAS_INSCRIPCION) as [
-                            CategoriaPrecio,
-                            number,
-                          ][]
+                          Object.entries(tarifas) as [CategoriaPrecio, number][]
                         ).map(([categoria, tarifa]) => (
                           <button
                             key={categoria}
@@ -474,7 +580,9 @@ export default function NuevoEvento() {
                                 ? estilos.modoPagoElegido
                                 : ""
                             }`}
-                            onClick={() => editar({ categoriaPrecio: categoria })}
+                            onClick={() =>
+                              editar({ categoriaPrecio: categoria })
+                            }
                           >
                             <span className={estilos.modoPagoLabel}>
                               {categoria === "general" ? "General" : "Especial"}
@@ -498,7 +606,9 @@ export default function NuevoEvento() {
               ) : null}
 
               <div className={estilos.opciones}>
-                <span className={estilos.bloqueTitulo}>Asistencia y avisos</span>
+                <span className={estilos.bloqueTitulo}>
+                  Asistencia y avisos
+                </span>
                 {OPCIONES.map((opcion, indice) => (
                   <label key={opcion.label} className={estilos.opcion}>
                     <input
@@ -514,7 +624,9 @@ export default function NuevoEvento() {
                       }
                     />
                     <span className={estilos.opcionTextos}>
-                      <span className={estilos.opcionLabel}>{opcion.label}</span>
+                      <span className={estilos.opcionLabel}>
+                        {opcion.label}
+                      </span>
                       <span className={estilos.opcionDesc}>{opcion.desc}</span>
                     </span>
                   </label>
@@ -525,13 +637,21 @@ export default function NuevoEvento() {
 
           <div className={estilos.acciones}>
             {paso > 1 ? (
-              <Boton onClick={() => setPaso((actual) => actual - 1)}>Atrás</Boton>
+              <Boton onClick={() => setPaso((actual) => actual - 1)}>
+                Atrás
+              </Boton>
             ) : null}
-            <Boton variante="primario" disabled={bloqueado} onClick={avanzar}>
+            <Boton
+              variante="primario"
+              disabled={bloqueado}
+              onClick={() => void avanzar()}
+            >
               {enUltimoPaso
                 ? hayConflicto
                   ? "Resolvé el conflicto para publicar"
-                  : "Publicar evento"
+                  : publicando
+                    ? "Publicando…"
+                    : "Publicar evento"
                 : "Continuar"}
             </Boton>
           </div>
@@ -559,7 +679,7 @@ export default function NuevoEvento() {
                 {fechaLarga(form.fecha)} · {rango}
               </span>
               <span>
-                {form.sede} — {form.locacion}
+                {sedeEfectiva} — {nombreLocacionEfectiva}
               </span>
             </div>
             <Cupo texto={`0 / ${form.cupo} inscriptos`} porcentaje={0} />
@@ -568,10 +688,13 @@ export default function NuevoEvento() {
       </div>
 
       {publicado ? (
-        <Modal etiqueta="Evento publicado" onCerrar={() => setPublicado(false)}>
+        <Modal
+          etiqueta="Evento publicado"
+          onCerrar={() => setPublicado(false)}
+        >
           <ModalConfirmacion
             titulo="Evento publicado"
-            texto={`El evento quedó reservado en ${form.locacion} el ${fechaLarga(form.fecha)} y ya aparece en la cartelera de ${form.sede}.`}
+            texto={`El evento quedó reservado en ${nombreLocacionEfectiva} el ${fechaLarga(form.fecha)} y ya aparece en la cartelera de ${sedeEfectiva}.`}
           />
           <ModalPie centrado>
             <Boton variante="primario" onClick={() => router.push("/gestion")}>

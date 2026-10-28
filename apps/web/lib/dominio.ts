@@ -1,6 +1,5 @@
+import type { Evento } from "./api";
 import { minutos, seSolapan } from "./formato";
-import type { Evento } from "./mock/eventos";
-import { buscarEvento } from "./mock/eventos";
 
 export type Tono = "neutro" | "exito" | "atencion" | "error";
 
@@ -43,22 +42,19 @@ export function ingresosDe(evento: Evento): number {
  */
 export function conflictoDe(
   evento: Evento,
-  inscripciones: string[],
+  eventosInscriptos: Evento[],
 ): Evento | undefined {
-  return inscripciones
-    .map(buscarEvento)
-    .filter((propio): propio is Evento => Boolean(propio))
-    .find(
-      (propio) =>
-        propio.id !== evento.id &&
-        propio.fecha === evento.fecha &&
-        seSolapan(
-          minutos(evento.desde),
-          minutos(evento.hasta),
-          minutos(propio.desde),
-          minutos(propio.hasta),
-        ),
-    );
+  return eventosInscriptos.find(
+    (propio) =>
+      propio.id !== evento.id &&
+      propio.fecha === evento.fecha &&
+      seSolapan(
+        minutos(evento.desde),
+        minutos(evento.hasta),
+        minutos(propio.desde),
+        minutos(propio.hasta),
+      ),
+  );
 }
 
 /** Código de credencial digital que se muestra bajo el QR. */

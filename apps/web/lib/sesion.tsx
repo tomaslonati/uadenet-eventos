@@ -11,8 +11,23 @@ import {
   type ReactNode,
 } from "react";
 
+import {
+  API_BASE_URL,
+  TARIFAS_DEFAULT,
+  TODAS_LAS_SEDES,
+  crearInscripcionApi,
+  fetchEventosApi,
+  fetchInscripcionesApi,
+  fetchLocacionesApi,
+  fetchSaldoApi,
+  fetchSedesApi,
+  fetchTarifasApi,
+  type CategoriaPrecio,
+  type Evento,
+  type InscripcionApi,
+  type LocacionApi,
+} from "./api";
 import { iniciales } from "./formato";
-import { TODAS_LAS_SEDES, type Evento } from "./mock/eventos";
 
 export type Rol = "admin" | "docente" | "alumno";
 
@@ -34,19 +49,33 @@ export type CoreAuthUserWeb = {
 
 export type ResultadoLoginCore = {
   rol: Rol;
-  accessToken: string | null;
+  accessToken: string;
   email: string;
   nombre?: string;
   saldo?: number;
 };
 
-const API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_URL ??
-  process.env.NEXT_PUBLIC_CORE_URL ??
-  "http://localhost:3001"
-).replace(/\/+$/, "");
-
 const STORAGE_KEY_SESION = "uadenet.core.sesion";
+
+export const DOMINIO_MAIL = "@uadenet.edu";
+
+export const CUENTAS_DEMO = [
+  {
+    perfil: "Administrativo",
+    mail: "m.ibarra@uadenet.edu",
+    clave: "admin.2026",
+  },
+  {
+    perfil: "Docente",
+    mail: "e.ruiz@uadenet.edu",
+    clave: "docente.2026",
+  },
+  {
+    perfil: "Estudiante",
+    mail: "t.vidal@uadenet.edu",
+    clave: "alumno.2026",
+  },
+];
 
 export function mapearRolCore(roles: string[], permissions: string[]): Rol {
   if (
@@ -68,60 +97,9 @@ function perfilDeRol(rol: Rol): string {
   return "Estudiante";
 }
 
-// Directorio hardcodeado del prototipo: un usuario por rol para poder recorrer
-// las tres vistas. Las claves son de demo, no son secretos: cuando el acceso se
-// valide de verdad contra el directorio de la universidad, el campo `clave`
-// desaparece de acá junto con `autenticar`.
-const USUARIOS: Record<Rol, Omit<Usuario, "iniciales"> & { clave: string }> = {
-  admin: {
-    nombre: "Mariana Ibarra",
-    mail: "m.ibarra@uadenet.edu",
-    perfil: "Administrativo",
-    clave: "admin.2026",
-  },
-  docente: {
-    nombre: "Dr. Esteban Ruiz",
-    mail: "e.ruiz@uadenet.edu",
-    perfil: "Docente",
-    clave: "docente.2026",
-  },
-  alumno: {
-    nombre: "Tomás Vidal",
-    mail: "t.vidal@uadenet.edu",
-    perfil: "Estudiante",
-    clave: "alumno.2026",
-  },
-};
-
-export const DOMINIO_MAIL = "@uadenet.edu";
-
-/** Estado propio de cada cuenta demo: cambiar de cuenta no debe arrastrar el saldo/inscripciones de la anterior. */
-const ESTADO_INICIAL_POR_ROL: Record<
-  Rol,
-  { saldo: number; inscripciones: string[] }
-> = {
-  admin: { saldo: 13_000, inscripciones: [] },
-  docente: { saldo: 13_000, inscripciones: [] },
-  alumno: { saldo: 13_000, inscripciones: ["e1"] },
-};
-
-const ROLES = Object.keys(USUARIOS) as Rol[];
-
-// Fallback local para cuando el frontend se recorre desconectado del backend.
-export function autenticar(mail: string, clave: string): Rol | null {
-  const buscado = mail.trim().toLowerCase();
-  const rol = ROLES.find(
-    (candidato) =>
-      USUARIOS[candidato].mail === buscado &&
-      USUARIOS[candidato].clave === clave,
-  );
-  return rol ?? null;
-}
-
 /**
  * Autentica contra `POST /api/v1/auth/login` (integrado con CORE IAM) y
- * consulta el saldo institucional disponible en `GET /api/v1/usuarios/me/saldo`.
- * Si la API no está disponible localmente, aplica fallback al directorio del prototipo.
+ * obtiene el perfil y saldo institucional real desde la API.
  */
 export async function autenticarEnCore(
   mail: string,
@@ -140,77 +118,49 @@ export async function autenticarEnCore(
       body: JSON.stringify({ email, password: clave }),
     });
 
-    if (res.status === 401 || res.status === 400) {
+    if (!res.ok) {
       return null;
     }
 
-    if (res.ok) {
-      const data = (await res.json()) as {
-        accessToken: string;
-        expiresIn: number;
-        user: CoreAuthUserWeb;
-      };
-      const rol = mapearRolCore(
-        data.user.roles ?? [],
-        data.user.permissions ?? [],
-      );
+    const data = (await res.json()) as {
+      accessToken: string;
+      expiresIn: number;
+      user: CoreAuthUserWeb;
+    };
+    const rol = mapearRolCore(
+      data.user.roles ?? [],
+      data.user.permissions ?? [],
+    );
 
-      let saldoRemoto: number | undefined;
-      try {
-        const saldoRes = await fetch(
-          `${API_BASE_URL}/api/v1/usuarios/me/saldo`,
-          {
-            headers: {
-              Accept: "application/json",
-              Authorization: `Bearer ${data.accessToken}`,
-            },
-          },
-        );
-        if (saldoRes.ok) {
-          const wallet = (await saldoRes.json()) as { balance?: string };
-          const parseado = Number.parseFloat(wallet.balance ?? "");
-          if (Number.isFinite(parseado)) {
-            saldoRemoto = parseado;
-          }
-        }
-      } catch {
-        // Si falla la lectura de saldo, se conserva el saldo inicial del rol.
+    let nombreRemoto: string | undefined;
+    try {
+      const usuarioRes = await fetch(`${API_BASE_URL}/api/v1/usuarios/me`, {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${data.accessToken}`,
+        },
+      });
+      if (usuarioRes.ok) {
+        const perfilBo = (await usuarioRes.json()) as { nombre?: string };
+        nombreRemoto = perfilBo.nombre;
       }
-
-      const conocido = ROLES.find(
-        (c) => USUARIOS[c].mail.toLowerCase() === data.user.email.toLowerCase(),
-      );
-
-      return {
-        rol,
-        accessToken: data.accessToken,
-        email: data.user.email,
-        nombre: conocido ? USUARIOS[conocido].nombre : undefined,
-        saldo: saldoRemoto,
-      };
+    } catch {
+      // Si Backoffice no devuelve perfil extendido, se usa el identificador de email
     }
-  } catch {
-    // Fallback offline para recorrer el prototipo sin backend corriendo
-  }
 
-  const rolFallback = autenticar(email, clave);
-  if (!rolFallback) {
+    const saldoRemoto = await fetchSaldoApi(data.accessToken).catch(() => null);
+
+    return {
+      rol,
+      accessToken: data.accessToken,
+      email: data.user.email,
+      nombre: nombreRemoto,
+      saldo: saldoRemoto ?? 0,
+    };
+  } catch {
     return null;
   }
-  return {
-    rol: rolFallback,
-    accessToken: null,
-    email: USUARIOS[rolFallback].mail,
-    nombre: USUARIOS[rolFallback].nombre,
-    saldo: ESTADO_INICIAL_POR_ROL[rolFallback].saldo,
-  };
 }
-
-export const CUENTAS_DEMO = ROLES.map((rol) => ({
-  perfil: USUARIOS[rol].perfil,
-  mail: USUARIOS[rol].mail,
-  clave: USUARIOS[rol].clave,
-}));
 
 export const INICIO_POR_ROL: Record<Rol, string> = {
   admin: "/gestion",
@@ -264,17 +214,26 @@ type Sesion = {
   rol: Rol;
   usuario: Usuario;
   accessToken: string | null;
-  ingresar: (rol: Rol, datosCore?: ResultadoLoginCore) => void;
+  ingresar: (rol: Rol, datosCore: ResultadoLoginCore) => void;
   cerrarSesion: () => Promise<void>;
 
   sede: string;
   cambiarSede: (sede: string) => void;
+  sedes: string[];
+  locaciones: LocacionApi[];
+  tarifas: Record<CategoriaPrecio, number>;
+
+  eventos: Evento[];
+  cargandoDatos: boolean;
+  recargarDatos: () => Promise<void>;
 
   saldo: number;
+  refrescarSaldo: () => Promise<void>;
 
   inscripciones: string[];
+  inscripcionesDetalle: InscripcionApi[];
   estaInscripto: (eventoId: string) => boolean;
-  inscribir: (evento: Evento, cobrar: boolean) => void;
+  inscribir: (evento: Evento) => Promise<void>;
 
   toast: string | null;
   mostrarToast: (mensaje: string) => void;
@@ -285,17 +244,76 @@ const SesionContext = createContext<Sesion | null>(null);
 const DURACION_TOAST = 2600;
 
 export function SesionProvider({ children }: { children: ReactNode }) {
-  const [rol, setRol] = useState<Rol>("admin");
+  const [rol, setRol] = useState<Rol>("alumno");
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [emailSesion, setEmailSesion] = useState<string | null>(null);
-  const [nombreSesion, setNombreSesion] = useState<string | null>(null);
+  const [emailSesion, setEmailSesion] = useState<string>("usuario@uadenet.edu");
+  const [nombreSesion, setNombreSesion] = useState<string>("Usuario UADE");
   const [sede, setSede] = useState<string>(TODAS_LAS_SEDES);
-  const [saldo, setSaldo] = useState(ESTADO_INICIAL_POR_ROL.admin.saldo);
-  const [inscripciones, setInscripciones] = useState<string[]>(
-    ESTADO_INICIAL_POR_ROL.admin.inscripciones,
-  );
+  const [sedes, setSedes] = useState<string[]>([]);
+  const [locaciones, setLocaciones] = useState<LocacionApi[]>([]);
+  const [tarifas, setTarifas] =
+    useState<Record<CategoriaPrecio, number>>(TARIFAS_DEFAULT);
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [cargandoDatos, setCargandoDatos] = useState<boolean>(false);
+  const [saldo, setSaldo] = useState<number>(0);
+  const [inscripcionesDetalle, setInscripcionesDetalle] = useState<
+    InscripcionApi[]
+  >([]);
   const [toast, setToast] = useState<string | null>(null);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const mostrarToast = useCallback((mensaje: string) => {
+    setToast(mensaje);
+    if (temporizador.current) clearTimeout(temporizador.current);
+    temporizador.current = setTimeout(() => setToast(null), DURACION_TOAST);
+  }, []);
+
+  const cargarTodoDesdeApi = useCallback(async (token: string | null) => {
+    setCargandoDatos(true);
+    try {
+      const [
+        eventosRemotos,
+        inscripcionesRemotas,
+        sedesRemotas,
+        locacionesRemotas,
+        tarifasRemotas,
+        saldoRemoto,
+      ] = await Promise.all([
+        fetchEventosApi(token).catch(() => []),
+        fetchInscripcionesApi(token).catch(() => []),
+        fetchSedesApi(token).catch(() => []),
+        fetchLocacionesApi(token).catch(() => []),
+        fetchTarifasApi(token).catch(() => TARIFAS_DEFAULT),
+        fetchSaldoApi(token).catch(() => null),
+      ]);
+
+      setEventos(eventosRemotos);
+      setInscripcionesDetalle(inscripcionesRemotas);
+      if (sedesRemotas.length > 0) {
+        setSedes(sedesRemotas.map((s) => s.nombre));
+      } else if (locacionesRemotas.length > 0) {
+        setSedes(Array.from(new Set(locacionesRemotas.map((l) => l.sede))));
+      }
+      setLocaciones(locacionesRemotas);
+      setTarifas(tarifasRemotas);
+      if (saldoRemoto !== null) {
+        setSaldo(saldoRemoto);
+      }
+    } finally {
+      setCargandoDatos(false);
+    }
+  }, []);
+
+  const recargarDatos = useCallback(async () => {
+    await cargarTodoDesdeApi(accessToken);
+  }, [accessToken, cargarTodoDesdeApi]);
+
+  const refrescarSaldo = useCallback(async () => {
+    const nuevo = await fetchSaldoApi(accessToken).catch(() => null);
+    if (nuevo !== null) {
+      setSaldo(nuevo);
+    }
+  }, [accessToken]);
 
   useEffect(() => {
     let cancelado = false;
@@ -303,44 +321,50 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     const rehidratar = async () => {
       try {
         const guardado = sessionStorage.getItem(STORAGE_KEY_SESION);
-        if (!guardado) return;
+        if (!guardado) {
+          await cargarTodoDesdeApi(null);
+          return;
+        }
         const parsed = JSON.parse(guardado) as ResultadoLoginCore;
-        if (!parsed?.rol) return;
+        if (!parsed?.rol || !parsed?.accessToken) {
+          await cargarTodoDesdeApi(null);
+          return;
+        }
 
         let rolVerificado = parsed.rol;
-        let emailVerificado = parsed.email ?? null;
+        let emailVerificado = parsed.email;
 
-        if (parsed.accessToken) {
-          try {
-            const meRes = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
-              headers: {
-                Accept: "application/json",
-                Authorization: `Bearer ${parsed.accessToken}`,
-              },
-            });
-            if (meRes.ok) {
-              const user = (await meRes.json()) as CoreAuthUserWeb;
-              rolVerificado = mapearRolCore(
-                user.roles ?? [],
-                user.permissions ?? [],
-              );
-              emailVerificado = user.email;
-            }
-          } catch {
-            // Si la API no responde, se conserva la sesión local
+        try {
+          const meRes = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${parsed.accessToken}`,
+            },
+          });
+          if (meRes.ok) {
+            const user = (await meRes.json()) as CoreAuthUserWeb;
+            rolVerificado = mapearRolCore(
+              user.roles ?? [],
+              user.permissions ?? [],
+            );
+            emailVerificado = user.email;
           }
-        } else {
-          await Promise.resolve();
+        } catch {
+          // Si no se puede refrescar /auth/me, conservar token actual
         }
 
         if (cancelado) return;
-        const inicial = ESTADO_INICIAL_POR_ROL[rolVerificado];
         setRol(rolVerificado);
-        setAccessToken(parsed.accessToken ?? null);
+        setAccessToken(parsed.accessToken);
         setEmailSesion(emailVerificado);
-        setNombreSesion(parsed.nombre ?? null);
-        setSaldo(parsed.saldo ?? inicial.saldo);
-        setInscripciones(inicial.inscripciones);
+        setNombreSesion(
+          parsed.nombre ?? emailVerificado.split("@")[0] ?? "Usuario UADE",
+        );
+        if (parsed.saldo !== undefined) {
+          setSaldo(parsed.saldo);
+        }
+
+        await cargarTodoDesdeApi(parsed.accessToken);
       } catch {
         // Ignorar errores de sessionStorage
       }
@@ -352,50 +376,37 @@ export function SesionProvider({ children }: { children: ReactNode }) {
       cancelado = true;
       if (temporizador.current) clearTimeout(temporizador.current);
     };
-  }, []);
-
-  const mostrarToast = useCallback((mensaje: string) => {
-    setToast(mensaje);
-    if (temporizador.current) clearTimeout(temporizador.current);
-    temporizador.current = setTimeout(() => setToast(null), DURACION_TOAST);
-  }, []);
+  }, [cargarTodoDesdeApi]);
 
   const ingresar = useCallback(
-    (nuevoRol: Rol, datosCore?: ResultadoLoginCore) => {
-      const inicial = ESTADO_INICIAL_POR_ROL[nuevoRol];
-      const nuevoSaldo = datosCore?.saldo ?? inicial.saldo;
+    (nuevoRol: Rol, datosCore: ResultadoLoginCore) => {
       setRol(nuevoRol);
-      setAccessToken(datosCore?.accessToken ?? null);
-      setEmailSesion(datosCore?.email ?? null);
-      setNombreSesion(datosCore?.nombre ?? null);
-      setSaldo(nuevoSaldo);
-      setInscripciones(inicial.inscripciones);
+      setAccessToken(datosCore.accessToken);
+      setEmailSesion(datosCore.email);
+      setNombreSesion(
+        datosCore.nombre ?? datosCore.email.split("@")[0] ?? "Usuario UADE",
+      );
+      if (datosCore.saldo !== undefined) {
+        setSaldo(datosCore.saldo);
+      }
 
       try {
-        sessionStorage.setItem(
-          STORAGE_KEY_SESION,
-          JSON.stringify(
-            datosCore ?? {
-              rol: nuevoRol,
-              accessToken: null,
-              email: USUARIOS[nuevoRol].mail,
-              nombre: USUARIOS[nuevoRol].nombre,
-              saldo: nuevoSaldo,
-            },
-          ),
-        );
+        sessionStorage.setItem(STORAGE_KEY_SESION, JSON.stringify(datosCore));
       } catch {
         // Ignorar errores de sessionStorage
       }
+
+      void cargarTodoDesdeApi(datosCore.accessToken);
     },
-    [],
+    [cargarTodoDesdeApi],
   );
 
   const cerrarSesion = useCallback(async () => {
     const tokenActual = accessToken;
     setAccessToken(null);
-    setEmailSesion(null);
-    setNombreSesion(null);
+    setEventos([]);
+    setInscripcionesDetalle([]);
+    setSaldo(0);
     try {
       sessionStorage.removeItem(STORAGE_KEY_SESION);
     } catch {
@@ -417,23 +428,32 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     }
   }, [accessToken]);
 
+  const inscribir = useCallback(
+    async (evento: Evento) => {
+      await crearInscripcionApi(evento.id, accessToken);
+      await cargarTodoDesdeApi(accessToken);
+    },
+    [accessToken, cargarTodoDesdeApi],
+  );
+
+  const inscripciones = useMemo(() => {
+    const idsPorDetalle = inscripcionesDetalle.map((i) => i.eventoId);
+    const idsPorEvento = eventos
+      .filter((e) => e.yaInscripto)
+      .map((e) => e.id);
+    return Array.from(new Set([...idsPorDetalle, ...idsPorEvento]));
+  }, [inscripcionesDetalle, eventos]);
+
   const valor = useMemo<Sesion>(() => {
-    const base = USUARIOS[rol];
-    const mail = emailSesion ?? base.mail;
-    const nombre =
-      nombreSesion ??
-      (emailSesion && emailSesion !== base.mail
-        ? (emailSesion.split("@")[0] ?? base.nombre)
-        : base.nombre);
     const perfil = perfilDeRol(rol);
 
     return {
       rol,
       usuario: {
-        nombre,
-        mail,
+        nombre: nombreSesion,
+        mail: emailSesion,
         perfil,
-        iniciales: iniciales(nombre),
+        iniciales: iniciales(nombreSesion),
       },
       accessToken,
       ingresar,
@@ -441,33 +461,46 @@ export function SesionProvider({ children }: { children: ReactNode }) {
 
       sede,
       cambiarSede: setSede,
+      sedes,
+      locaciones,
+      tarifas,
+
+      eventos,
+      cargandoDatos,
+      recargarDatos,
 
       saldo,
+      refrescarSaldo,
 
       inscripciones,
+      inscripcionesDetalle,
       estaInscripto: (eventoId) => inscripciones.includes(eventoId),
-      inscribir: (evento, cobrar) => {
-        setInscripciones((actuales) =>
-          actuales.includes(evento.id) ? actuales : [...actuales, evento.id],
-        );
-        if (cobrar) setSaldo((actual) => actual - evento.precio);
-      },
+      inscribir,
 
       toast,
       mostrarToast,
     };
   }, [
     rol,
-    accessToken,
-    emailSesion,
     nombreSesion,
-    sede,
-    saldo,
-    inscripciones,
-    toast,
-    mostrarToast,
+    emailSesion,
+    accessToken,
     ingresar,
     cerrarSesion,
+    sede,
+    sedes,
+    locaciones,
+    tarifas,
+    eventos,
+    cargandoDatos,
+    recargarDatos,
+    saldo,
+    refrescarSaldo,
+    inscripciones,
+    inscripcionesDetalle,
+    inscribir,
+    toast,
+    mostrarToast,
   ]);
 
   return (

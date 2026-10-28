@@ -4,10 +4,11 @@ import { LocacionesController } from './locaciones.controller';
 import { LocacionesService } from './locaciones.service';
 import { LocacionesSyncService } from './locaciones-sync.service';
 import { SedesController } from './sedes.controller';
+import { TarifasController } from './tarifas.controller';
 
 @Module({
   imports: [BackofficeModule],
-  controllers: [LocacionesController, SedesController],
+  controllers: [LocacionesController, SedesController, TarifasController],
   providers: [LocacionesService, LocacionesSyncService],
   exports: [LocacionesService],
 })

@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Boton } from "@/components/ui/boton";
+import { claseControl } from "@/components/ui/campo";
 import { Segmentado } from "@/components/ui/controles";
-import { Encabezado } from "@/components/ui/pantalla";
+import { Encabezado, EstadoVacio } from "@/components/ui/pantalla";
+import {
+  fetchAsistenciaEventoApi,
+  registrarAsistenciaApi,
+  type AsistenteEventoApi,
+} from "@/lib/api";
 import { horario, iniciales } from "@/lib/formato";
-import type { Evento } from "@/lib/mock/eventos";
-import { PADRON } from "@/lib/mock/personas";
 import { useSesion } from "@/lib/sesion";
 
 import estilos from "./asistencia.module.css";
@@ -20,51 +24,134 @@ const METODOS: { valor: Metodo; label: string }[] = [
   { valor: "manual", label: "Lista manual" },
 ];
 
-const PRIMER_INGRESO = 9 * 60 + 6;
-const MINUTOS_ENTRE_INGRESOS = 3;
-
-function hora(minutosDelDia: number): string {
-  const hh = String(Math.floor(minutosDelDia / 60)).padStart(2, "0");
-  const mm = String(minutosDelDia % 60).padStart(2, "0");
+function formatearHora(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
   return `${hh}:${mm}`;
 }
 
-export function ControlAsistencia({ evento }: { evento: Evento }) {
-  const { mostrarToast } = useSesion();
+export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
+  const {
+    accessToken,
+    eventos: catalogo,
+    cargandoDatos,
+    mostrarToast,
+  } = useSesion();
   const [metodo, setMetodo] = useState<Metodo>("qr");
-  const [acreditados, setAcreditados] = useState<number[]>([]);
+  const [codigoQr, setCodigoQr] = useState("");
+  const [asistentes, setAsistentes] = useState<AsistenteEventoApi[]>([]);
+  const [cargandoPadron, setCargandoPadron] = useState(true);
+  const [registrando, setRegistrando] = useState(false);
 
-  const acreditar = (indice: number) => {
-    const persona = PADRON[indice];
-    if (!persona) return;
-    if (acreditados.includes(indice)) {
-      mostrarToast("Esa credencial ya fue usada para ingresar.");
-      return;
+  const evento =
+    (eventoId ? catalogo.find((e) => e.id === eventoId) : undefined) ??
+    catalogo[0];
+  const eventoIdActivo = evento?.id;
+
+  const recargarAsistentes = useCallback(async () => {
+    if (!eventoIdActivo) return;
+    const lista = await fetchAsistenciaEventoApi(eventoIdActivo, accessToken);
+    setAsistentes(lista);
+  }, [eventoIdActivo, accessToken]);
+
+  useEffect(() => {
+    if (!eventoIdActivo) return;
+    let cancelado = false;
+
+    const cargar = async () => {
+      try {
+        const lista = await fetchAsistenciaEventoApi(
+          eventoIdActivo,
+          accessToken,
+        );
+        if (!cancelado) setAsistentes(lista);
+      } finally {
+        if (!cancelado) setCargandoPadron(false);
+      }
+    };
+
+    void cargar();
+    return () => {
+      cancelado = true;
+    };
+  }, [eventoIdActivo, accessToken]);
+
+  if (!evento) {
+    return (
+      <EstadoVacio
+        texto={
+          cargandoDatos
+            ? "Cargando evento para control de asistencia…"
+            : "No hay eventos publicados para tomar asistencia."
+        }
+      />
+    );
+  }
+
+  const pendientes = asistentes.filter((a) => !a.acreditado);
+  const ingresos = asistentes
+    .filter((a) => a.acreditado)
+    .slice()
+    .sort((a, b) =>
+      (b.asistencia?.confirmadaEn ?? "").localeCompare(
+        a.asistencia?.confirmadaEn ?? "",
+      ),
+    );
+
+  const totalInscriptos = asistentes.length || evento.inscriptos;
+  const tasa = totalInscriptos
+    ? Math.round((ingresos.length / totalInscriptos) * 100)
+    : 0;
+
+  const acreditarInscripcion = async (
+    inscripcionId: string,
+    via: Metodo,
+    nombre?: string,
+  ) => {
+    if (registrando) return;
+    setRegistrando(true);
+    try {
+      await registrarAsistenciaApi(inscripcionId, via, accessToken);
+      setCodigoQr("");
+      await recargarAsistentes();
+      mostrarToast(
+        nombre ? `Ingreso registrado: ${nombre}` : "Ingreso registrado",
+      );
+    } catch (err) {
+      mostrarToast(
+        err instanceof Error
+          ? err.message
+          : "No se pudo registrar la asistencia.",
+      );
+    } finally {
+      setRegistrando(false);
     }
-    setAcreditados((actuales) => [...actuales, indice]);
-    mostrarToast(`Ingreso registrado: ${persona.nombre}`);
   };
 
-  const pendientes = PADRON.map((persona, indice) => ({ persona, indice }))
-    .filter(({ indice }) => !acreditados.includes(indice))
-    .slice(0, 4);
-
-  const ingresos = acreditados
-    .flatMap((indice, orden) => {
-      const persona = PADRON[indice];
-      if (!persona) return [];
-      return [
-        {
-          persona,
-          hora: hora(PRIMER_INGRESO + orden * MINUTOS_ENTRE_INGRESOS),
-        },
-      ];
-    })
-    .reverse();
-
-  const tasa = evento.inscriptos
-    ? Math.round((acreditados.length / evento.inscriptos) * 100)
-    : 0;
+  const escanearQr = () => {
+    const limpio = codigoQr.trim();
+    if (limpio) {
+      const encontrado = asistentes.find((a) => a.inscripcionId === limpio);
+      void acreditarInscripcion(limpio, "qr", encontrado?.usuario.nombre);
+      return;
+    }
+    const siguiente = pendientes[0];
+    if (!siguiente) {
+      mostrarToast(
+        asistentes.length === 0
+          ? "No hay inscriptos en este evento todavía."
+          : "Todos los inscriptos ya fueron acreditados.",
+      );
+      return;
+    }
+    void acreditarInscripcion(
+      siguiente.inscripcionId,
+      "qr",
+      siguiente.usuario.nombre,
+    );
+  };
 
   return (
     <>
@@ -87,11 +174,11 @@ export function ControlAsistencia({ evento }: { evento: Evento }) {
           <div className={estilos.kpiTextos}>
             <span className={estilos.kpiClave}>Acreditados</span>
             <span className={estilos.kpiSub}>
-              sobre {evento.inscriptos} inscriptos
+              sobre {totalInscriptos} inscriptos
             </span>
           </div>
           <span className={`${estilos.kpiValor} ${estilos.kpiValorExito}`}>
-            {acreditados.length}
+            {ingresos.length}
           </span>
         </div>
         <div className={estilos.kpi}>
@@ -111,20 +198,30 @@ export function ControlAsistencia({ evento }: { evento: Evento }) {
             <>
               <span className={estilos.metodoTitulo}>Escáner en puerta</span>
               <p className={estilos.metodoTexto}>
-                El asistente muestra la credencial de su portal; el staff la lee
-                con la tablet de acceso. Cada código se marca usado al primer
-                escaneo.
+                El asistente muestra la credencial de su portal; pegá el código
+                UUID de la credencial o escaneá el próximo inscripto pendiente.
               </p>
               <div className={estilos.escaner} aria-hidden>
                 <div className={estilos.escanerMarco} />
                 <div className={estilos.escanerLinea} />
               </div>
+              <input
+                className={claseControl}
+                placeholder="Código de credencial (UUID de inscripción)"
+                value={codigoQr}
+                onChange={(e) => setCodigoQr(e.target.value)}
+              />
               <Boton
                 variante="primario"
                 bloque
-                onClick={() => acreditar(acreditados.length % PADRON.length)}
+                disabled={registrando}
+                onClick={escanearQr}
               >
-                Simular escaneo
+                {registrando
+                  ? "Validando credencial…"
+                  : codigoQr.trim()
+                    ? "Validar credencial"
+                    : "Escanear siguiente pendiente"}
               </Boton>
             </>
           ) : null}
@@ -133,28 +230,42 @@ export function ControlAsistencia({ evento }: { evento: Evento }) {
             <>
               <span className={estilos.metodoTitulo}>Lista manual</span>
               <p className={estilos.metodoTexto}>
-                Respaldo offline: el operador tilda a mano y la lista se
-                sincroniza cuando vuelve la conexión.
+                Padrón real de inscriptos al evento consultado desde la API.
               </p>
               <div className={estilos.pendientes}>
-                {pendientes.map(({ persona, indice }) => (
-                  <button
-                    key={persona.legajo}
-                    type="button"
-                    className={estilos.pendiente}
-                    onClick={() => acreditar(indice)}
-                  >
-                    <span className={estilos.casilla} />
-                    <span className={estilos.pendienteDatos}>
-                      <span className={estilos.pendienteNombre}>
-                        {persona.nombre}
+                {cargandoPadron && pendientes.length === 0 ? (
+                  <p className={estilos.metodoTexto}>Cargando padrón…</p>
+                ) : pendientes.length === 0 ? (
+                  <p className={estilos.metodoTexto}>
+                    No quedan inscriptos pendientes de acreditar.
+                  </p>
+                ) : (
+                  pendientes.map((item) => (
+                    <button
+                      key={item.inscripcionId}
+                      type="button"
+                      className={estilos.pendiente}
+                      disabled={registrando}
+                      onClick={() =>
+                        void acreditarInscripcion(
+                          item.inscripcionId,
+                          "manual",
+                          item.usuario.nombre,
+                        )
+                      }
+                    >
+                      <span className={estilos.casilla} />
+                      <span className={estilos.pendienteDatos}>
+                        <span className={estilos.pendienteNombre}>
+                          {item.usuario.nombre}
+                        </span>
+                        <span className={estilos.pendienteLegajo}>
+                          {item.usuario.email}
+                        </span>
                       </span>
-                      <span className={estilos.pendienteLegajo}>
-                        {persona.legajo}
-                      </span>
-                    </span>
-                  </button>
-                ))}
+                    </button>
+                  ))
+                )}
               </div>
             </>
           ) : null}
@@ -164,7 +275,7 @@ export function ControlAsistencia({ evento }: { evento: Evento }) {
           <div className={estilos.registroHeader}>
             <span className={estilos.registroTitulo}>Ingresos registrados</span>
             <span className={estilos.registroCuenta}>
-              {acreditados.length} de {evento.inscriptos}
+              {ingresos.length} de {totalInscriptos}
             </span>
           </div>
 
@@ -179,19 +290,21 @@ export function ControlAsistencia({ evento }: { evento: Evento }) {
             </div>
           ) : (
             ingresos.map((ingreso) => (
-              <div key={ingreso.persona.legajo} className={estilos.fila}>
+              <div key={ingreso.inscripcionId} className={estilos.fila}>
                 <span className={estilos.iniciales} aria-hidden>
-                  {iniciales(ingreso.persona.nombre)}
+                  {iniciales(ingreso.usuario.nombre)}
                 </span>
                 <span className={estilos.filaDatos}>
                   <span className={estilos.filaNombre}>
-                    {ingreso.persona.nombre}
+                    {ingreso.usuario.nombre}
                   </span>
                   <span className={estilos.filaLegajo}>
-                    {ingreso.persona.legajo} · {ingreso.persona.rol}
+                    {ingreso.usuario.email} · {ingreso.usuario.rol}
                   </span>
                 </span>
-                <span className={estilos.filaHora}>{ingreso.hora}</span>
+                <span className={estilos.filaHora}>
+                  {formatearHora(ingreso.asistencia?.confirmadaEn)}
+                </span>
                 <span className={estilos.validado}>
                   <Badge tono="exito">Validado</Badge>
                 </span>

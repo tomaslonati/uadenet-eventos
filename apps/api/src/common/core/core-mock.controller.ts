@@ -23,6 +23,7 @@ import {
   serviceTokenRequestSchema,
   walletDebitRequestSchema,
   walletReversalRequestSchema,
+  walletTopUpRequestSchema,
   type CoreAuthUser,
   type CoreEventAck,
   type CoreEventEnvelope,
@@ -30,10 +31,12 @@ import {
   type CoreLoginResponse,
   type CoreNotification,
   type CoreNotificationRequest,
+  type CoreNotificationsPage,
   type JwksResponse,
   type ServiceTokenResponse,
   type WalletBalance,
   type WalletTransaction,
+  type WalletTransactionsPage,
 } from '@repo/contracts';
 import { USUARIO_DEMO_ID } from '../usuario-demo';
 import { firmarJwtCore, obtenerJwkPublicaDemo } from './core-crypto';
@@ -293,6 +296,81 @@ export class CoreMockController {
     const userId =
       headerUserId ?? this.extraerSubDeAuth(authHeader) ?? USUARIO_DEMO_ID;
     return this.obtenerBalance(userId);
+  }
+
+  @Get('api/v1/wallets/me/transactions')
+  misMovimientos(
+    @Headers('x-user-id') headerUserId?: string,
+    @Headers('authorization') authHeader?: string,
+  ): WalletTransactionsPage {
+    const userId =
+      headerUserId ?? this.extraerSubDeAuth(authHeader) ?? USUARIO_DEMO_ID;
+    const items = Array.from(this.transaccionesPorId.values())
+      .filter(
+        (tx) => this.propietarioPorTransaccion.get(tx.transactionId) === userId,
+      )
+      .reverse();
+    return { items, nextCursor: null };
+  }
+
+  @Post('api/v1/wallets/me/top-ups')
+  @HttpCode(201)
+  recargarMiBilletera(
+    @Headers('x-user-id') headerUserId?: string,
+    @Headers('authorization') authHeader?: string,
+    @Body() body?: unknown,
+  ): WalletTransaction {
+    const parsed = walletTopUpRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        code: 'WALLET_INVALID_AMOUNT',
+        detail: 'Payload de recarga inválido.',
+      });
+    }
+    const userId =
+      headerUserId ?? this.extraerSubDeAuth(authHeader) ?? USUARIO_DEMO_ID;
+    const monto = Number.parseFloat(parsed.data.amount);
+    const nuevoSaldo = this.obtenerSaldoNumerico(userId) + monto;
+    this.saldos.set(userId, nuevoSaldo);
+
+    const tx: WalletTransaction = {
+      transactionId: randomUUID(),
+      status: 'POSTED',
+      type: 'CREDIT',
+      concept: 'TOP_UP',
+      amount: monto.toFixed(2),
+      currency: 'ARS',
+      balanceAfter: nuevoSaldo.toFixed(2),
+      externalReference: `topup/${randomUUID()}`,
+      originalTransactionId: null,
+      createdAt: new Date().toISOString(),
+    };
+    this.transaccionesPorId.set(tx.transactionId, tx);
+    this.propietarioPorTransaccion.set(tx.transactionId, userId);
+    return tx;
+  }
+
+  @Get('api/v1/notifications')
+  misNotificaciones(
+    @Headers('authorization') authHeader?: string,
+  ): CoreNotificationsPage {
+    const userId = this.extraerSubDeAuth(authHeader) ?? USUARIO_DEMO_ID;
+    const items: CoreNotification[] = this.notificacionesRecibidas
+      .filter((n) => n.userId === userId)
+      .map((n) => ({
+        id: randomUUID(),
+        userId: n.userId,
+        type: n.type,
+        title: n.title,
+        message: n.message,
+        actionUrl: n.actionUrl ?? null,
+        sourceModule: n.sourceModule,
+        sourceReference: n.sourceReference,
+        readAt: null,
+        expiresAt: n.expiresAt ?? null,
+        createdAt: new Date().toISOString(),
+      }));
+    return { items, nextCursor: null };
   }
 
   @Get('internal/v1/wallets/:userId')

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { BotonLink, GrupoBotones } from "@/components/ui/boton";
 import { Credencial } from "@/components/ui/credencial";
 import { Encabezado, EstadoVacio, Seccion } from "@/components/ui/pantalla";
+import { hoyIso, type Evento } from "@/lib/api";
 import { codigoCredencial } from "@/lib/dominio";
 import {
   anio,
@@ -12,7 +13,6 @@ import {
   pesos,
   sumarDias,
 } from "@/lib/formato";
-import { HOY, buscarEvento, type Evento } from "@/lib/mock/eventos";
 import { useSesion } from "@/lib/sesion";
 import { vistaDe } from "@/lib/vista-evento";
 
@@ -21,14 +21,33 @@ import estilos from "./mis-inscripciones.module.css";
 const RECORDATORIO_DIAS = 7;
 
 export default function MisInscripciones() {
-  const { inscripciones } = useSesion();
+  const {
+    eventos: catalogo,
+    inscripciones,
+    inscripcionesDetalle,
+    cargandoDatos,
+  } = useSesion();
 
+  const hoy = hoyIso();
   const mis = inscripciones
-    .map(buscarEvento)
+    .map((id) => catalogo.find((e) => e.id === id))
     .filter((evento): evento is Evento => Boolean(evento))
-    .map((evento) => vistaDe(evento, true));
+    .map((evento) => {
+      const detalle = inscripcionesDetalle.find(
+        (i) => i.eventoId === evento.id,
+      );
+      return {
+        vista: vistaDe(evento, true),
+        inscripcionId: detalle?.id,
+        montoCobrado: detalle?.montoCobrado,
+      };
+    });
 
-  const [proximo, ...otros] = mis;
+  const [proximoItem, ...otros] = mis;
+  const proximo = proximoItem?.vista;
+  const codigoProximo =
+    proximoItem?.inscripcionId ??
+    (proximo ? codigoCredencial(proximo.id, 0) : "");
 
   return (
     <>
@@ -57,7 +76,9 @@ export default function MisInscripciones() {
               </div>
               <div>
                 <span className={estilos.cuentaRegresiva}>
-                  en {diasEntre(HOY, proximo.fecha)} días
+                  {diasEntre(hoy, proximo.fecha) >= 0
+                    ? `en ${diasEntre(hoy, proximo.fecha)} días`
+                    : "finalizado"}
                 </span>
                 <p className={estilos.aviso}>
                   Te avisamos el{" "}
@@ -82,9 +103,10 @@ export default function MisInscripciones() {
                   { clave: "Disertante", valor: proximo.disertante },
                   {
                     clave: "Inscripción",
-                    valor: proximo.precio
-                      ? `${pesos(proximo.precio)} · pagado`
-                      : "Gratuita",
+                    valor:
+                      (proximoItem?.montoCobrado ?? proximo.precio)
+                        ? `${pesos(proximoItem?.montoCobrado ?? proximo.precio)} · pagado`
+                        : "Gratuita",
                   },
                 ].map((dato) => (
                   <div key={dato.clave} className={estilos.dato}>
@@ -102,13 +124,8 @@ export default function MisInscripciones() {
 
             <div className={estilos.credencial}>
               <span className={estilos.credencialLabel}>Credencial</span>
-              <Credencial
-                semilla={1}
-                codigo={codigoCredencial(proximo.id, 0)}
-              />
-              <span className={estilos.credencialCodigo}>
-                {codigoCredencial(proximo.id, 0)}
-              </span>
+              <Credencial semilla={1} codigo={codigoProximo} />
+              <span className={estilos.credencialCodigo}>{codigoProximo}</span>
               <span className={estilos.credencialNota}>
                 Se marca usada al primer escaneo
               </span>
@@ -120,35 +137,44 @@ export default function MisInscripciones() {
       {otros.length > 0 ? (
         <Seccion titulo="También estás anotado">
           <div className={estilos.otros}>
-            {otros.map((evento, indice) => (
-              <div key={evento.id} className={estilos.otro}>
-                <div className={estilos.calendario}>
-                  <span className={estilos.calendarioDia}>{evento.dia}</span>
-                  <span className={estilos.calendarioMes}>
-                    {evento.mesCorto}
-                  </span>
+            {otros.map((item, indice) => {
+              const evento = item.vista;
+              const codigo =
+                item.inscripcionId ?? codigoCredencial(evento.id, indice + 1);
+              return (
+                <div key={evento.id} className={estilos.otro}>
+                  <div className={estilos.calendario}>
+                    <span className={estilos.calendarioDia}>{evento.dia}</span>
+                    <span className={estilos.calendarioMes}>
+                      {evento.mesCorto}
+                    </span>
+                  </div>
+                  <div className={estilos.otroDatos}>
+                    <span className={estilos.otroTitulo}>{evento.titulo}</span>
+                    <span className={estilos.otroSub}>
+                      {evento.rangoHorario} · {evento.sede} — {evento.locacion}{" "}
+                      · {codigo}
+                    </span>
+                  </div>
+                  <Credencial
+                    semilla={indice + 2}
+                    codigo={codigo}
+                    tamano="chica"
+                  />
                 </div>
-                <div className={estilos.otroDatos}>
-                  <span className={estilos.otroTitulo}>{evento.titulo}</span>
-                  <span className={estilos.otroSub}>
-                    {evento.rangoHorario} · {evento.sede} — {evento.locacion} ·{" "}
-                    {codigoCredencial(evento.id, indice + 1)}
-                  </span>
-                </div>
-                <Credencial
-                  semilla={indice + 2}
-                  codigo={codigoCredencial(evento.id, indice + 1)}
-                  tamano="chica"
-                />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Seccion>
       ) : null}
 
       {mis.length === 0 ? (
         <EstadoVacio
-          texto="Todavía no te inscribiste a ningún evento."
+          texto={
+            cargandoDatos
+              ? "Cargando tus inscripciones…"
+              : "Todavía no te inscribiste a ningún evento."
+          }
           accion={
             <BotonLink href="/cartelera" variante="primario" tamano="sm">
               Ver cartelera
