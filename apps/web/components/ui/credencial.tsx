@@ -19,14 +19,12 @@ export function Credencial({
   tamano?: "grande" | "chica";
   semilla?: number;
 }) {
+  void semilla;
   const [dataUrl, setDataUrl] = useState<string>("");
 
   useEffect(() => {
     let cancelado = false;
-    if (!codigo) {
-      setDataUrl("");
-      return;
-    }
+    if (!codigo) return;
 
     const generar = async () => {
       try {
@@ -60,6 +58,7 @@ export function Credencial({
       aria-label={`Credencial digital ${codigo}`}
     >
       {dataUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={dataUrl}
           alt={`Código QR ${codigo}`}
