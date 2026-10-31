@@ -78,7 +78,9 @@ describe('AsistenciaService', () => {
   describe('listarPorEvento', () => {
     it('permite listar al creador del evento', async () => {
       seleccionar
-        .mockReturnValueOnce(queryMock([{ id: eventoId, creadoPor: creadorId }]))
+        .mockReturnValueOnce(
+          queryMock([{ id: eventoId, creadoPor: creadorId }]),
+        )
         .mockReturnValueOnce(
           queryMock([
             {
@@ -107,9 +109,9 @@ describe('AsistenciaService', () => {
     it('rechaza listar si el evento no existe', async () => {
       seleccionar.mockReturnValueOnce(queryMock([]));
 
-      await expect(service.listarPorEvento(eventoId, creadorId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.listarPorEvento(eventoId, creadorId),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('rechaza listar si el usuario no es el creador', async () => {
@@ -119,6 +121,16 @@ describe('AsistenciaService', () => {
 
       await expect(
         service.listarPorEvento(eventoId, otroAdminId),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('rechaza listar si no se provee usuarioId', async () => {
+      seleccionar.mockReturnValueOnce(
+        queryMock([{ id: eventoId, creadoPor: creadorId }]),
+      );
+
+      await expect(
+        service.listarPorEvento(eventoId, undefined),
       ).rejects.toThrow(ForbiddenException);
     });
   });
@@ -207,6 +219,23 @@ describe('AsistenciaService', () => {
       );
     });
 
+    it('rechaza registrar si no se provee usuarioId', async () => {
+      seleccionar.mockReturnValueOnce(
+        queryMock([
+          {
+            id: datos.inscripcionId,
+            eventoId,
+            usuarioId: 'usr-1',
+            eventoCreadoPor: creadorId,
+          },
+        ]),
+      );
+
+      await expect(service.registrar(datos, undefined)).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
     it('rechaza cuando la asistencia ya fue registrada', async () => {
       seleccionar
         .mockReturnValueOnce(
@@ -242,7 +271,11 @@ describe('AsistenciaService', () => {
         where: () => Promise.resolve(),
       });
 
-      const res = await service.revertir(datos.inscripcionId, creadorId, eventoId);
+      const res = await service.revertir(
+        datos.inscripcionId,
+        creadorId,
+        eventoId,
+      );
 
       expect(res.exito).toBe(true);
       expect(eliminar).toHaveBeenCalled();
@@ -285,6 +318,22 @@ describe('AsistenciaService', () => {
 
       await expect(
         service.revertir(datos.inscripcionId, otroAdminId, eventoId),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('rechaza revertir si no se provee usuarioId', async () => {
+      seleccionar.mockReturnValueOnce(
+        queryMock([
+          {
+            id: datos.inscripcionId,
+            eventoId,
+            eventoCreadoPor: creadorId,
+          },
+        ]),
+      );
+
+      await expect(
+        service.revertir(datos.inscripcionId, undefined, eventoId),
       ).rejects.toThrow(ForbiddenException);
     });
   });

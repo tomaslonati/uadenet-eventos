@@ -38,7 +38,7 @@ export class AsistenciaService {
       throw new NotFoundException('El evento no existe.');
     }
 
-    if (usuarioId && eventoEncontrado[0]!.creadoPor !== usuarioId) {
+    if (!usuarioId || eventoEncontrado[0]!.creadoPor !== usuarioId) {
       throw new ForbiddenException(
         'Solo el creador del evento puede gestionar la asistencia.',
       );
@@ -115,7 +115,7 @@ export class AsistenciaService {
       );
     }
 
-    if (usuarioId && inscripcion.eventoCreadoPor !== usuarioId) {
+    if (!usuarioId || inscripcion.eventoCreadoPor !== usuarioId) {
       throw new ForbiddenException(
         'Solo el creador del evento puede registrar la asistencia.',
       );
@@ -182,7 +182,7 @@ export class AsistenciaService {
       );
     }
 
-    if (usuarioId && inscripcion.eventoCreadoPor !== usuarioId) {
+    if (!usuarioId || inscripcion.eventoCreadoPor !== usuarioId) {
       throw new ForbiddenException(
         'Solo el creador del evento puede modificar la asistencia.',
       );
