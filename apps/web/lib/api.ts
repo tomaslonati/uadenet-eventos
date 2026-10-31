@@ -237,11 +237,16 @@ export function reservasDeEventos(
 async function leerErrorApi(res: Response, fallback: string): Promise<string> {
   try {
     const body = (await res.json()) as {
-      message?: string | string[];
+      message?: string | Array<string | { message?: string }>;
       detail?: string;
     };
     if (typeof body.detail === "string") return body.detail;
-    if (Array.isArray(body.message)) return body.message.join(". ");
+    if (Array.isArray(body.message)) {
+      const mensajes = body.message
+        .map((m) => (typeof m === "string" ? m : m?.message))
+        .filter((m): m is string => typeof m === "string" && m.trim().length > 0);
+      if (mensajes.length > 0) return mensajes.join(". ");
+    }
     if (typeof body.message === "string") return body.message;
   } catch {
     // Ignorar error de parseo JSON

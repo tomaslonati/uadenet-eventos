@@ -98,7 +98,11 @@ export class AsistenciaController {
     @Query('eventoId') eventoId?: string,
     @UsuarioActual() usuario?: UsuarioAutenticado,
   ) {
-    return this.asistenciaService.revertir(inscripcionId, usuario?.id, eventoId);
+    return this.asistenciaService.revertir(
+      inscripcionId,
+      usuario?.id,
+      eventoId,
+    );
   }
 
   @Delete(':inscripcionId')
