@@ -13,7 +13,13 @@ import { vistaDe } from "@/lib/vista-evento";
 import estilos from "./gestion.module.css";
 
 export default function Gestion() {
-  const { sede, sedes, eventos: catalogo, estaInscripto } = useSesion();
+  const {
+    sede,
+    sedes,
+    eventos: catalogo,
+    estaInscripto,
+    usuario,
+  } = useSesion();
 
   const deLaSede = catalogo.filter(
     (evento) => sede === TODAS_LAS_SEDES || evento.sede === sede,
@@ -78,34 +84,44 @@ export default function Gestion() {
           <span>Ingresos</span>
           <span />
         </div>
-        {eventos.map((evento) => (
-          <div key={evento.id} className={estilos.fila}>
-            <div className={estilos.celdaFecha}>
-              <span className={estilos.fecha}>{evento.fechaCorta}</span>
-              <span className={estilos.horario}>{evento.rangoHorario}</span>
+        {eventos.map((evento) => {
+          const esCreador =
+            catalogo.find((e) => e.id === evento.id)?.creadoPor === usuario.id;
+
+          return (
+            <div key={evento.id} className={estilos.fila}>
+              <div className={estilos.celdaFecha}>
+                <span className={estilos.fecha}>{evento.fechaCorta}</span>
+                <span className={estilos.horario}>{evento.rangoHorario}</span>
+              </div>
+              <div className={estilos.celdaEvento}>
+                <span className={estilos.titulo}>{evento.titulo}</span>
+                <Badge>{evento.tipo}</Badge>
+              </div>
+              <span className={estilos.locacion}>{evento.locacion}</span>
+              <div className={estilos.celdaCupo}>
+                <span className={estilos.cupoTexto}>{evento.cupoLabel}</span>
+                <BarraCupo porcentaje={evento.porcentaje} />
+              </div>
+              <span className={estilos.ingresos}>
+                {evento.precio ? pesos(ingresosDe(evento)) : "—"}
+              </span>
+              <div className={estilos.acciones}>
+                <BotonLink href={`/eventos/${evento.id}`} tamano="xs">
+                  Ver
+                </BotonLink>
+                {esCreador ? (
+                  <BotonLink
+                    href={`/asistencia?evento=${evento.id}`}
+                    tamano="xs"
+                  >
+                    Asistencia
+                  </BotonLink>
+                ) : null}
+              </div>
             </div>
-            <div className={estilos.celdaEvento}>
-              <span className={estilos.titulo}>{evento.titulo}</span>
-              <Badge>{evento.tipo}</Badge>
-            </div>
-            <span className={estilos.locacion}>{evento.locacion}</span>
-            <div className={estilos.celdaCupo}>
-              <span className={estilos.cupoTexto}>{evento.cupoLabel}</span>
-              <BarraCupo porcentaje={evento.porcentaje} />
-            </div>
-            <span className={estilos.ingresos}>
-              {evento.precio ? pesos(ingresosDe(evento)) : "—"}
-            </span>
-            <div className={estilos.acciones}>
-              <BotonLink href={`/eventos/${evento.id}`} tamano="xs">
-                Ver
-              </BotonLink>
-              <BotonLink href={`/asistencia?evento=${evento.id}`} tamano="xs">
-                Asistencia
-              </BotonLink>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );
