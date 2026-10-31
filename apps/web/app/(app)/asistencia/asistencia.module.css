@@ -43,9 +43,27 @@
   color: var(--exito);
 }
 
+.barraSelector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-bottom: 2px;
+}
+
+.selectorLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tinta-secundaria);
+  white-space: nowrap;
+}
+
 .layout {
   display: grid;
-  grid-template-columns: 390px minmax(0, 1fr);
+  grid-template-columns: 410px minmax(0, 1fr);
   gap: 22px;
   align-items: start;
 }
@@ -57,26 +75,30 @@
   padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  align-items: center;
+  gap: 16px;
+  align-items: stretch;
 }
 
 .metodoTitulo {
   font-size: 13.5px;
   font-weight: 500;
-  align-self: flex-start;
 }
 
 .metodoTexto {
   font-size: 12.5px;
   line-height: 1.6;
   color: var(--tinta-secundaria);
-  align-self: flex-start;
+}
+
+.escanerWrapper {
+  display: flex;
+  justify-content: center;
+  margin: 6px 0;
 }
 
 .escaner {
-  width: 214px;
-  height: 214px;
+  width: 200px;
+  height: 200px;
   border-radius: 14px;
   background: var(--acento-profundo);
   position: relative;
@@ -87,42 +109,53 @@
 }
 
 .escanerMarco {
-  width: 150px;
-  height: 150px;
+  width: 140px;
+  height: 140px;
   border: 2px solid rgba(255, 255, 255, 0.35);
   border-radius: 9px;
 }
 
 .escanerLinea {
   position: absolute;
-  left: 32px;
-  right: 32px;
+  left: 28px;
+  right: 28px;
   top: 50%;
   height: 2px;
   background: rgba(255, 255, 255, 0.7);
 }
 
-.codigoPanel {
-  width: 100%;
-  background: var(--acento-profundo);
-  border-radius: 14px;
-  padding: 34px 20px;
+.manualHeader {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
+  gap: 4px;
 }
 
-.codigo {
-  font-size: 44px;
-  font-weight: 500;
-  letter-spacing: 0.22em;
-  color: #fff;
+.filtros {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
-.codigoRestante {
+.chip {
+  background: var(--superficie-sutil);
+  border: 1px solid var(--linea);
+  border-radius: 999px;
+  padding: 4px 11px;
   font-size: 11.5px;
-  color: var(--oscuro-etiqueta);
+  font-weight: 500;
+  color: var(--tinta-secundaria);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chip:hover {
+  background: var(--linea-fila);
+}
+
+.chipActivo {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #fff;
 }
 
 .pendientes {
@@ -130,41 +163,45 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
-.pendiente {
+.itemManual {
   display: flex;
   align-items: center;
-  gap: 11px;
+  justify-content: space-between;
+  gap: 12px;
   border: 1px solid var(--linea);
   background: var(--superficie);
   border-radius: 9px;
-  padding: 10px 12px;
-  text-align: left;
-  transition:
-    transform var(--duracion-presion) var(--ease-salida),
-    background-color var(--duracion-color) ease;
+  padding: 11px 14px;
+  transition: background-color var(--duracion-color) ease;
 }
 
-.pendiente:hover {
+.itemManual:hover {
   background: #f7f9fa;
 }
 
-.pendiente:active {
-  transform: scale(0.99);
-}
-
-.casilla {
-  width: 17px;
-  height: 17px;
-  border: 1.5px solid #c9cdd3;
-  border-radius: 5px;
-  flex: none;
-}
-
-.pendienteDatos {
+.itemManualInfo {
   display: flex;
   flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.itemManualFilaSuperior {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.itemManualAcciones {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .pendienteNombre {
@@ -177,7 +214,7 @@
   color: var(--tinta-placeholder);
 }
 
-/* Registro */
+/* Registro / Ingresos */
 .registro {
   background: var(--superficie);
   border: 1px solid var(--linea);
@@ -207,9 +244,9 @@
 
 .fila {
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) 116px 84px auto;
-  gap: 14px;
-  padding: 13px 20px;
+  grid-template-columns: 32px minmax(0, 1fr) 60px auto;
+  gap: 12px;
+  padding: 12px 18px;
   border-bottom: 1px solid var(--linea-fila);
   align-items: center;
   animation: riseIn 0.22s var(--ease-salida) both;
@@ -246,11 +283,15 @@
 }
 
 .filaHora {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--tinta-secundaria);
+  white-space: nowrap;
 }
 
-.validado {
+.accionesFila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   justify-self: end;
 }
 
