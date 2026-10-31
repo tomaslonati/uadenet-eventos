@@ -22,7 +22,6 @@ import { useSesion } from "@/lib/sesion";
 import estilos from "./asistencia.module.css";
 
 type Metodo = "qr" | "manual";
-type FiltroEstado = "todos" | "pendientes" | "acreditados";
 
 const METODOS: { valor: Metodo; label: string }[] = [
   { valor: "qr", label: "Credencial QR" },
@@ -67,7 +66,6 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
   const [metodo, setMetodo] = useState<Metodo>("qr");
   const [codigoQr, setCodigoQr] = useState("");
   const [busqueda, setBusqueda] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>("todos");
   const [asistentes, setAsistentes] = useState<AsistenteEventoApi[]>([]);
   const [cargandoPadron, setCargandoPadron] = useState(true);
   const [registrando, setRegistrando] = useState(false);
@@ -187,11 +185,9 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
     ? Math.round((ingresos.length / totalInscriptos) * 100)
     : 0;
 
-  // Filtrado reactivo en modo manual por nombre, legajo o email
+  // Filtrado reactivo en columna izquierda: ESTRICTAMENTE pendientes de acreditar
   const termino = busqueda.trim().toLowerCase();
-  const asistentesFiltrados = asistentes.filter((item) => {
-    if (filtroEstado === "pendientes" && item.acreditado) return false;
-    if (filtroEstado === "acreditados" && !item.acreditado) return false;
+  const pendientesFiltrados = pendientes.filter((item) => {
     if (!termino) return true;
     return (
       item.usuario.nombre.toLowerCase().includes(termino) ||
@@ -199,6 +195,16 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
       item.usuario.email.toLowerCase().includes(termino)
     );
   });
+
+  // Si no se encuentra en pendientes pero coincide con alguien que ya ingresó
+  const yaAcreditadoEncontrado = termino
+    ? ingresos.find(
+        (item) =>
+          item.usuario.nombre.toLowerCase().includes(termino) ||
+          item.usuario.id.toLowerCase().includes(termino) ||
+          item.usuario.email.toLowerCase().includes(termino),
+      )
+    : undefined;
 
   const acreditarInscripcion = async (
     inscripcionId: string,
@@ -386,11 +392,11 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
             <>
               <div className={estilos.manualHeader}>
                 <span className={estilos.metodoTitulo}>
-                  Lista manual de inscriptos
+                  Inscriptos pendientes de acreditar
                 </span>
                 <p className={estilos.metodoTexto}>
-                  Padrón oficial del evento. Buscá por nombre o legajo y marcá o
-                  desmarcá la asistencia.
+                  Alumnos habilitados para ingresar ({pendientes.length}{" "}
+                  restantes). Buscá por nombre o legajo y confirmá su ingreso.
                 </p>
               </div>
 
@@ -402,51 +408,35 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
                 onChange={(e) => setBusqueda(e.target.value)}
               />
 
-              <div className={estilos.filtros}>
-                <button
-                  type="button"
-                  className={`${estilos.chip} ${
-                    filtroEstado === "todos" ? estilos.chipActivo : ""
-                  }`}
-                  onClick={() => setFiltroEstado("todos")}
-                >
-                  Todos ({asistentes.length})
-                </button>
-                <button
-                  type="button"
-                  className={`${estilos.chip} ${
-                    filtroEstado === "pendientes" ? estilos.chipActivo : ""
-                  }`}
-                  onClick={() => setFiltroEstado("pendientes")}
-                >
-                  Pendientes ({pendientes.length})
-                </button>
-                <button
-                  type="button"
-                  className={`${estilos.chip} ${
-                    filtroEstado === "acreditados" ? estilos.chipActivo : ""
-                  }`}
-                  onClick={() => setFiltroEstado("acreditados")}
-                >
-                  Acreditados ({ingresos.length})
-                </button>
-              </div>
-
               <div className={estilos.pendientes}>
                 {cargandoPadron && asistentes.length === 0 ? (
                   <p className={estilos.metodoTexto}>Cargando padrón…</p>
-                ) : asistentesFiltrados.length === 0 ? (
+                ) : yaAcreditadoEncontrado &&
+                  pendientesFiltrados.length === 0 ? (
+                  <div className={estilos.avisoAcreditado}>
+                    <span className={estilos.avisoAcreditadoTitulo}>
+                      ✓ {yaAcreditadoEncontrado.usuario.nombre} ya fue
+                      acreditado
+                    </span>
+                    <span className={estilos.avisoAcreditadoSub}>
+                      Legajo {yaAcreditadoEncontrado.usuario.id} · figura en la
+                      columna de Ingresos registrados a la derecha.
+                    </span>
+                  </div>
+                ) : pendientesFiltrados.length === 0 ? (
                   <p className={estilos.metodoTexto}>
                     {termino
-                      ? `No se encontraron inscriptos para "${busqueda}".`
-                      : "No hay inscriptos en esta categoría."}
+                      ? `No se encontraron inscriptos pendientes para "${busqueda}".`
+                      : pendientes.length === 0
+                        ? "¡Todos los inscriptos ya fueron acreditados!"
+                        : "No hay inscriptos pendientes."}
                   </p>
                 ) : pendientesFiltrados.length === 0 ? (
                   <p className={estilos.metodoTexto}>
                     Ningún pendiente coincide con «{busqueda.trim()}».
                   </p>
                 ) : (
-                  asistentesFiltrados.map((item) => (
+                  pendientesFiltrados.map((item) => (
                     <div
                       key={item.inscripcionId}
                       className={estilos.itemManual}
@@ -456,9 +446,7 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
                           <span className={estilos.pendienteNombre}>
                             {item.usuario.nombre}
                           </span>
-                          <Badge tono={item.acreditado ? "exito" : "neutro"}>
-                            {item.acreditado ? "Acreditado" : "Pendiente"}
-                          </Badge>
+                          <Badge tono="neutro">Pendiente</Badge>
                         </div>
                         <span className={estilos.pendienteLegajo}>
                           Legajo: {item.usuario.id} · {item.usuario.email} ·{" "}
@@ -467,36 +455,20 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
                       </div>
 
                       <div className={estilos.itemManualAcciones}>
-                        {item.acreditado ? (
-                          <Boton
-                            variante="destructivo"
-                            tamano="xs"
-                            disabled={registrando}
-                            onClick={() =>
-                              void desmarcarInscripcion(
-                                item.inscripcionId,
-                                item.usuario.nombre,
-                              )
-                            }
-                          >
-                            Quitar
-                          </Boton>
-                        ) : (
-                          <Boton
-                            variante="primario"
-                            tamano="xs"
-                            disabled={registrando}
-                            onClick={() =>
-                              void acreditarInscripcion(
-                                item.inscripcionId,
-                                "manual",
-                                item.usuario.nombre,
-                              )
-                            }
-                          >
-                            Acreditar
-                          </Boton>
-                        )}
+                        <Boton
+                          variante="primario"
+                          tamano="xs"
+                          disabled={registrando}
+                          onClick={() =>
+                            void acreditarInscripcion(
+                              item.inscripcionId,
+                              "manual",
+                              item.usuario.nombre,
+                            )
+                          }
+                        >
+                          Acreditar
+                        </Boton>
                       </div>
                     </div>
                   ))
