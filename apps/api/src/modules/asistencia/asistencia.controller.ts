@@ -41,6 +41,7 @@ export class AsistenciaController {
   constructor(private readonly asistenciaService: AsistenciaService) {}
 
   @Get()
+  @RequierePermiso('campus-events:manage')
   @ApiQuery({
     name: 'eventoId',
     required: true,
@@ -95,7 +96,7 @@ export class AsistenciaController {
   })
   revertir(
     @Param('inscripcionId', ParseUUIDPipe) inscripcionId: string,
-    @Query('eventoId') eventoId?: string,
+    @Query('eventoId', new ParseUUIDPipe({ optional: true })) eventoId?: string,
     @UsuarioActual() usuario?: UsuarioAutenticado,
   ) {
     return this.asistenciaService.revertir(

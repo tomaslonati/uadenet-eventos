@@ -57,6 +57,7 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
   const router = useRouter();
   const {
     usuario,
+    rol,
     accessToken,
     eventos: catalogo,
     cargandoDatos,
@@ -108,6 +109,9 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
     let cancelado = false;
 
     const cargar = async () => {
+      setAsistentes([]);
+      setBusqueda("");
+      setCodigoQr("");
       setCargandoPadron(true);
       try {
         const lista = await fetchAsistenciaEventoApi(
@@ -125,6 +129,25 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
       cancelado = true;
     };
   }, [eventoIdActivo, accessToken]);
+
+  // Caso 0: El rol autenticado no es administrativo
+  if (!cargandoDatos && rol !== "admin") {
+    return (
+      <>
+        <Encabezado
+          antetitulo="Control de asistencia"
+          titulo="Acceso restringido"
+          bajada="La gestión y toma de presentismo está reservada exclusivamente para el personal administrativo creador del evento."
+          accion={
+            <BotonLink href="/cartelera" variante="secundario">
+              Ir a cartelera
+            </BotonLink>
+          }
+        />
+        <EstadoVacio texto="Solo usuarios administrativos creadores de eventos pueden gestionar asistencias." />
+      </>
+    );
+  }
 
   // Caso 1: Intentó ingresar a un evento creado por otro usuario
   if (esEventoAjeno && eventoSolicitado) {
@@ -313,11 +336,11 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
           <span className={estilos.selectorLabel}>Alternar evento:</span>
           <Select
             etiqueta="Cambiar evento"
-            valor={eventoActivo.titulo}
-            opciones={misEventosCreados.map((e) => e.titulo)}
-            onCambiar={(tituloElegido) => {
+            valor={`${eventoActivo.titulo} (${eventoActivo.fecha})`}
+            opciones={misEventosCreados.map((e) => `${e.titulo} (${e.fecha})`)}
+            onCambiar={(opcionElegida) => {
               const ev = misEventosCreados.find(
-                (e) => e.titulo === tituloElegido,
+                (e) => `${e.titulo} (${e.fecha})` === opcionElegida,
               );
               if (ev) {
                 router.push(`/asistencia?evento=${ev.id}`);
