@@ -1,25 +1,36 @@
-.credencial {
+.contenedor {
   background: var(--superficie);
   border: 1px solid var(--linea);
   border-radius: 10px;
-  display: grid;
-  grid-template-columns: repeat(13, 1fr);
-  grid-template-rows: repeat(13, 1fr);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .grande {
   width: 132px;
   height: 132px;
-  padding: 8px;
+  padding: 6px;
 }
 
 .chica {
   width: 66px;
   height: 66px;
   border-radius: 8px;
-  padding: 5px;
+  padding: 4px;
 }
 
-.encendida {
-  background: var(--tinta);
+.imagenQr {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--superficie-sutil);
+  border-radius: 6px;
 }
