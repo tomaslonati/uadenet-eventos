@@ -106,9 +106,9 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
   useEffect(() => {
     if (!eventoIdActivo) return;
     let cancelado = false;
-    setCargandoPadron(true);
 
     const cargar = async () => {
+      setCargandoPadron(true);
       try {
         const lista = await fetchAsistenciaEventoApi(
           eventoIdActivo,
