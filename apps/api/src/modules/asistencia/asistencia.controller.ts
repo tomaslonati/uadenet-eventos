@@ -3,7 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
   Param,
   ParseUUIDPipe,
   Post,
@@ -16,6 +15,7 @@ import {
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiOkResponse,
+  ApiParam,
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
@@ -25,8 +25,10 @@ import {
   type RegistrarAsistencia,
 } from '@repo/contracts';
 import { RequierePermiso } from '../../common/decorators/requiere-permiso.decorator';
+import { UsuarioActual } from '../../common/decorators/usuario-actual.decorator';
 import { CoreJwtGuard } from '../../common/guards/core-jwt.guard';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import type { UsuarioAutenticado } from '../../common/usuario-demo';
 import { AsistenciaService } from './asistencia.service';
 import { AsistenciaDto } from './dto/asistencia.dto';
 import { RegistrarAsistenciaDto } from './dto/registrar-asistencia.dto';
@@ -51,8 +53,9 @@ export class AsistenciaController {
   })
   listarPorEvento(
     @Query('eventoId', ParseUUIDPipe) eventoId: string,
+    @UsuarioActual() usuario?: UsuarioAutenticado,
   ): Promise<AsistenteEvento[]> {
-    return this.asistenciaService.listarPorEvento(eventoId);
+    return this.asistenciaService.listarPorEvento(eventoId, usuario?.id);
   }
 
   @Post()
@@ -62,8 +65,40 @@ export class AsistenciaController {
   registrar(
     @Body(new ZodValidationPipe(registrarAsistenciaSchema))
     datos: RegistrarAsistencia,
+    @UsuarioActual() usuario?: UsuarioAutenticado,
   ) {
-    return this.asistenciaService.registrar(datos);
+    return this.asistenciaService.registrar(datos, usuario?.id);
+  }
+
+  @Delete(':inscripcionId')
+  @RequierePermiso('campus-events:manage')
+  @ApiParam({
+    name: 'inscripcionId',
+    required: true,
+    type: String,
+    format: 'uuid',
+    description: 'ID de la inscripción cuya asistencia se desea revertir',
+  })
+  @ApiQuery({
+    name: 'eventoId',
+    required: false,
+    type: String,
+    format: 'uuid',
+    description: 'ID opcional del evento para verificar pertenencia',
+  })
+  @ApiOkResponse({
+    description: 'Asistencia revertida correctamente',
+    schema: {
+      type: 'object',
+      properties: { exito: { type: 'boolean' } },
+    },
+  })
+  revertir(
+    @Param('inscripcionId', ParseUUIDPipe) inscripcionId: string,
+    @Query('eventoId') eventoId?: string,
+    @UsuarioActual() usuario?: UsuarioAutenticado,
+  ) {
+    return this.asistenciaService.revertir(inscripcionId, usuario?.id, eventoId);
   }
 
   @Delete(':inscripcionId')
