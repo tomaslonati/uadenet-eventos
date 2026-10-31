@@ -47,6 +47,7 @@ export type Evento = {
   disertante: string;
   area: string;
   descripcion: string;
+  creadoPor: string;
 };
 
 export type Reserva = { titulo: string; desde: string; hasta: string };
@@ -215,6 +216,7 @@ export function adaptarEventoApi(raw: EventoDeCarteleraApi): Evento {
     disertante: meta.disertante,
     area: raw.locacion.sede,
     descripcion: meta.descripcion,
+    creadoPor: raw.creadoPor,
   };
 }
 
@@ -422,11 +424,12 @@ export async function registrarAsistenciaApi(
   inscripcionId: string,
   metodo: "qr" | "codigo-en-sala" | "manual",
   token?: string | null,
+  eventoId?: string,
 ): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/api/v1/asistencia`, {
     method: "POST",
     headers: headersDe(token, true),
-    body: JSON.stringify({ inscripcionId, metodo }),
+    body: JSON.stringify({ inscripcionId, metodo, eventoId }),
   });
   if (!res.ok) {
     throw new Error(
@@ -435,17 +438,21 @@ export async function registrarAsistenciaApi(
   }
 }
 
-export async function quitarAsistenciaApi(
+export async function eliminarAsistenciaApi(
   inscripcionId: string,
   token?: string | null,
+  eventoId?: string,
 ): Promise<void> {
-  const res = await fetch(
-    `${API_BASE_URL}/api/v1/asistencia/${encodeURIComponent(inscripcionId)}`,
-    { method: "DELETE", headers: headersDe(token) },
-  );
+  const url = `${API_BASE_URL}/api/v1/asistencia/${encodeURIComponent(inscripcionId)}${
+    eventoId ? `?eventoId=${encodeURIComponent(eventoId)}` : ""
+  }`;
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: headersDe(token),
+  });
   if (!res.ok) {
     throw new Error(
-      await leerErrorApi(res, "No se pudo quitar la asistencia."),
+      await leerErrorApi(res, "No se pudo revertir la asistencia."),
     );
   }
 }
