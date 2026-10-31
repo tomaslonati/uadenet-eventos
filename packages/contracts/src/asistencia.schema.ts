@@ -11,6 +11,7 @@ export type MetodoAsistencia = z.infer<typeof metodoAsistenciaSchema>;
 export const registrarAsistenciaSchema = z.object({
   inscripcionId: z.uuid(),
   metodo: metodoAsistenciaSchema,
+  eventoId: z.uuid().optional(),
 });
 
 export type RegistrarAsistencia = z.infer<typeof registrarAsistenciaSchema>;
