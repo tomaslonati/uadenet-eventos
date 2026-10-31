@@ -1,31 +1,50 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import type * as RepoDb from '@repo/db';
 import type { Asistencia, RegistrarAsistencia } from '@repo/contracts';
 
 const seleccionar = jest.fn();
 const insertar = jest.fn();
-const borrar = jest.fn();
+const eliminar = jest.fn();
 
 jest.mock('@repo/db', () => {
   const actual = jest.requireActual<typeof RepoDb>('@repo/db');
   return {
     ...actual,
-    db: { select: seleccionar, insert: insertar, delete: borrar },
+    db: { select: seleccionar, insert: insertar, delete: eliminar },
   };
 });
 
 import type { AnaliticaService } from '../../common/analitica/analitica.service';
 import { AsistenciaService } from './asistencia.service';
 
-/** `db.select(...).from(...).where(...).limit(1)` */
-const filas = (resultado: Record<string, string>[]) => ({
-  from: () => ({ where: () => ({ limit: () => Promise.resolve(resultado) }) }),
-});
+/** Mock encadenable para Drizzle: select().from().innerJoin().leftJoin().where().orderBy()/limit() */
+const queryMock = (resultado: unknown[]) => {
+  const chain: any = {
+    innerJoin: () => chain,
+    leftJoin: () => chain,
+    where: () => chain,
+    orderBy: () => Promise.resolve(resultado),
+    limit: () => Promise.resolve(resultado),
+  };
+  return {
+    from: () => chain,
+  };
+};
 
 describe('AsistenciaService', () => {
+  const creadorId = 'seed-admin-demo';
+  const otroAdminId = 'otro-admin';
+  const eventoId = '9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03';
+
   const datos: RegistrarAsistencia = {
     inscripcionId: '5e8d0b31-9c47-4a26-b18f-72e4c0d95a68',
     metodo: 'qr',
+    eventoId,
   };
 
   const asistenciaCreada = {
@@ -35,10 +54,11 @@ describe('AsistenciaService', () => {
     metodo: 'qr',
   } as Asistencia;
 
-  const inscripcion = {
+  const inscripcionConEvento = {
     id: datos.inscripcionId,
-    eventoId: '9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03',
-    usuarioId: 'seed-admin-demo',
+    eventoId,
+    usuarioId: 'alumno-1',
+    eventoCreadoPor: creadorId,
   };
 
   let service: AsistenciaService;
@@ -51,45 +71,172 @@ describe('AsistenciaService', () => {
     } as unknown as AnaliticaService);
     seleccionar.mockReset();
     insertar.mockReset();
-    borrar.mockReset();
+    eliminar.mockReset();
   });
 
-  it('registra la asistencia de una inscripción existente', async () => {
-    seleccionar
-      .mockReturnValueOnce(filas([inscripcion]))
-      .mockReturnValueOnce(filas([]));
-    insertar.mockReturnValue({
-      values: () => ({ returning: () => Promise.resolve([asistenciaCreada]) }),
+  describe('listarPorEvento', () => {
+    it('permite listar al creador del evento', async () => {
+      seleccionar
+        .mockReturnValueOnce(queryMock([{ id: eventoId, creadoPor: creadorId }]))
+        .mockReturnValueOnce(
+          queryMock([
+            {
+              inscripcionId: datos.inscripcionId,
+              eventoId,
+              usuario: {
+                id: 'alumno-1',
+                nombre: 'Tomás Vidal',
+                email: 't.vidal@uadenet.edu',
+                rol: 'estudiante',
+              },
+              asistenciaId: null,
+              confirmadaEn: null,
+              metodo: null,
+            },
+          ]),
+        );
+
+      const resultado = await service.listarPorEvento(eventoId, creadorId);
+      expect(resultado).toHaveLength(1);
+      expect(resultado[0]!.acreditado).toBe(false);
+      expect(resultado[0]!.usuario.nombre).toBe('Tomás Vidal');
     });
 
-    await expect(service.registrar(datos)).resolves.toEqual(asistenciaCreada);
-    expect(asistenciaConfirmada).toHaveBeenCalledWith({
-      inscripcionId: datos.inscripcionId,
-      eventoId: inscripcion.eventoId,
-      usuarioId: inscripcion.usuarioId,
-      confirmadaEn: '2026-10-22T18:07:44.000Z',
+    it('rechaza listar si el evento no existe', async () => {
+      seleccionar.mockReturnValueOnce(queryMock([]));
+
+      await expect(
+        service.listarPorEvento(eventoId, creadorId),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('rechaza listar si el usuario no es el creador', async () => {
+      seleccionar.mockReturnValueOnce(
+        queryMock([{ id: eventoId, creadoPor: creadorId }]),
+      );
+
+      await expect(
+        service.listarPorEvento(eventoId, otroAdminId),
+      ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
 
-  it('rechaza cuando no existe la inscripción', async () => {
-    seleccionar.mockReturnValueOnce(filas([]));
+  describe('registrar', () => {
+    it('registra la asistencia cuando el creador lo solicita y pertenece al evento', async () => {
+      seleccionar
+        .mockReturnValueOnce(queryMock([inscripcionConEvento]))
+        .mockReturnValueOnce(queryMock([]));
+      insertar.mockReturnValue({
+        values: () => ({ returning: () => Promise.resolve([asistenciaCreada]) }),
+      });
 
-    await expect(service.registrar(datos)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
-    expect(insertar).not.toHaveBeenCalled();
+      await expect(service.registrar(datos, creadorId)).resolves.toEqual(
+        asistenciaCreada,
+      );
+      expect(asistenciaConfirmada).toHaveBeenCalledWith({
+        inscripcionId: datos.inscripcionId,
+        eventoId: inscripcionConEvento.eventoId,
+        usuarioId: inscripcionConEvento.usuarioId,
+        confirmadaEn: '2026-10-22T18:07:44.000Z',
+      });
+    });
+
+    it('rechaza cuando no existe la inscripción', async () => {
+      seleccionar.mockReturnValueOnce(queryMock([]));
+
+      await expect(service.registrar(datos, creadorId)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(insertar).not.toHaveBeenCalled();
+    });
+
+    it('rechaza cuando la inscripción no corresponde al evento seleccionado', async () => {
+      seleccionar.mockReturnValueOnce(
+        queryMock([
+          {
+            ...inscripcionConEvento,
+            eventoId: '00000000-0000-0000-0000-000000000000',
+          },
+        ]),
+      );
+
+      await expect(service.registrar(datos, creadorId)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(insertar).not.toHaveBeenCalled();
+    });
+
+    it('rechaza cuando quien intenta registrar no es el creador del evento', async () => {
+      seleccionar.mockReturnValueOnce(queryMock([inscripcionConEvento]));
+
+      await expect(service.registrar(datos, otroAdminId)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(insertar).not.toHaveBeenCalled();
+    });
+
+    it('rechaza cuando la asistencia ya fue registrada', async () => {
+      seleccionar
+        .mockReturnValueOnce(queryMock([inscripcionConEvento]))
+        .mockReturnValueOnce(queryMock([{ id: asistenciaCreada.id }]));
+
+      await expect(service.registrar(datos, creadorId)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(insertar).not.toHaveBeenCalled();
+      expect(asistenciaConfirmada).not.toHaveBeenCalled();
+    });
   });
 
-  it('rechaza cuando la asistencia ya fue registrada', async () => {
-    seleccionar
-      .mockReturnValueOnce(filas([inscripcion]))
-      .mockReturnValueOnce(filas([{ id: asistenciaCreada.id }]));
+  describe('revertir', () => {
+    it('permite al creador revertir la asistencia de su evento', async () => {
+      seleccionar.mockReturnValueOnce(queryMock([inscripcionConEvento]));
+      eliminar.mockReturnValue({
+        where: () => Promise.resolve(),
+      });
 
-    await expect(service.registrar(datos)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
-    expect(insertar).not.toHaveBeenCalled();
-    expect(asistenciaConfirmada).not.toHaveBeenCalled();
+      const res = await service.revertir(
+        datos.inscripcionId,
+        creadorId,
+        eventoId,
+      );
+      expect(res).toEqual({ exito: true });
+      expect(eliminar).toHaveBeenCalled();
+    });
+
+    it('rechaza revertir si la inscripción no existe', async () => {
+      seleccionar.mockReturnValueOnce(queryMock([]));
+
+      await expect(
+        service.revertir(datos.inscripcionId, creadorId, eventoId),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(eliminar).not.toHaveBeenCalled();
+    });
+
+    it('rechaza revertir si la inscripción pertenece a otro evento', async () => {
+      seleccionar.mockReturnValueOnce(
+        queryMock([
+          {
+            ...inscripcionConEvento,
+            eventoId: '00000000-0000-0000-0000-000000000000',
+          },
+        ]),
+      );
+
+      await expect(
+        service.revertir(datos.inscripcionId, creadorId, eventoId),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(eliminar).not.toHaveBeenCalled();
+    });
+
+    it('rechaza revertir si quien lo intenta no es el creador', async () => {
+      seleccionar.mockReturnValueOnce(queryMock([inscripcionConEvento]));
+
+      await expect(
+        service.revertir(datos.inscripcionId, otroAdminId, eventoId),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(eliminar).not.toHaveBeenCalled();
+    });
   });
 
   it('quita la asistencia registrada por error', async () => {
