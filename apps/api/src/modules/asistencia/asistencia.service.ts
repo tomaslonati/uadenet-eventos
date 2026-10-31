@@ -1,9 +1,18 @@
 import {
+  BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { asistencias, db, eq, inscripciones, usuarios } from '@repo/db';
+import {
+  asistencias,
+  db,
+  eq,
+  eventos,
+  inscripciones,
+  usuarios,
+} from '@repo/db';
 import type {
   Asistencia,
   AsistenteEvento,
@@ -15,7 +24,26 @@ import { AnaliticaService } from '../../common/analitica/analitica.service';
 export class AsistenciaService {
   constructor(private readonly analiticaService: AnaliticaService) {}
 
-  async listarPorEvento(eventoId: string): Promise<AsistenteEvento[]> {
+  async listarPorEvento(
+    eventoId: string,
+    usuarioId?: string,
+  ): Promise<AsistenteEvento[]> {
+    const eventoEncontrado = await db
+      .select({ id: eventos.id, creadoPor: eventos.creadoPor })
+      .from(eventos)
+      .where(eq(eventos.id, eventoId))
+      .limit(1);
+
+    if (eventoEncontrado.length === 0) {
+      throw new NotFoundException('El evento no existe.');
+    }
+
+    if (usuarioId && eventoEncontrado[0]!.creadoPor !== usuarioId) {
+      throw new ForbiddenException(
+        'Solo el creador del evento puede gestionar la asistencia.',
+      );
+    }
+
     const filas = await db
       .select({
         inscripcionId: inscripciones.id,
@@ -57,20 +85,39 @@ export class AsistenciaService {
     });
   }
 
-  async registrar(datos: RegistrarAsistencia): Promise<Asistencia> {
+  async registrar(
+    datos: RegistrarAsistencia,
+    usuarioId?: string,
+  ): Promise<Asistencia> {
     const encontradas = await db
       .select({
         id: inscripciones.id,
         eventoId: inscripciones.eventoId,
         usuarioId: inscripciones.usuarioId,
+        eventoCreadoPor: eventos.creadoPor,
       })
       .from(inscripciones)
+      .innerJoin(eventos, eq(inscripciones.eventoId, eventos.id))
       .where(eq(inscripciones.id, datos.inscripcionId))
       .limit(1);
 
     if (encontradas.length === 0) {
       throw new ConflictException(
         'No existe una inscripción activa para registrar la asistencia.',
+      );
+    }
+
+    const inscripcion = encontradas[0]!;
+
+    if (datos.eventoId && inscripcion.eventoId !== datos.eventoId) {
+      throw new BadRequestException(
+        'La inscripción no corresponde al evento seleccionado.',
+      );
+    }
+
+    if (usuarioId && inscripcion.eventoCreadoPor !== usuarioId) {
+      throw new ForbiddenException(
+        'Solo el creador del evento puede registrar la asistencia.',
       );
     }
 
@@ -86,30 +133,65 @@ export class AsistenciaService {
       );
     }
 
-    const registradas = await db.insert(asistencias).values(datos).returning();
+    const registradas = await db
+      .insert(asistencias)
+      .values({
+        inscripcionId: datos.inscripcionId,
+        metodo: datos.metodo,
+      })
+      .returning();
     const registrada = registradas[0]!;
 
     this.analiticaService.asistenciaConfirmada({
       inscripcionId: registrada.inscripcionId,
-      eventoId: encontradas[0]!.eventoId,
-      usuarioId: encontradas[0]!.usuarioId,
+      eventoId: inscripcion.eventoId,
+      usuarioId: inscripcion.usuarioId,
       confirmadaEn: registrada.confirmadaEn.toISOString(),
     });
 
     return registrada;
   }
 
-  /** Deshace una acreditación marcada por error. Analítica ya recibió `asistencia.confirmada` y el contrato no tiene un evento de baja. */
-  async quitar(inscripcionId: string): Promise<void> {
-    const quitadas = await db
-      .delete(asistencias)
-      .where(eq(asistencias.inscripcionId, inscripcionId))
-      .returning({ id: asistencias.id });
+  async revertir(
+    inscripcionId: string,
+    usuarioId?: string,
+    eventoId?: string,
+  ): Promise<{ exito: boolean }> {
+    const encontradas = await db
+      .select({
+        id: inscripciones.id,
+        eventoId: inscripciones.eventoId,
+        eventoCreadoPor: eventos.creadoPor,
+      })
+      .from(inscripciones)
+      .innerJoin(eventos, eq(inscripciones.eventoId, eventos.id))
+      .where(eq(inscripciones.id, inscripcionId))
+      .limit(1);
 
-    if (quitadas.length === 0) {
+    if (encontradas.length === 0) {
       throw new NotFoundException(
-        'Esa inscripción no tiene asistencia registrada.',
+        'No existe la inscripción especificada para revertir la asistencia.',
       );
     }
+
+    const inscripcion = encontradas[0]!;
+
+    if (eventoId && inscripcion.eventoId !== eventoId) {
+      throw new BadRequestException(
+        'La inscripción no corresponde al evento seleccionado.',
+      );
+    }
+
+    if (usuarioId && inscripcion.eventoCreadoPor !== usuarioId) {
+      throw new ForbiddenException(
+        'Solo el creador del evento puede modificar la asistencia.',
+      );
+    }
+
+    await db
+      .delete(asistencias)
+      .where(eq(asistencias.inscripcionId, inscripcionId));
+
+    return { exito: true };
   }
 }
