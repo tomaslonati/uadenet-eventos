@@ -31,10 +31,11 @@ Como usuario quiero inscribirme a un evento pago, para participar descontando el
 **HU5 — Ver mis inscripciones** · Should
 Como usuario quiero ver mis eventos inscriptos, para hacer seguimiento.
 
-**HU6 — Registrar asistencia** · Must (parcial: el registro existe, el mecanismo de verificación no)
-Como administrativo quiero registrar la asistencia de un inscripto, para llevar presentismo real.
-- El campo `Asistencia.metodo` está cerrado (`qr | manual`, ver [`../02-arquitectura/modelo-dominio.md`](../02-arquitectura/modelo-dominio.md)) y `POST /api/v1/asistencia` guarda con cuál se tomó.
-- **Falta el mecanismo en sí.** El TP pide "desarrollar un método para comprobar la asistencia": guardar `metodo: "qr"` no es generar ni validar un QR. Sigue abierta la tarea técnica de más abajo.
+**HU6 — Registrar asistencia** · Must
+Como administrativo quiero registrar la asistencia de un inscripto a mis eventos creados, para llevar presentismo real.
+- El registro solo puede realizarse por el administrativo creador del evento.
+- Valida la pertenencia de la inscripción al evento específico tanto en modo QR (validando credencial o legajo) como en modo manual (con búsqueda reactiva por nombre o legajo).
+- Permite registrar el ingreso y revertirlo/desmarcarlo en caso de error.
 
 **HU7 — Recibir recordatorio de evento** · Must (bloqueada por contrato de notificaciones con CORE)
 Como usuario inscripto quiero recibir una notificación una semana antes del evento, para no olvidarme.
@@ -57,7 +58,7 @@ Tres niveles distintos, no confundirlos: que el backend funcione no significa qu
 | HU3 inscripción gratuita | Must | ✅ | `/eventos/[id]` | ❌ |
 | HU4 inscripción paga | Must | ⚠️ contra mock de CORE | `/eventos/[id]`, `/cuenta` | ❌ |
 | HU5 mis inscripciones | Should | ✅ | `/mis-inscripciones` | ❌ |
-| HU6 registrar asistencia | Must | ⚠️ sin mecanismo de verificación | `/asistencia` | ❌ |
+| HU6 registrar asistencia | Must | ✅ | `/asistencia` | ✅ |
 | HU7 recordatorio | Must | ❌ sin empezar | `/avisos` | ❌ |
 | HU8 ver cupo | Could | ✅ | `/gestion` | ❌ |
 
@@ -67,7 +68,7 @@ Salvedades del backend verde: HU4 descuenta contra el mock de saldo (`apps/api/s
 
 ## Tareas técnicas / Spikes (no son HU)
 
-~~Definir modelo de dominio~~ hecho (`../02-arquitectura/modelo-dominio.md`) · Definir roles y permisos · ~~Definir stack tecnológico~~ hecho (ver `../decisions/`) · Definir contrato de integración con CORE · Definir contrato de integración con Analítica · Definir contrato de integración con Backoffice Administrativo (locaciones + tarifa de inscripción) · ~~Diseñar y documentar API (Swagger)~~ hecho, los 9 endpoints están en `/api/docs` · **Definir mecanismo de verificación de asistencia** (bloquea cerrar HU6) · Conectar `apps/web` a la API real · Diagrama de arquitectura general del sistema · ~~Setup del monorepo (`../04-guias/bootstrap.md`)~~ hecho.
+~~Definir modelo de dominio~~ hecho (`../02-arquitectura/modelo-dominio.md`) · Definir roles y permisos · ~~Definir stack tecnológico~~ hecho (ver `../decisions/`) · Definir contrato de integración con CORE · Definir contrato de integración con Analítica · Definir contrato de integración con Backoffice Administrativo (locaciones + tarifa de inscripción) · ~~Diseñar y documentar API (Swagger)~~ hecho, los 9 endpoints están en `/api/docs` · ~~Definir mecanismo de verificación de asistencia~~ hecho (verificación en puerta por creador en modo QR y lista manual) · Conectar `apps/web` a la API real · Diagrama de arquitectura general del sistema · ~~Setup del monorepo (`../04-guias/bootstrap.md`)~~ hecho.
 
 ## Estado de los mocks de vista (1ra Entrega)
 
