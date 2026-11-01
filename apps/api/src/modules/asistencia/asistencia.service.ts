@@ -133,14 +133,33 @@ export class AsistenciaService {
       );
     }
 
-    const registradas = await db
-      .insert(asistencias)
-      .values({
-        inscripcionId: datos.inscripcionId,
-        metodo: datos.metodo,
-      })
-      .returning();
-    const registrada = registradas[0]!;
+    let registrada: Asistencia;
+    try {
+      const registradas = await db
+        .insert(asistencias)
+        .values({
+          inscripcionId: datos.inscripcionId,
+          metodo: datos.metodo,
+        })
+        .returning();
+      registrada = registradas[0]!;
+    } catch (error: unknown) {
+      const err = error as {
+        code?: string;
+        cause?: { code?: string };
+        message?: string;
+      };
+      if (
+        err?.code === '23505' ||
+        err?.cause?.code === '23505' ||
+        /23505|unique/i.test(err?.message ?? '')
+      ) {
+        throw new ConflictException(
+          'La asistencia de esa inscripción ya fue registrada.',
+        );
+      }
+      throw error;
+    }
 
     this.analiticaService.asistenciaConfirmada({
       inscripcionId: registrada.inscripcionId,
