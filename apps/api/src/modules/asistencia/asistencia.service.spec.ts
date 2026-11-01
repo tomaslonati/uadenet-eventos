@@ -269,13 +269,14 @@ describe('AsistenciaService', () => {
         )
         .mockReturnValueOnce(queryMock([]));
 
+      const error23505 = Object.assign(new Error('duplicate key'), {
+        code: '23505',
+        detail: 'Key (inscripcion_id)=(...) already exists.',
+      });
+
       insertar.mockReturnValueOnce({
         values: () => ({
-          returning: () =>
-            Promise.reject({
-              code: '23505',
-              detail: 'Key (inscripcion_id)=(...) already exists.',
-            }),
+          returning: () => Promise.reject(error23505),
         }),
       });
 
