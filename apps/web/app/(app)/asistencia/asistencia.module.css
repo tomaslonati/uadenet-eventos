@@ -46,19 +46,55 @@
 .barraSelector {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   background: var(--superficie);
   border: 1px solid var(--linea);
-  border-radius: 10px;
-  padding: 10px 16px;
-  margin-bottom: 2px;
+  border-radius: 12px;
+  padding: 8px 14px;
 }
 
 .selectorLabel {
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--tinta-secundaria);
   white-space: nowrap;
+}
+
+.selectorWrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.selectorWrapper > div {
+  width: 100%;
+}
+
+.selectTrigger {
+  width: 100%;
+  border: 1px solid var(--linea);
+  background: var(--superficie-sutil);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tinta);
+  font-family: inherit;
+  transition:
+    border-color var(--duracion-color) ease,
+    background-color var(--duracion-color) ease;
+}
+
+.selectTrigger:hover {
+  background: var(--superficie);
+  border-color: var(--tinta-suave);
+}
+
+.selectTrigger:focus-visible {
+  outline: none;
+  border-color: var(--acento);
 }
 
 .layout {
@@ -287,6 +323,12 @@
   align-items: center;
   gap: 8px;
   justify-self: end;
+}
+
+.badgeValidado {
+  align-self: center !important;
+  display: inline-flex;
+  align-items: center;
 }
 
 .sinIngresos {
