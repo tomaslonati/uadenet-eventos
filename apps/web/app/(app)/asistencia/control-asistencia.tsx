@@ -363,25 +363,46 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
 
       {misEventosCreados.length > 1 ? (
         <div className={estilos.barraSelector}>
-          <span className={estilos.selectorLabel}>Alternar evento:</span>
-          <Select
-            etiqueta="Cambiar evento"
-            valor={`${eventoActivo.titulo} — ${eventoActivo.fecha} · ${horario(eventoActivo.desde, eventoActivo.hasta)} (${eventoActivo.locacion})`}
-            opciones={misEventosCreados.map(
-              (e) =>
-                `${e.titulo} — ${e.fecha} · ${horario(e.desde, e.hasta)} (${e.locacion})`,
-            )}
-            onCambiar={(opcionElegida) => {
-              const ev = misEventosCreados.find(
+          <span className={estilos.selectorLabel}>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m16 3 4 4-4 4" />
+              <path d="M20 7H4" />
+              <path d="m8 21-4-4 4-4" />
+              <path d="M4 17h16" />
+            </svg>
+            Alternar evento:
+          </span>
+          <div className={estilos.selectorWrapper}>
+            <Select
+              etiqueta="Cambiar evento"
+              className={estilos.selectTrigger}
+              valor={`${eventoActivo.titulo} — ${eventoActivo.fecha} · ${horario(eventoActivo.desde, eventoActivo.hasta)} (${eventoActivo.locacion})`}
+              opciones={misEventosCreados.map(
                 (e) =>
-                  `${e.titulo} — ${e.fecha} · ${horario(e.desde, e.hasta)} (${e.locacion})` ===
-                  opcionElegida,
-              );
-              if (ev) {
-                router.push(`/asistencia?evento=${ev.id}`);
-              }
-            }}
-          />
+                  `${e.titulo} — ${e.fecha} · ${horario(e.desde, e.hasta)} (${e.locacion})`,
+              )}
+              onCambiar={(opcionElegida) => {
+                const ev = misEventosCreados.find(
+                  (e) =>
+                    `${e.titulo} — ${e.fecha} · ${horario(e.desde, e.hasta)} (${e.locacion})` ===
+                    opcionElegida,
+                );
+                if (ev) {
+                  router.push(`/asistencia?evento=${ev.id}`);
+                }
+              }}
+            />
+          </div>
         </div>
       ) : null}
 
@@ -453,8 +474,9 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
                   Inscriptos pendientes de acreditar
                 </span>
                 <p className={estilos.metodoTexto}>
-                  Alumnos habilitados para ingresar ({pendientes.length}{" "}
-                  restantes). Buscá por nombre o legajo y confirmá su ingreso.
+                  {totalInscriptos === 0
+                    ? "Este evento aún no tiene personas inscriptas."
+                    : `Alumnos habilitados para ingresar (${pendientes.length} restantes). Buscá por nombre o legajo y confirmá su ingreso.`}
                 </p>
               </div>
 
@@ -485,9 +507,11 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
                   <p className={estilos.metodoTexto}>
                     {termino
                       ? `No se encontraron inscriptos pendientes para "${busqueda}".`
-                      : pendientes.length === 0
-                        ? "¡Todos los inscriptos ya fueron acreditados!"
-                        : "No hay inscriptos pendientes."}
+                      : totalInscriptos === 0 || asistentes.length === 0
+                        ? "Este evento todavía no tiene personas inscriptas."
+                        : pendientes.length === 0
+                          ? "¡Todos los inscriptos ya fueron acreditados!"
+                          : "No hay inscriptos pendientes."}
                   </p>
                 ) : pendientesFiltrados.length === 0 ? (
                   <p className={estilos.metodoTexto}>
@@ -571,7 +595,9 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
                   {formatearHora(ingreso.asistencia?.confirmadaEn)}
                 </span>
                 <div className={estilos.accionesFila}>
-                  <Badge tono="exito">Validado</Badge>
+                  <Badge tono="exito" className={estilos.badgeValidado}>
+                    Validado
+                  </Badge>
                   <Boton
                     variante="destructivo"
                     tamano="xs"
