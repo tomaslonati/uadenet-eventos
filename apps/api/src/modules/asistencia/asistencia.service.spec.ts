@@ -254,6 +254,60 @@ describe('AsistenciaService', () => {
         ConflictException,
       );
     });
+
+    it('captura violación de unicidad (error 23505) ante inserciones simultáneas y lanza ConflictException', async () => {
+      seleccionar
+        .mockReturnValueOnce(
+          queryMock([
+            {
+              id: datos.inscripcionId,
+              eventoId,
+              usuarioId: 'usr-1',
+              eventoCreadoPor: creadorId,
+            },
+          ]),
+        )
+        .mockReturnValueOnce(queryMock([]));
+
+      insertar.mockReturnValueOnce({
+        values: () => ({
+          returning: () =>
+            Promise.reject({
+              code: '23505',
+              detail: 'Key (inscripcion_id)=(...) already exists.',
+            }),
+        }),
+      });
+
+      await expect(service.registrar(datos, creadorId)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('relanza cualquier otro error inesperado en la inserción', async () => {
+      seleccionar
+        .mockReturnValueOnce(
+          queryMock([
+            {
+              id: datos.inscripcionId,
+              eventoId,
+              usuarioId: 'usr-1',
+              eventoCreadoPor: creadorId,
+            },
+          ]),
+        )
+        .mockReturnValueOnce(queryMock([]));
+
+      insertar.mockReturnValueOnce({
+        values: () => ({
+          returning: () => Promise.reject(new Error('Fallo de conexión')),
+        }),
+      });
+
+      await expect(service.registrar(datos, creadorId)).rejects.toThrow(
+        'Fallo de conexión',
+      );
+    });
   });
 
   describe('revertir', () => {
