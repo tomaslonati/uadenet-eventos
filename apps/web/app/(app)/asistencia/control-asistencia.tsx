@@ -87,28 +87,37 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
   const esEventoAjeno =
     eventoSolicitado && eventoSolicitado.creadoPor !== usuario.id;
 
-  // Preseleccionar el primer evento creado por el usuario cuando no venga por URL
-  const eventoActivo = !esEventoAjeno
-    ? (eventoSolicitado ?? misEventosCreados[0])
-    : undefined;
+  // Preseleccionar el primer evento creado por el usuario solo cuando no venga por URL
+  const eventoActivo = eventoId
+    ? !esEventoAjeno
+      ? eventoSolicitado
+      : undefined
+    : misEventosCreados[0];
 
   const eventoIdActivo = eventoActivo?.id;
 
   const recargarAsistentes = useCallback(async () => {
-    if (!eventoIdActivo) return;
+    if (!eventoIdActivo || rol !== "admin") return;
     try {
       const lista = await fetchAsistenciaEventoApi(eventoIdActivo, accessToken);
       setAsistentes(lista);
     } catch {
       // Ignorar errores al recargar
     }
-  }, [eventoIdActivo, accessToken]);
+  }, [eventoIdActivo, accessToken, rol]);
 
   useEffect(() => {
-    if (!eventoIdActivo) return;
     let cancelado = false;
 
     const cargar = async () => {
+      if (!eventoIdActivo || rol !== "admin") {
+        setAsistentes([]);
+        setBusqueda("");
+        setCodigoQr("");
+        setCargandoPadron(false);
+        return;
+      }
+
       setAsistentes([]);
       setBusqueda("");
       setCodigoQr("");
@@ -119,6 +128,8 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
           accessToken,
         );
         if (!cancelado) setAsistentes(lista);
+      } catch {
+        if (!cancelado) setAsistentes([]);
       } finally {
         if (!cancelado) setCargandoPadron(false);
       }
@@ -128,7 +139,7 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
     return () => {
       cancelado = true;
     };
-  }, [eventoIdActivo, accessToken]);
+  }, [eventoIdActivo, accessToken, rol]);
 
   // Caso 0: El rol autenticado no es administrativo
   if (!cargandoDatos && rol !== "admin") {
@@ -149,7 +160,26 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
     );
   }
 
-  // Caso 1: Intentó ingresar a un evento creado por otro usuario
+  // Caso 1: Se solicitó un evento por URL pero no existe en el catálogo
+  if (eventoId && !cargandoDatos && !eventoSolicitado) {
+    return (
+      <>
+        <Encabezado
+          antetitulo="Control de asistencia"
+          titulo="Evento no encontrado"
+          bajada="El identificador de evento especificado en el enlace no existe o fue dado de baja."
+          accion={
+            <BotonLink href="/asistencia" variante="secundario">
+              Ver mis eventos
+            </BotonLink>
+          }
+        />
+        <EstadoVacio texto="No se encontró ningún evento con el ID especificado en la URL." />
+      </>
+    );
+  }
+
+  // Caso 2: Intentó ingresar a un evento creado por otro usuario
   if (esEventoAjeno && eventoSolicitado) {
     return (
       <>
@@ -168,7 +198,7 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
     );
   }
 
-  // Caso 2: El usuario no tiene ningún evento creado
+  // Caso 3: El usuario no tiene ningún evento creado
   if (!eventoActivo) {
     return (
       <>
@@ -336,11 +366,16 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
           <span className={estilos.selectorLabel}>Alternar evento:</span>
           <Select
             etiqueta="Cambiar evento"
-            valor={`${eventoActivo.titulo} (${eventoActivo.fecha})`}
-            opciones={misEventosCreados.map((e) => `${e.titulo} (${e.fecha})`)}
+            valor={`${eventoActivo.titulo} — ${eventoActivo.fecha} · ${horario(eventoActivo.desde, eventoActivo.hasta)} (${eventoActivo.locacion})`}
+            opciones={misEventosCreados.map(
+              (e) =>
+                `${e.titulo} — ${e.fecha} · ${horario(e.desde, e.hasta)} (${e.locacion})`,
+            )}
             onCambiar={(opcionElegida) => {
               const ev = misEventosCreados.find(
-                (e) => `${e.titulo} (${e.fecha})` === opcionElegida,
+                (e) =>
+                  `${e.titulo} — ${e.fecha} · ${horario(e.desde, e.hasta)} (${e.locacion})` ===
+                  opcionElegida,
               );
               if (ev) {
                 router.push(`/asistencia?evento=${ev.id}`);
