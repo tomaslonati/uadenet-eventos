@@ -18,6 +18,7 @@ export default function Login() {
   const { ingresar } = useSesion();
   const [mail, setMail] = useState("m.ibarra");
   const [contrasena, setContrasena] = useState("");
+  const [verContrasena, setVerContrasena] = useState(false);
   const [error, setError] = useState(false);
   const [cargando, setCargando] = useState(false);
 
@@ -97,19 +98,46 @@ export default function Login() {
             <label className={estilos.label} htmlFor="contrasena">
               Contraseña
             </label>
-            <input
-              id="contrasena"
-              type="password"
-              className={`${estilos.control} ${error ? estilos.enError : ""}`}
-              value={contrasena}
-              onChange={(evento) => {
-                setContrasena(evento.target.value);
-                setError(false);
-              }}
-              autoComplete="current-password"
-              aria-invalid={error}
-              required
-            />
+            <div className={`${estilos.mail} ${error ? estilos.enError : ""}`}>
+              <input
+                id="contrasena"
+                type={verContrasena ? "text" : "password"}
+                className={estilos.mailInput}
+                value={contrasena}
+                onChange={(evento) => {
+                  setContrasena(evento.target.value);
+                  setError(false);
+                }}
+                autoComplete="current-password"
+                aria-invalid={error}
+                required
+              />
+              <button
+                type="button"
+                className={estilos.ojo}
+                aria-label={
+                  verContrasena ? "Ocultar contraseña" : "Mostrar contraseña"
+                }
+                aria-pressed={verContrasena}
+                onClick={() => setVerContrasena((visible) => !visible)}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                  <circle cx="12" cy="12" r="3" />
+                  {verContrasena ? null : <path d="M4 4l16 16" />}
+                </svg>
+              </button>
+            </div>
             {error ? (
               <p className={estilos.error} role="alert">
                 No pudimos validar esos datos contra el directorio. Revisá el
