@@ -146,6 +146,24 @@
   background: transparent;
 }
 
+.ojo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  align-self: stretch;
+  border: 0;
+  background: transparent;
+  color: var(--tinta-placeholder);
+  cursor: pointer;
+  transition: color var(--duracion-color) ease;
+}
+
+.ojo:hover,
+.ojo:focus-visible {
+  color: var(--tinta);
+}
+
 .mailDominio {
   padding: 0 14px;
   font-size: 13px;
