@@ -58,23 +58,23 @@ export type ResultadoLoginCore = {
 
 const STORAGE_KEY_SESION = "uadenet.core.sesion";
 
-export const DOMINIO_MAIL = "@uadenet.edu";
+export const DOMINIO_MAIL = "@uade.edu.ar";
 
 export const CUENTAS_DEMO = [
   {
     perfil: "Administrativo",
-    mail: "m.ibarra@uadenet.edu",
-    clave: "admin.2026",
+    mail: "test.admin@uade.edu.ar",
+    clave: "yYO7X9zqZx4eqXdy",
   },
   {
     perfil: "Docente",
-    mail: "e.ruiz@uadenet.edu",
-    clave: "docente.2026",
+    mail: "test.docente@uade.edu.ar",
+    clave: "7yqb2Ftt0S68zSv4",
   },
   {
     perfil: "Estudiante",
-    mail: "t.vidal@uadenet.edu",
-    clave: "alumno.2026",
+    mail: "test.estudiante@uade.edu.ar",
+    clave: "HsfDp9SXey3160RY",
   },
 ];
 
