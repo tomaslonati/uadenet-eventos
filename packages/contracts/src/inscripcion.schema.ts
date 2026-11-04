@@ -18,3 +18,16 @@ export const inscripcionSchema = z.object({
 });
 
 export type Inscripcion = z.infer<typeof inscripcionSchema>;
+
+/** Hasta cuántas horas antes del inicio del evento se puede cancelar una inscripción (y recuperar el saldo si fue paga). */
+export const HORAS_ANTICIPACION_CANCELACION = 24;
+
+export const cancelacionInscripcionSchema = z.object({
+  inscripcionId: z.uuid(),
+  /** Monto devuelto a la cuenta institucional; `null` si la inscripción era gratuita. */
+  montoReembolsado: z.number().int().nullable(),
+});
+
+export type CancelacionInscripcion = z.infer<
+  typeof cancelacionInscripcionSchema
+>;

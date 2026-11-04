@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -15,7 +24,10 @@ import {
   type UsuarioAutenticado,
 } from '../../common/usuario-demo';
 import { CrearInscripcionDto } from './dto/crear-inscripcion.dto';
-import { InscripcionDto } from './dto/inscripcion.dto';
+import {
+  CancelacionInscripcionDto,
+  InscripcionDto,
+} from './dto/inscripcion.dto';
 import { InscripcionesService } from './inscripciones.service';
 
 @ApiTags('inscripciones')
@@ -40,5 +52,18 @@ export class InscripcionesController {
   @ApiOkResponse({ type: InscripcionDto, isArray: true })
   listar(@UsuarioActual() usuario: UsuarioAutenticado = USUARIO_DEMO) {
     return this.inscripcionesService.listar(usuario.id);
+  }
+
+  @Delete(':id')
+  @ApiOkResponse({
+    type: CancelacionInscripcionDto,
+    description:
+      'Cancela la inscripción propia hasta 24 horas antes del evento. Si fue paga, devuelve el monto a la cuenta institucional (reversa en CORE).',
+  })
+  cancelar(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UsuarioActual() usuario: UsuarioAutenticado = USUARIO_DEMO,
+  ) {
+    return this.inscripcionesService.cancelar(id, usuario.id);
   }
 }

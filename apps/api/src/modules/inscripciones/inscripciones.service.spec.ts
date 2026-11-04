@@ -1,15 +1,16 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import type * as RepoDb from '@repo/db';
 import type { EventoDeCartelera, Inscripcion } from '@repo/contracts';
 
 const seleccionar = jest.fn();
 const insertar = jest.fn();
+const borrar = jest.fn();
 
 jest.mock('@repo/db', () => {
   const actual = jest.requireActual<typeof RepoDb>('@repo/db');
   return {
     ...actual,
-    db: { select: seleccionar, insert: insertar },
+    db: { select: seleccionar, insert: insertar, delete: borrar },
   };
 });
 
@@ -25,6 +26,11 @@ const superpuestas = (filas: { id: string }[]) => ({
       where: () => ({ limit: () => Promise.resolve(filas) }),
     }),
   }),
+});
+
+/** `.from(asistencias).where(...).limit(1)` */
+const asistencias = (filas: { id: string }[]) => ({
+  from: () => ({ where: () => ({ limit: () => Promise.resolve(filas) }) }),
 });
 
 describe('InscripcionesService', () => {
@@ -65,6 +71,8 @@ describe('InscripcionesService', () => {
   const datos = { eventoId: eventoGratuito.id };
 
   let descontar: jest.Mock;
+  let conciliarPorReferencia: jest.Mock;
+  let revertir: jest.Mock;
   let obtener: jest.Mock;
   let inscripcionRegistrada: jest.Mock;
   let service: InscripcionesService;
@@ -76,10 +84,19 @@ describe('InscripcionesService', () => {
       saldoRestante: 5500,
       motivo: null,
     });
+    conciliarPorReferencia = jest.fn().mockResolvedValue({
+      transactionId: 'tx-cobro',
+      status: 'POSTED',
+    });
+    revertir = jest.fn().mockResolvedValue({ transactionId: 'tx-reversa' });
     inscripcionRegistrada = jest.fn();
     service = new InscripcionesService(
       { obtener } as unknown as EventosService,
-      { descontar } as unknown as SaldoService,
+      {
+        descontar,
+        conciliarPorReferencia,
+        revertir,
+      } as unknown as SaldoService,
       { inscripcionRegistrada } as unknown as AnaliticaService,
     );
   };
@@ -87,6 +104,8 @@ describe('InscripcionesService', () => {
   beforeEach(() => {
     seleccionar.mockReset();
     insertar.mockReset();
+    borrar.mockReset();
+    borrar.mockReturnValue({ where: () => Promise.resolve() });
     construir(eventoGratuito);
   });
 
@@ -180,5 +199,145 @@ describe('InscripcionesService', () => {
     );
     expect(insertar).not.toHaveBeenCalled();
     expect(inscripcionRegistrada).not.toHaveBeenCalled();
+  });
+
+  describe('cancelar', () => {
+    const ahora = new Date('2026-10-10T12:00:00Z');
+    const usuario = 'seed-admin-demo';
+
+    const inscripcionEncontrada = (
+      sobreescribir: Partial<{
+        pagoConfirmado: boolean;
+        montoCobrado: number | null;
+        fechaInicio: Date;
+      }> = {},
+    ) =>
+      superpuestas([
+        {
+          id: inscripcionCreada.id,
+          pagoConfirmado: false,
+          montoCobrado: null,
+          titulo: 'Charla abierta',
+          fechaInicio: eventoGratuito.fechaInicio,
+          ...sobreescribir,
+        } as { id: string },
+      ]);
+
+    it('cancela una inscripción gratuita sin tocar el saldo', async () => {
+      seleccionar
+        .mockReturnValueOnce(inscripcionEncontrada())
+        .mockReturnValueOnce(asistencias([]));
+
+      await expect(
+        service.cancelar(inscripcionCreada.id, usuario, ahora),
+      ).resolves.toEqual({
+        inscripcionId: inscripcionCreada.id,
+        montoReembolsado: null,
+      });
+      expect(revertir).not.toHaveBeenCalled();
+      expect(borrar).toHaveBeenCalledTimes(1);
+    });
+
+    it('devuelve el monto cobrado revirtiendo el débito en CORE', async () => {
+      seleccionar
+        .mockReturnValueOnce(
+          inscripcionEncontrada({ pagoConfirmado: true, montoCobrado: 4500 }),
+        )
+        .mockReturnValueOnce(asistencias([]));
+
+      await expect(
+        service.cancelar(inscripcionCreada.id, usuario, ahora),
+      ).resolves.toEqual({
+        inscripcionId: inscripcionCreada.id,
+        montoReembolsado: 4500,
+      });
+      expect(conciliarPorReferencia).toHaveBeenCalledWith(inscripcionCreada.id);
+      expect(revertir).toHaveBeenCalledWith(
+        'tx-cobro',
+        expect.stringContaining('Charla abierta'),
+        4500,
+      );
+      expect(borrar).toHaveBeenCalledTimes(1);
+    });
+
+    it('no vuelve a revertir un cobro que ya estaba revertido', async () => {
+      conciliarPorReferencia.mockResolvedValue({
+        transactionId: 'tx-cobro',
+        status: 'REVERSED',
+      });
+      seleccionar
+        .mockReturnValueOnce(
+          inscripcionEncontrada({ pagoConfirmado: true, montoCobrado: 4500 }),
+        )
+        .mockReturnValueOnce(asistencias([]));
+
+      await service.cancelar(inscripcionCreada.id, usuario, ahora);
+
+      expect(revertir).not.toHaveBeenCalled();
+      expect(borrar).toHaveBeenCalledTimes(1);
+    });
+
+    it('rechaza a menos de 24 horas del inicio, sin devolver ni borrar nada', async () => {
+      seleccionar.mockReturnValueOnce(
+        inscripcionEncontrada({
+          pagoConfirmado: true,
+          montoCobrado: 4500,
+          fechaInicio: new Date('2026-10-11T11:59:00Z'),
+        }),
+      );
+
+      await expect(
+        service.cancelar(inscripcionCreada.id, usuario, ahora),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(revertir).not.toHaveBeenCalled();
+      expect(borrar).not.toHaveBeenCalled();
+    });
+
+    it('acepta cancelar justo 24 horas antes', async () => {
+      seleccionar
+        .mockReturnValueOnce(
+          inscripcionEncontrada({
+            fechaInicio: new Date('2026-10-11T12:00:00Z'),
+          }),
+        )
+        .mockReturnValueOnce(asistencias([]));
+
+      await expect(
+        service.cancelar(inscripcionCreada.id, usuario, ahora),
+      ).resolves.toBeDefined();
+    });
+
+    it('rechaza si la asistencia ya fue registrada', async () => {
+      seleccionar
+        .mockReturnValueOnce(inscripcionEncontrada())
+        .mockReturnValueOnce(asistencias([{ id: 'asistencia-1' }]));
+
+      await expect(
+        service.cancelar(inscripcionCreada.id, usuario, ahora),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(borrar).not.toHaveBeenCalled();
+    });
+
+    it('mantiene la inscripción si CORE no pudo devolver el saldo', async () => {
+      revertir.mockResolvedValue(null);
+      seleccionar
+        .mockReturnValueOnce(
+          inscripcionEncontrada({ pagoConfirmado: true, montoCobrado: 4500 }),
+        )
+        .mockReturnValueOnce(asistencias([]));
+
+      await expect(
+        service.cancelar(inscripcionCreada.id, usuario, ahora),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(borrar).not.toHaveBeenCalled();
+    });
+
+    it('responde 404 si la inscripción no existe o es de otra persona', async () => {
+      seleccionar.mockReturnValueOnce(superpuestas([]));
+
+      await expect(
+        service.cancelar(inscripcionCreada.id, usuario, ahora),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
   });
 });
