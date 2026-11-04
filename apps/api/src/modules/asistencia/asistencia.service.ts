@@ -1,4 +1,8 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { asistencias, db, eq, inscripciones, usuarios } from '@repo/db';
 import type {
   Asistencia,
@@ -93,5 +97,19 @@ export class AsistenciaService {
     });
 
     return registrada;
+  }
+
+  /** Deshace una acreditación marcada por error. Analítica ya recibió `asistencia.confirmada` y el contrato no tiene un evento de baja. */
+  async quitar(inscripcionId: string): Promise<void> {
+    const quitadas = await db
+      .delete(asistencias)
+      .where(eq(asistencias.inscripcionId, inscripcionId))
+      .returning({ id: asistencias.id });
+
+    if (quitadas.length === 0) {
+      throw new NotFoundException(
+        'Esa inscripción no tiene asistencia registrada.',
+      );
+    }
   }
 }
