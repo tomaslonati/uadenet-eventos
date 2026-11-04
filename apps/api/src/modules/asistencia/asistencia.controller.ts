@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  Param,
   ParseUUIDPipe,
   Post,
   Query,
@@ -11,6 +14,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiQuery,
   ApiTags,
@@ -60,5 +64,16 @@ export class AsistenciaController {
     datos: RegistrarAsistencia,
   ) {
     return this.asistenciaService.registrar(datos);
+  }
+
+  @Delete(':inscripcionId')
+  @HttpCode(204)
+  @RequierePermiso('campus-events:manage')
+  @ApiNoContentResponse({
+    description:
+      'Quita la asistencia registrada por error; la persona vuelve a figurar como pendiente.',
+  })
+  quitar(@Param('inscripcionId', ParseUUIDPipe) inscripcionId: string) {
+    return this.asistenciaService.quitar(inscripcionId);
   }
 }
