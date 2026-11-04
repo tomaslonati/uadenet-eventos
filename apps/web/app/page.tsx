@@ -16,7 +16,7 @@ import estilos from "./login.module.css";
 export default function Login() {
   const router = useRouter();
   const { ingresar } = useSesion();
-  const [mail, setMail] = useState("m.ibarra");
+  const [mail, setMail] = useState("test.admin");
   const [contrasena, setContrasena] = useState("");
   const [error, setError] = useState(false);
   const [cargando, setCargando] = useState(false);
