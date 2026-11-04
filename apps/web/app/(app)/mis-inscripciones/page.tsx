@@ -1,11 +1,20 @@
 "use client";
 
+import { HORAS_ANTICIPACION_CANCELACION } from "@repo/contracts";
+import { useState } from "react";
+
 import { Badge } from "@/components/ui/badge";
-import { BotonLink, GrupoBotones } from "@/components/ui/boton";
+import { Boton, BotonLink, GrupoBotones } from "@/components/ui/boton";
 import { Credencial } from "@/components/ui/credencial";
+import {
+  Modal,
+  ModalCuerpo,
+  ModalHeader,
+  ModalPie,
+} from "@/components/ui/modal";
 import { Encabezado, EstadoVacio, Seccion } from "@/components/ui/pantalla";
 import { hoyIso, type Evento } from "@/lib/api";
-import { codigoCredencial } from "@/lib/dominio";
+import { codigoCredencial, puedeCancelarInscripcion } from "@/lib/dominio";
 import {
   anio,
   diasEntre,
@@ -20,13 +29,24 @@ import estilos from "./mis-inscripciones.module.css";
 
 const RECORDATORIO_DIAS = 7;
 
+type Cancelacion = {
+  inscripcionId: string;
+  titulo: string;
+  /** Monto que se devuelve; 0 si la inscripción fue gratuita. */
+  monto: number;
+};
+
 export default function MisInscripciones() {
   const {
     eventos: catalogo,
     inscripciones,
     inscripcionesDetalle,
     cargandoDatos,
+    cancelarInscripcion,
+    mostrarToast,
   } = useSesion();
+  const [cancelacion, setCancelacion] = useState<Cancelacion | null>(null);
+  const [cancelando, setCancelando] = useState(false);
 
   const hoy = hoyIso();
   const mis = inscripciones
@@ -40,8 +60,38 @@ export default function MisInscripciones() {
         vista: vistaDe(evento, true),
         inscripcionId: detalle?.id,
         montoCobrado: detalle?.montoCobrado,
+        cancelable: puedeCancelarInscripcion(evento),
       };
     });
+
+  const pedirCancelacion = (item: (typeof mis)[number]) => {
+    if (!item.inscripcionId) return;
+    setCancelacion({
+      inscripcionId: item.inscripcionId,
+      titulo: item.vista.titulo,
+      monto: item.montoCobrado ?? 0,
+    });
+  };
+
+  const confirmarCancelacion = async () => {
+    if (!cancelacion || cancelando) return;
+    setCancelando(true);
+    try {
+      const reembolsado = await cancelarInscripcion(cancelacion.inscripcionId);
+      mostrarToast(
+        reembolsado
+          ? `Inscripción cancelada. Se devolvieron ${pesos(reembolsado)} a tu cuenta institucional.`
+          : "Inscripción cancelada.",
+      );
+    } catch (err) {
+      mostrarToast(
+        err instanceof Error ? err.message : "No se pudo cancelar la inscripción.",
+      );
+    } finally {
+      setCancelando(false);
+      setCancelacion(null);
+    }
+  };
 
   const [proximoItem, ...otros] = mis;
   const proximo = proximoItem?.vista;
@@ -119,7 +169,22 @@ export default function MisInscripciones() {
                 <BotonLink href={`/eventos/${proximo.id}`} tamano="sm">
                   Ver el evento
                 </BotonLink>
+                <Boton
+                  tamano="sm"
+                  disabled={!proximoItem?.cancelable || !proximoItem?.inscripcionId}
+                  onClick={() => proximoItem && pedirCancelacion(proximoItem)}
+                >
+                  {proximoItem?.montoCobrado
+                    ? "Cancelar y reembolsar"
+                    : "Cancelar inscripción"}
+                </Boton>
               </GrupoBotones>
+              {!proximoItem?.cancelable ? (
+                <p className={estilos.aviso}>
+                  La cancelación cerró: se puede hasta{" "}
+                  {HORAS_ANTICIPACION_CANCELACION} horas antes del inicio.
+                </p>
+              ) : null}
             </div>
 
             <div className={estilos.credencial}>
@@ -156,6 +221,18 @@ export default function MisInscripciones() {
                       · {codigo}
                     </span>
                   </div>
+                  <Boton
+                    tamano="xs"
+                    disabled={!item.cancelable || !item.inscripcionId}
+                    title={
+                      item.cancelable
+                        ? undefined
+                        : `Solo se puede cancelar hasta ${HORAS_ANTICIPACION_CANCELACION} horas antes`
+                    }
+                    onClick={() => pedirCancelacion(item)}
+                  >
+                    {item.montoCobrado ? "Cancelar y reembolsar" : "Cancelar"}
+                  </Boton>
                   <Credencial
                     semilla={indice + 2}
                     codigo={codigo}
@@ -181,6 +258,45 @@ export default function MisInscripciones() {
             </BotonLink>
           }
         />
+      ) : null}
+
+      {cancelacion ? (
+        <Modal
+          etiqueta="Cancelar inscripción"
+          onCerrar={() => (cancelando ? undefined : setCancelacion(null))}
+        >
+          <ModalHeader
+            etiqueta="Cancelar inscripción"
+            titulo={cancelacion.titulo}
+          />
+          <ModalCuerpo>
+            <p className={estilos.textoModal}>
+              {cancelacion.monto
+                ? `Vas a perder tu lugar y se te devuelven ${pesos(cancelacion.monto)} a tu cuenta institucional.`
+                : "Vas a perder tu lugar. La inscripción es gratuita, no hay saldo para devolver."}
+            </p>
+            <p className={estilos.textoModal}>
+              Después de cancelar podés volver a inscribirte si todavía hay
+              cupo.
+            </p>
+          </ModalCuerpo>
+          <ModalPie>
+            <Boton disabled={cancelando} onClick={() => setCancelacion(null)}>
+              Mantener inscripción
+            </Boton>
+            <Boton
+              variante="destructivo"
+              disabled={cancelando}
+              onClick={() => void confirmarCancelacion()}
+            >
+              {cancelando
+                ? "Cancelando…"
+                : cancelacion.monto
+                  ? "Cancelar y reembolsar"
+                  : "Cancelar inscripción"}
+            </Boton>
+          </ModalPie>
+        </Modal>
       ) : null}
     </>
   );

@@ -238,3 +238,10 @@
     grid-template-columns: 56px minmax(0, 1fr);
   }
 }
+
+.textoModal {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--tinta-secundaria);
+  text-wrap: pretty;
+}
