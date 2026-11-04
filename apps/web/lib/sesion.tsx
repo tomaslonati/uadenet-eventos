@@ -15,6 +15,7 @@ import {
   API_BASE_URL,
   TARIFAS_DEFAULT,
   TODAS_LAS_SEDES,
+  cancelarInscripcionApi,
   crearInscripcionApi,
   fetchEventosApi,
   fetchInscripcionesApi,
@@ -234,6 +235,8 @@ type Sesion = {
   inscripcionesDetalle: InscripcionApi[];
   estaInscripto: (eventoId: string) => boolean;
   inscribir: (evento: Evento) => Promise<void>;
+  /** Devuelve el monto reembolsado, o `null` si la inscripción era gratuita. */
+  cancelarInscripcion: (inscripcionId: string) => Promise<number | null>;
 
   toast: string | null;
   mostrarToast: (mensaje: string) => void;
@@ -436,6 +439,18 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     [accessToken, cargarTodoDesdeApi],
   );
 
+  const cancelarInscripcion = useCallback(
+    async (inscripcionId: string) => {
+      const { montoReembolsado } = await cancelarInscripcionApi(
+        inscripcionId,
+        accessToken,
+      );
+      await cargarTodoDesdeApi(accessToken);
+      return montoReembolsado;
+    },
+    [accessToken, cargarTodoDesdeApi],
+  );
+
   const inscripciones = useMemo(() => {
     const idsPorDetalle = inscripcionesDetalle.map((i) => i.eventoId);
     const idsPorEvento = eventos
@@ -476,6 +491,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
       inscripcionesDetalle,
       estaInscripto: (eventoId) => inscripciones.includes(eventoId),
       inscribir,
+      cancelarInscripcion,
 
       toast,
       mostrarToast,
@@ -499,6 +515,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     inscripciones,
     inscripcionesDetalle,
     inscribir,
+    cancelarInscripcion,
     toast,
     mostrarToast,
   ]);
