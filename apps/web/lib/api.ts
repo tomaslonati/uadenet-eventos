@@ -435,6 +435,21 @@ export async function registrarAsistenciaApi(
   }
 }
 
+export async function quitarAsistenciaApi(
+  inscripcionId: string,
+  token?: string | null,
+): Promise<void> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/asistencia/${encodeURIComponent(inscripcionId)}`,
+    { method: "DELETE", headers: headersDe(token) },
+  );
+  if (!res.ok) {
+    throw new Error(
+      await leerErrorApi(res, "No se pudo quitar la asistencia."),
+    );
+  }
+}
+
 export async function fetchSaldoApi(
   token?: string | null,
 ): Promise<number | null> {
