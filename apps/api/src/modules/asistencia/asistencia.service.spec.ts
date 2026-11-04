@@ -1,15 +1,16 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import type * as RepoDb from '@repo/db';
 import type { Asistencia, RegistrarAsistencia } from '@repo/contracts';
 
 const seleccionar = jest.fn();
 const insertar = jest.fn();
+const borrar = jest.fn();
 
 jest.mock('@repo/db', () => {
   const actual = jest.requireActual<typeof RepoDb>('@repo/db');
   return {
     ...actual,
-    db: { select: seleccionar, insert: insertar },
+    db: { select: seleccionar, insert: insertar, delete: borrar },
   };
 });
 
@@ -50,6 +51,7 @@ describe('AsistenciaService', () => {
     } as unknown as AnaliticaService);
     seleccionar.mockReset();
     insertar.mockReset();
+    borrar.mockReset();
   });
 
   it('registra la asistencia de una inscripción existente', async () => {
@@ -88,5 +90,25 @@ describe('AsistenciaService', () => {
     );
     expect(insertar).not.toHaveBeenCalled();
     expect(asistenciaConfirmada).not.toHaveBeenCalled();
+  });
+
+  it('quita la asistencia registrada por error', async () => {
+    borrar.mockReturnValue({
+      where: () => ({
+        returning: () => Promise.resolve([{ id: asistenciaCreada.id }]),
+      }),
+    });
+
+    await expect(service.quitar(datos.inscripcionId)).resolves.toBeUndefined();
+  });
+
+  it('responde 404 al quitar una asistencia que no existe', async () => {
+    borrar.mockReturnValue({
+      where: () => ({ returning: () => Promise.resolve([]) }),
+    });
+
+    await expect(service.quitar(datos.inscripcionId)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });
