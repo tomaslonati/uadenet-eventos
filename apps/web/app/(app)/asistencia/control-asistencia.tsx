@@ -9,6 +9,7 @@ import { Segmentado } from "@/components/ui/controles";
 import { Encabezado, EstadoVacio } from "@/components/ui/pantalla";
 import {
   fetchAsistenciaEventoApi,
+  quitarAsistenciaApi,
   registrarAsistenciaApi,
   type AsistenteEventoApi,
 } from "@/lib/api";
@@ -23,6 +24,23 @@ const METODOS: { valor: Metodo; label: string }[] = [
   { valor: "qr", label: "Credencial QR" },
   { valor: "manual", label: "Lista manual" },
 ];
+
+function normalizar(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
+
+/** Todas las palabras buscadas tienen que aparecer en el nombre, el mail o el código de la inscripción. */
+function coincide(item: AsistenteEventoApi, busqueda: string): boolean {
+  const terminos = normalizar(busqueda).split(/\s+/).filter(Boolean);
+  if (terminos.length === 0) return true;
+  const pajar = normalizar(
+    `${item.usuario.nombre} ${item.usuario.email} ${item.inscripcionId}`,
+  );
+  return terminos.every((termino) => pajar.includes(termino));
+}
 
 function formatearHora(iso?: string): string {
   if (!iso) return "";
@@ -44,6 +62,7 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
   const [asistentes, setAsistentes] = useState<AsistenteEventoApi[]>([]);
   const [cargandoPadron, setCargandoPadron] = useState(true);
   const [registrando, setRegistrando] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
 
   const evento =
     (eventoId ? catalogo.find((e) => e.id === eventoId) : undefined) ??
@@ -100,6 +119,8 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
       ),
     );
 
+  const pendientesFiltrados = pendientes.filter((a) => coincide(a, busqueda));
+
   const totalInscriptos = asistentes.length || evento.inscriptos;
   const tasa = totalInscriptos
     ? Math.round((ingresos.length / totalInscriptos) * 100)
@@ -124,6 +145,22 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
         err instanceof Error
           ? err.message
           : "No se pudo registrar la asistencia.",
+      );
+    } finally {
+      setRegistrando(false);
+    }
+  };
+
+  const quitarAcreditacion = async (item: AsistenteEventoApi) => {
+    if (registrando) return;
+    setRegistrando(true);
+    try {
+      await quitarAsistenciaApi(item.inscripcionId, accessToken);
+      await recargarAsistentes();
+      mostrarToast(`Ingreso quitado: ${item.usuario.nombre}`);
+    } catch (err) {
+      mostrarToast(
+        err instanceof Error ? err.message : "No se pudo quitar la asistencia.",
       );
     } finally {
       setRegistrando(false);
@@ -232,6 +269,14 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
               <p className={estilos.metodoTexto}>
                 Padrón real de inscriptos al evento consultado desde la API.
               </p>
+              <input
+                type="search"
+                className={claseControl}
+                placeholder="Buscar por nombre o mail"
+                aria-label="Buscar inscripto por nombre o mail"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+              />
               <div className={estilos.pendientes}>
                 {cargandoPadron && pendientes.length === 0 ? (
                   <p className={estilos.metodoTexto}>Cargando padrón…</p>
@@ -239,8 +284,12 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
                   <p className={estilos.metodoTexto}>
                     No quedan inscriptos pendientes de acreditar.
                   </p>
+                ) : pendientesFiltrados.length === 0 ? (
+                  <p className={estilos.metodoTexto}>
+                    Ningún pendiente coincide con «{busqueda.trim()}».
+                  </p>
                 ) : (
-                  pendientes.map((item) => (
+                  pendientesFiltrados.map((item) => (
                     <button
                       key={item.inscripcionId}
                       type="button"
@@ -308,6 +357,14 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
                 <span className={estilos.validado}>
                   <Badge tono="exito">Validado</Badge>
                 </span>
+                <Boton
+                  tamano="xs"
+                  disabled={registrando}
+                  title="Deshacer: la persona vuelve a figurar como pendiente"
+                  onClick={() => void quitarAcreditacion(ingreso)}
+                >
+                  Quitar
+                </Boton>
               </div>
             ))
           )}
