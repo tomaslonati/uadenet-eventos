@@ -253,13 +253,6 @@
   gap: 3px;
 }
 
-.sidebarPerfil {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--tinta-secundaria);
-  padding: 6px 10px 10px;
-}
-
 .navItem {
   display: flex;
   align-items: center;
@@ -299,52 +292,6 @@
 .navBadgeLive {
   background: #f6e9e6;
   color: var(--error-fuerte);
-}
-
-.saldo {
-  border: 1px solid var(--linea);
-  background: var(--superficie);
-  border-radius: 10px;
-  padding: 13px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.saldoLabel {
-  font-size: 11px;
-  color: var(--tinta-placeholder);
-}
-
-.saldoMonto {
-  font-size: 19px;
-  font-weight: 500;
-  color: var(--tinta);
-}
-
-.saldoAccion {
-  margin-top: 4px;
-  border: 1px solid var(--borde-boton);
-  background: var(--superficie-sutil);
-  border-radius: 7px;
-  padding: 7px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--acento);
-  text-align: center;
-  transition:
-    transform var(--duracion-presion) var(--ease-salida),
-    background-color var(--duracion-color) ease,
-    color var(--duracion-color) ease;
-}
-
-.saldoAccion:active {
-  transform: scale(0.97);
-}
-
-.saldoAccion:hover {
-  background: var(--acento-hover);
-  color: var(--acento);
 }
 
 .main {

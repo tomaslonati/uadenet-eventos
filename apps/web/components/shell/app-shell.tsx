@@ -6,7 +6,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Select } from "@/components/ui/select";
 import { TODAS_LAS_SEDES } from "@/lib/api";
-import { pesos } from "@/lib/formato";
 import { navDe, useSesion } from "@/lib/sesion";
 
 import estilos from "./app-shell.module.css";
@@ -19,7 +18,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     sede,
     sedes,
     cambiarSede,
-    saldo,
     inscripciones,
     cerrarSesion,
   } = useSesion();
@@ -100,7 +98,6 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className={estilos.cuerpo}>
         <nav className={estilos.sidebar} aria-label="Secciones del módulo">
-          <span className={estilos.sidebarPerfil}>{usuario.perfil}</span>
           {nav.map((item) => {
             const activo =
               pathname === item.href ||
@@ -125,16 +122,6 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Link>
             );
           })}
-
-          <div className={estilos.espacio} />
-
-          <div className={estilos.saldo}>
-            <span className={estilos.saldoLabel}>Saldo institucional</span>
-            <span className={estilos.saldoMonto}>{pesos(saldo)}</span>
-            <Link href="/cuenta" className={estilos.saldoAccion}>
-              Ver cuenta
-            </Link>
-          </div>
         </nav>
 
         <main className={estilos.main}>
