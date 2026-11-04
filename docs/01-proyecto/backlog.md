@@ -42,7 +42,9 @@ Como usuario inscripto quiero recibir una notificación una semana antes del eve
 **HU8 — Ver cupo disponible** · Could
 Como administrativo quiero ver cupos restantes de un evento, para anticipar necesidad de más capacidad.
 
-No incluidas por no estar pedidas explícitamente en el TP (no agregar sin confirmar como grupo): cancelación de inscripción, edición/borrado de evento.
+**Cancelación de inscripción con reembolso** (agregada fuera del TP por pedido del equipo): `DELETE /api/v1/inscripciones/:id`, hasta 24 hs antes del inicio y mientras no haya asistencia registrada. Borra la inscripción (libera el cupo) y, si fue paga, devuelve el monto con una reversa del débito en CORE (`POST /internal/v1/wallet-transactions/{id}/reversals`, el cobro se ubica por `externalReference` = id de la inscripción).
+
+No incluidas por no estar pedidas explícitamente en el TP (no agregar sin confirmar como grupo): edición/borrado de evento.
 
 ## Estado de implementación
 
