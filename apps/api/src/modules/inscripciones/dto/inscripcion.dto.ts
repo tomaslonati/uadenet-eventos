@@ -22,3 +22,15 @@ export class InscripcionDto {
   @ApiProperty({ nullable: true })
   montoCobrado!: number | null;
 }
+
+export class CancelacionInscripcionDto {
+  @ApiProperty({ format: 'uuid' })
+  inscripcionId!: string;
+
+  @ApiProperty({
+    nullable: true,
+    description:
+      'Monto devuelto a la cuenta institucional; null si la inscripción era gratuita.',
+  })
+  montoReembolsado!: number | null;
+}
