@@ -1,3 +1,5 @@
+import { HORAS_ANTICIPACION_CANCELACION } from "@repo/contracts";
+
 import type { Evento } from "./api";
 import { minutos, seSolapan } from "./formato";
 
@@ -135,4 +137,16 @@ export function filtrarEventos(
     default:
       return eventos;
   }
+}
+
+/** La cancelación (con devolución del saldo si fue paga) cierra 24 hs antes del inicio. */
+export function puedeCancelarInscripcion(
+  evento: Evento,
+  ahora: Date = new Date(),
+): boolean {
+  const inicio = new Date(`${evento.fecha}T${evento.desde}:00`);
+  return (
+    inicio.getTime() - ahora.getTime() >=
+    HORAS_ANTICIPACION_CANCELACION * 60 * 60_000
+  );
 }

@@ -385,6 +385,27 @@ export async function crearInscripcionApi(
   return (await res.json()) as InscripcionApi;
 }
 
+export type CancelacionInscripcionApi = {
+  inscripcionId: string;
+  montoReembolsado: number | null;
+};
+
+export async function cancelarInscripcionApi(
+  inscripcionId: string,
+  token?: string | null,
+): Promise<CancelacionInscripcionApi> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/inscripciones/${encodeURIComponent(inscripcionId)}`,
+    { method: "DELETE", headers: headersDe(token) },
+  );
+  if (!res.ok) {
+    throw new Error(
+      await leerErrorApi(res, "No se pudo cancelar la inscripción."),
+    );
+  }
+  return (await res.json()) as CancelacionInscripcionApi;
+}
+
 export async function fetchAsistenciaEventoApi(
   eventoId: string,
   token?: string | null,
