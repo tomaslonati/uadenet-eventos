@@ -462,6 +462,8 @@ export async function eliminarAsistenciaApi(
   }
 }
 
+export const quitarAsistenciaApi = eliminarAsistenciaApi;
+
 export async function fetchSaldoApi(
   token?: string | null,
 ): Promise<number | null> {

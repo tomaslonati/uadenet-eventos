@@ -12,7 +12,6 @@ import { Select } from "@/components/ui/select";
 import {
   eliminarAsistenciaApi,
   fetchAsistenciaEventoApi,
-  quitarAsistenciaApi,
   registrarAsistenciaApi,
   type AsistenteEventoApi,
 } from "@/lib/api";
@@ -27,23 +26,6 @@ const METODOS: { valor: Metodo; label: string }[] = [
   { valor: "qr", label: "Credencial QR" },
   { valor: "manual", label: "Lista manual" },
 ];
-
-function normalizar(texto: string): string {
-  return texto
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-}
-
-/** Todas las palabras buscadas tienen que aparecer en el nombre, el mail o el código de la inscripción. */
-function coincide(item: AsistenteEventoApi, busqueda: string): boolean {
-  const terminos = normalizar(busqueda).split(/\s+/).filter(Boolean);
-  if (terminos.length === 0) return true;
-  const pajar = normalizar(
-    `${item.usuario.nombre} ${item.usuario.email} ${item.inscripcionId}`,
-  );
-  return terminos.every((termino) => pajar.includes(termino));
-}
 
 function formatearHora(iso?: string): string {
   if (!iso) return "";
@@ -70,7 +52,6 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
   const [asistentes, setAsistentes] = useState<AsistenteEventoApi[]>([]);
   const [cargandoPadron, setCargandoPadron] = useState(true);
   const [registrando, setRegistrando] = useState(false);
-  const [busqueda, setBusqueda] = useState("");
 
   // Filtrar exclusivamente los eventos creados por el usuario administrativo actual
   const misEventosCreados = useMemo(
@@ -512,10 +493,6 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
                         : pendientes.length === 0
                           ? "¡Todos los inscriptos ya fueron acreditados!"
                           : "No hay inscriptos pendientes."}
-                  </p>
-                ) : pendientesFiltrados.length === 0 ? (
-                  <p className={estilos.metodoTexto}>
-                    Ningún pendiente coincide con «{busqueda.trim()}».
                   </p>
                 ) : (
                   pendientesFiltrados.map((item) => (

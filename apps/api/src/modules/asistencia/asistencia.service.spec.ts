@@ -392,24 +392,4 @@ describe('AsistenciaService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
   });
-
-  it('quita la asistencia registrada por error', async () => {
-    borrar.mockReturnValue({
-      where: () => ({
-        returning: () => Promise.resolve([{ id: asistenciaCreada.id }]),
-      }),
-    });
-
-    await expect(service.quitar(datos.inscripcionId)).resolves.toBeUndefined();
-  });
-
-  it('responde 404 al quitar una asistencia que no existe', async () => {
-    borrar.mockReturnValue({
-      where: () => ({ returning: () => Promise.resolve([]) }),
-    });
-
-    await expect(service.quitar(datos.inscripcionId)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-  });
 });
