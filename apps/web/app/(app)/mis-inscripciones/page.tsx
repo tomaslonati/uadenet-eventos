@@ -52,6 +52,11 @@ export default function MisInscripciones() {
   const mis = inscripciones
     .map((id) => catalogo.find((e) => e.id === id))
     .filter((evento): evento is Evento => Boolean(evento))
+    .sort((a, b) => {
+      const fechaA = `${a.fecha}T${a.desde || "00:00"}`;
+      const fechaB = `${b.fecha}T${b.desde || "00:00"}`;
+      return fechaA.localeCompare(fechaB) || a.titulo.localeCompare(b.titulo);
+    })
     .map((evento) => {
       const detalle = inscripcionesDetalle.find(
         (i) => i.eventoId === evento.id,
