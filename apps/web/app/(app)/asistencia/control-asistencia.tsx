@@ -15,6 +15,7 @@ import {
   registrarAsistenciaApi,
   type AsistenteEventoApi,
 } from "@/lib/api";
+import { puedeTomarAsistencia } from "@/lib/dominio";
 import { horario, iniciales } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 
@@ -74,6 +75,10 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
       ? eventoSolicitado
       : undefined
     : misEventosCreados[0];
+
+  const asistenciaHabilitada = eventoActivo
+    ? puedeTomarAsistencia(eventoActivo)
+    : false;
 
   const eventoIdActivo = eventoActivo?.id;
 
@@ -246,6 +251,12 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
     nombre?: string,
   ) => {
     if (registrando || !eventoIdActivo) return;
+    if (!asistenciaHabilitada) {
+      mostrarToast(
+        "La toma de asistencia se habilita 1 hora antes del inicio del evento.",
+      );
+      return;
+    }
     setRegistrando(true);
     try {
       await registrarAsistenciaApi(
@@ -296,6 +307,13 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
   const escanearQr = () => {
     const limpio = codigoQr.trim();
     if (!limpio) return;
+
+    if (!asistenciaHabilitada) {
+      mostrarToast(
+        "La toma de asistencia se habilita 1 hora antes del inicio del evento.",
+      );
+      return;
+    }
 
     // Validar si el código corresponde a un inscripto de este evento específico
     const encontrado = asistentes.find(
@@ -387,6 +405,37 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
         </div>
       ) : null}
 
+      {!asistenciaHabilitada ? (
+        <div className={estilos.avisoApertura}>
+          <div className={estilos.avisoAperturaIcono} aria-hidden>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
+          <div className={estilos.avisoAperturaTextos}>
+            <span className={estilos.avisoAperturaTitulo}>
+              Toma de asistencia no habilitada aún
+            </span>
+            <span className={estilos.avisoAperturaSub}>
+              La asistencia se abre automáticamente 1 hora antes del inicio del
+              evento y permanecerá activa de forma indefinida para cambios o
+              reclamos.
+            </span>
+          </div>
+          <Badge tono="atencion">Próximamente</Badge>
+        </div>
+      ) : null}
+
       <div className={estilos.kpis}>
         <div className={estilos.kpi}>
           <div className={estilos.kpiTextos}>
@@ -403,7 +452,7 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
           <div className={estilos.kpiTextos}>
             <span className={estilos.kpiClave}>Tasa de asistencia</span>
             <span className={estilos.kpiSub}>
-              se cierra al finalizar el evento
+              permanece activa para reclamos
             </span>
           </div>
           <span className={estilos.kpiValor}>{tasa}%</span>
@@ -428,11 +477,21 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
               </div>
               <input
                 className={claseControl}
-                placeholder="Código de credencial o legajo"
+                placeholder={
+                  asistenciaHabilitada
+                    ? "Código de credencial o legajo"
+                    : "Asistencia no habilitada aún"
+                }
                 value={codigoQr}
+                disabled={!asistenciaHabilitada}
                 onChange={(e) => setCodigoQr(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && codigoQr.trim() && !registrando) {
+                  if (
+                    e.key === "Enter" &&
+                    codigoQr.trim() &&
+                    !registrando &&
+                    asistenciaHabilitada
+                  ) {
                     escanearQr();
                   }
                 }}
@@ -440,7 +499,9 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
               <Boton
                 variante="primario"
                 bloque
-                disabled={registrando || !codigoQr.trim()}
+                disabled={
+                  registrando || !codigoQr.trim() || !asistenciaHabilitada
+                }
                 onClick={escanearQr}
               >
                 {registrando ? "Validando credencial…" : "Validar credencial"}
@@ -517,7 +578,12 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
                         <Boton
                           variante="primario"
                           tamano="xs"
-                          disabled={registrando}
+                          disabled={registrando || !asistenciaHabilitada}
+                          title={
+                            asistenciaHabilitada
+                              ? undefined
+                              : "La asistencia se habilita 1 hora antes del inicio del evento"
+                          }
                           onClick={() =>
                             void acreditarInscripcion(
                               item.inscripcionId,
