@@ -13,7 +13,6 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
-  ApiNoContentResponse,
   ApiOkResponse,
   ApiParam,
   ApiQuery,
@@ -104,16 +103,5 @@ export class AsistenciaController {
       usuario?.id,
       eventoId,
     );
-  }
-
-  @Delete(':inscripcionId')
-  @HttpCode(204)
-  @RequierePermiso('campus-events:manage')
-  @ApiNoContentResponse({
-    description:
-      'Quita la asistencia registrada por error; la persona vuelve a figurar como pendiente.',
-  })
-  quitar(@Param('inscripcionId', ParseUUIDPipe) inscripcionId: string) {
-    return this.asistenciaService.quitar(inscripcionId);
   }
 }
