@@ -11,6 +11,7 @@ export type MetodoAsistencia = z.infer<typeof metodoAsistenciaSchema>;
 export const registrarAsistenciaSchema = z.object({
   inscripcionId: z.uuid(),
   metodo: metodoAsistenciaSchema,
+  eventoId: z.uuid().optional(),
 });
 
 export type RegistrarAsistencia = z.infer<typeof registrarAsistenciaSchema>;
@@ -23,6 +24,9 @@ export const asistenciaSchema = z.object({
 });
 
 export type Asistencia = z.infer<typeof asistenciaSchema>;
+
+/** Cuántas horas antes del inicio del evento se habilita la toma de asistencia (permanece abierta indefinidamente). */
+export const HORAS_ANTICIPACION_ASISTENCIA = 1;
 
 export const asistenteEventoSchema = z.object({
   inscripcionId: z.uuid(),

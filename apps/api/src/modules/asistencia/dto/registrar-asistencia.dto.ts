@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class RegistrarAsistenciaDto {
   @ApiProperty({ format: 'uuid' })
@@ -6,4 +6,7 @@ export class RegistrarAsistenciaDto {
 
   @ApiProperty({ enum: ['qr', 'codigo-en-sala', 'manual'] })
   metodo!: 'qr' | 'codigo-en-sala' | 'manual';
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  eventoId?: string;
 }

@@ -1,30 +1,72 @@
-import { celdasCredencial } from "@/lib/qr";
+"use client";
+
+import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 
 import estilos from "./credencial.module.css";
 
-/** Representación visual de la credencial digital. El código real lo emite la API. */
+/**
+ * Representación visual de la credencial digital con código QR real estándar (ISO/IEC 18004).
+ * Codifica el identificador real de la inscripción y es escaneable por cualquier lector físico
+ * o aplicación de cámara estándar.
+ */
 export function Credencial({
-  semilla,
   codigo,
   tamano = "grande",
+  semilla,
 }: {
-  semilla: number;
   codigo: string;
   tamano?: "grande" | "chica";
+  semilla?: number;
 }) {
+  void semilla;
+  const [dataUrl, setDataUrl] = useState<string>("");
+
+  useEffect(() => {
+    let cancelado = false;
+    if (!codigo) return;
+
+    const generar = async () => {
+      try {
+        const url = await QRCode.toDataURL(codigo, {
+          margin: 1,
+          width: tamano === "grande" ? 256 : 128,
+          color: {
+            dark: "#16171a",
+            light: "#ffffff",
+          },
+          errorCorrectionLevel: "M",
+        });
+        if (!cancelado) {
+          setDataUrl(url);
+        }
+      } catch (err) {
+        console.error("Error al generar código QR estándar:", err);
+      }
+    };
+
+    void generar();
+    return () => {
+      cancelado = true;
+    };
+  }, [codigo, tamano]);
+
   return (
     <div
-      className={`${estilos.credencial} ${estilos[tamano]}`}
+      className={`${estilos.contenedor} ${estilos[tamano]}`}
       role="img"
       aria-label={`Credencial digital ${codigo}`}
     >
-      {celdasCredencial(semilla).map((encendida, indice) => (
-        <div
-          // Las celdas no tienen identidad propia: la posición es la clave.
-          key={indice}
-          className={encendida ? estilos.encendida : undefined}
+      {dataUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={dataUrl}
+          alt={`Código QR ${codigo}`}
+          className={estilos.imagenQr}
         />
-      ))}
+      ) : (
+        <div className={estilos.placeholder} />
+      )}
     </div>
   );
 }

@@ -1,4 +1,7 @@
-import { HORAS_ANTICIPACION_CANCELACION } from "@repo/contracts";
+import {
+  HORAS_ANTICIPACION_ASISTENCIA,
+  HORAS_ANTICIPACION_CANCELACION,
+} from "@repo/contracts";
 
 import type { Evento } from "./api";
 import { minutos, seSolapan } from "./formato";
@@ -148,5 +151,20 @@ export function puedeCancelarInscripcion(
   return (
     inicio.getTime() - ahora.getTime() >=
     HORAS_ANTICIPACION_CANCELACION * 60 * 60_000
+  );
+}
+
+/**
+ * La asistencia se habilita 1 hora antes del inicio del evento y permanece
+ * activa indefinidamente (incluso pos-evento) para reclamos y ajustes.
+ */
+export function puedeTomarAsistencia(
+  evento: Evento,
+  ahora: Date = new Date(),
+): boolean {
+  const inicio = new Date(`${evento.fecha}T${evento.desde}:00`);
+  return (
+    ahora.getTime() >=
+    inicio.getTime() - HORAS_ANTICIPACION_ASISTENCIA * 60 * 60_000
   );
 }

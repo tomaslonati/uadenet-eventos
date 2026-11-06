@@ -33,6 +33,7 @@ import { iniciales } from "./formato";
 export type Rol = "admin" | "docente" | "alumno";
 
 export type Usuario = {
+  id: string;
   nombre: string;
   mail: string;
   perfil: string;
@@ -52,6 +53,7 @@ export type ResultadoLoginCore = {
   rol: Rol;
   accessToken: string;
   email: string;
+  id?: string;
   nombre?: string;
   saldo?: number;
 };
@@ -155,6 +157,7 @@ export async function autenticarEnCore(
       rol,
       accessToken: data.accessToken,
       email: data.user.email,
+      id: data.user.id,
       nombre: nombreRemoto,
       saldo: saldoRemoto ?? 0,
     };
@@ -196,7 +199,6 @@ export function navDe(rol: Rol, inscripciones: number): ItemNav[] {
         label: "Mis inscripciones",
         badge: String(inscripciones),
       },
-      { href: "/asistencia", label: "Asistencia en vivo", badge: "live" },
       cuenta,
     ];
   }
@@ -251,6 +253,8 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [emailSesion, setEmailSesion] = useState<string>("usuario@uadenet.edu");
   const [nombreSesion, setNombreSesion] = useState<string>("Usuario UADE");
+  const [usuarioIdSesion, setUsuarioIdSesion] =
+    useState<string>("seed-admin-demo");
   const [sede, setSede] = useState<string>(TODAS_LAS_SEDES);
   const [sedes, setSedes] = useState<string[]>([]);
   const [locaciones, setLocaciones] = useState<LocacionApi[]>([]);
@@ -351,6 +355,9 @@ export function SesionProvider({ children }: { children: ReactNode }) {
               user.permissions ?? [],
             );
             emailVerificado = user.email;
+            if (user.id) {
+              setUsuarioIdSesion(user.id);
+            }
           }
         } catch {
           // Si no se puede refrescar /auth/me, conservar token actual
@@ -360,6 +367,9 @@ export function SesionProvider({ children }: { children: ReactNode }) {
         setRol(rolVerificado);
         setAccessToken(parsed.accessToken);
         setEmailSesion(emailVerificado);
+        if (parsed.id) {
+          setUsuarioIdSesion(parsed.id);
+        }
         setNombreSesion(
           parsed.nombre ?? emailVerificado.split("@")[0] ?? "Usuario UADE",
         );
@@ -386,6 +396,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
       setRol(nuevoRol);
       setAccessToken(datosCore.accessToken);
       setEmailSesion(datosCore.email);
+      setUsuarioIdSesion(datosCore.id ?? "seed-admin-demo");
       setNombreSesion(
         datosCore.nombre ?? datosCore.email.split("@")[0] ?? "Usuario UADE",
       );
@@ -407,6 +418,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   const cerrarSesion = useCallback(async () => {
     const tokenActual = accessToken;
     setAccessToken(null);
+    setUsuarioIdSesion("seed-admin-demo");
     setEventos([]);
     setInscripcionesDetalle([]);
     setSaldo(0);
@@ -465,6 +477,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     return {
       rol,
       usuario: {
+        id: usuarioIdSesion,
         nombre: nombreSesion,
         mail: emailSesion,
         perfil,
@@ -498,6 +511,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     };
   }, [
     rol,
+    usuarioIdSesion,
     nombreSesion,
     emailSesion,
     accessToken,
