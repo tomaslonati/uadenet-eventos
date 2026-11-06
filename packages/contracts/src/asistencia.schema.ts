@@ -25,6 +25,9 @@ export const asistenciaSchema = z.object({
 
 export type Asistencia = z.infer<typeof asistenciaSchema>;
 
+/** Cuántas horas antes del inicio del evento se habilita la toma de asistencia (permanece abierta indefinidamente). */
+export const HORAS_ANTICIPACION_ASISTENCIA = 1;
+
 export const asistenteEventoSchema = z.object({
   inscripcionId: z.uuid(),
   eventoId: z.uuid(),
