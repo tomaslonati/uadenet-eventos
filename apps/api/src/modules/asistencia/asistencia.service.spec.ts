@@ -145,6 +145,7 @@ describe('AsistenciaService', () => {
               eventoId,
               usuarioId: 'usr-1',
               eventoCreadoPor: creadorId,
+              fechaInicio: new Date(),
             },
           ]),
         )
@@ -193,6 +194,7 @@ describe('AsistenciaService', () => {
             eventoId: 'otro-evento-distinto',
             usuarioId: 'usr-1',
             eventoCreadoPor: creadorId,
+            fechaInicio: new Date(),
           },
         ]),
       );
@@ -210,6 +212,7 @@ describe('AsistenciaService', () => {
             eventoId,
             usuarioId: 'usr-1',
             eventoCreadoPor: creadorId,
+            fechaInicio: new Date(),
           },
         ]),
       );
@@ -227,6 +230,7 @@ describe('AsistenciaService', () => {
             eventoId,
             usuarioId: 'usr-1',
             eventoCreadoPor: creadorId,
+            fechaInicio: new Date(),
           },
         ]),
       );
@@ -234,6 +238,102 @@ describe('AsistenciaService', () => {
       await expect(service.registrar(datos, undefined)).rejects.toThrow(
         ForbiddenException,
       );
+    });
+
+    it('rechaza cuando falta más de 1 hora para el inicio del evento', async () => {
+      // Evento inicia en 2 horas; asistencia aún no está habilitada
+      const fechaInicio = new Date('2026-11-25T18:00:00Z');
+      const ahora = new Date('2026-11-25T16:50:00Z'); // 1 hora y 10 minutos antes
+
+      seleccionar.mockReturnValueOnce(
+        queryMock([
+          {
+            id: datos.inscripcionId,
+            eventoId,
+            usuarioId: 'usr-1',
+            eventoCreadoPor: creadorId,
+            fechaInicio,
+          },
+        ]),
+      );
+
+      await expect(service.registrar(datos, creadorId, ahora)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('permite registrar cuando falta menos de 1 hora para el inicio del evento', async () => {
+      // Evento inicia a las 18:00; ahora son las 17:15 (45 min antes, dentro de la ventana previa)
+      const fechaInicio = new Date('2026-11-25T18:00:00Z');
+      const ahora = new Date('2026-11-25T17:15:00Z');
+
+      seleccionar
+        .mockReturnValueOnce(
+          queryMock([
+            {
+              id: datos.inscripcionId,
+              eventoId,
+              usuarioId: 'usr-1',
+              eventoCreadoPor: creadorId,
+              fechaInicio,
+            },
+          ]),
+        )
+        .mockReturnValueOnce(queryMock([]));
+
+      insertar.mockReturnValueOnce({
+        values: () => ({
+          returning: () =>
+            Promise.resolve([
+              {
+                id: 'asis-123',
+                inscripcionId: datos.inscripcionId,
+                confirmadaEn: ahora,
+                metodo: datos.metodo,
+              },
+            ]),
+        }),
+      });
+
+      const res = await service.registrar(datos, creadorId, ahora);
+      expect(res.id).toBe('asis-123');
+    });
+
+    it('permite registrar durante el transcurso del evento y pos-evento indefinidamente', async () => {
+      // Evento inició hace 5 días; debe seguir abierta para reclamos y cambios
+      const fechaInicio = new Date('2026-11-01T10:00:00Z');
+      const ahora = new Date('2026-11-06T18:00:00Z');
+
+      seleccionar
+        .mockReturnValueOnce(
+          queryMock([
+            {
+              id: datos.inscripcionId,
+              eventoId,
+              usuarioId: 'usr-1',
+              eventoCreadoPor: creadorId,
+              fechaInicio,
+            },
+          ]),
+        )
+        .mockReturnValueOnce(queryMock([]));
+
+      insertar.mockReturnValueOnce({
+        values: () => ({
+          returning: () =>
+            Promise.resolve([
+              {
+                id: 'asis-123',
+                inscripcionId: datos.inscripcionId,
+                confirmadaEn: ahora,
+                metodo: datos.metodo,
+              },
+            ]),
+        }),
+      });
+
+      const res = await service.registrar(datos, creadorId, ahora);
+      expect(res.id).toBe('asis-123');
     });
 
     it('rechaza cuando la asistencia ya fue registrada', async () => {
@@ -245,6 +345,7 @@ describe('AsistenciaService', () => {
               eventoId,
               usuarioId: 'usr-1',
               eventoCreadoPor: creadorId,
+              fechaInicio: new Date(),
             },
           ]),
         )
@@ -264,6 +365,7 @@ describe('AsistenciaService', () => {
               eventoId,
               usuarioId: 'usr-1',
               eventoCreadoPor: creadorId,
+              fechaInicio: new Date(),
             },
           ]),
         )
@@ -294,6 +396,7 @@ describe('AsistenciaService', () => {
               eventoId,
               usuarioId: 'usr-1',
               eventoCreadoPor: creadorId,
+              fechaInicio: new Date(),
             },
           ]),
         )

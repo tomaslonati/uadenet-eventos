@@ -13,10 +13,11 @@ import {
   inscripciones,
   usuarios,
 } from '@repo/db';
-import type {
-  Asistencia,
-  AsistenteEvento,
-  RegistrarAsistencia,
+import {
+  HORAS_ANTICIPACION_ASISTENCIA,
+  type Asistencia,
+  type AsistenteEvento,
+  type RegistrarAsistencia,
 } from '@repo/contracts';
 import { AnaliticaService } from '../../common/analitica/analitica.service';
 
@@ -88,6 +89,7 @@ export class AsistenciaService {
   async registrar(
     datos: RegistrarAsistencia,
     usuarioId?: string,
+    ahora: Date = new Date(),
   ): Promise<Asistencia> {
     const encontradas = await db
       .select({
@@ -95,6 +97,7 @@ export class AsistenciaService {
         eventoId: inscripciones.eventoId,
         usuarioId: inscripciones.usuarioId,
         eventoCreadoPor: eventos.creadoPor,
+        fechaInicio: eventos.fechaInicio,
       })
       .from(inscripciones)
       .innerJoin(eventos, eq(inscripciones.eventoId, eventos.id))
@@ -118,6 +121,16 @@ export class AsistenciaService {
     if (!usuarioId || inscripcion.eventoCreadoPor !== usuarioId) {
       throw new ForbiddenException(
         'Solo el creador del evento puede registrar la asistencia.',
+      );
+    }
+
+    const inicioHabilitacion =
+      inscripcion.fechaInicio.getTime() -
+      HORAS_ANTICIPACION_ASISTENCIA * 60 * 60_000;
+
+    if (ahora.getTime() < inicioHabilitacion) {
+      throw new ConflictException(
+        'La asistencia solo puede registrarse a partir de 1 hora antes del inicio del evento.',
       );
     }
 
