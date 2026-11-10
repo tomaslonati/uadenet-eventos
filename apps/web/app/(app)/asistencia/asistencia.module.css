@@ -183,6 +183,33 @@
   animation: pulseRing 2.4s ease-out infinite;
 }
 
+.escanerActivo {
+  width: 240px;
+  height: 240px;
+  overflow: hidden;
+  animation: none;
+}
+
+.escanerVideo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.escanerAviso {
+  margin: 0;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--tinta-secundaria);
+}
+
+.escanerAvisoError {
+  color: var(--error);
+}
+
 .escanerMarco {
   width: 140px;
   height: 140px;
