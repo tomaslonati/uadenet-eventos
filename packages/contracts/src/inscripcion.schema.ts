@@ -11,10 +11,13 @@ export const inscripcionSchema = z.object({
   eventoId: z.uuid(),
   usuarioId: z.string(),
   fechaInscripcion: z.coerce.date(),
-  estado: z.literal("inscripto"),
+  /** `cancelada`: la dio de baja el creador al cancelar el evento (si la baja la pide la persona, la inscripción se borra). */
+  estado: z.enum(["inscripto", "cancelada"]),
   pagoConfirmado: z.boolean(),
   /** Monto que Backoffice devolvió al confirmarse esta inscripción — no se recalcula si la tarifa cambia después (ver ADR 0013). */
   montoCobrado: z.number().int().nullable(),
+  /** Cuándo CORE confirmó la devolución; `null` en una inscripción paga cancelada es reembolso pendiente. */
+  reembolsadoEn: z.coerce.date().nullable(),
 });
 
 export type Inscripcion = z.infer<typeof inscripcionSchema>;
