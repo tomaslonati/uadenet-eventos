@@ -255,6 +255,24 @@ export const recordatorioEventoSchema = z.object({
 
 export type RecordatorioEvento = z.infer<typeof recordatorioEventoSchema>;
 
+/**
+ * Aviso a un inscripto cuando el creador reprograma o cancela el evento. Viaja
+ * como notificación de CORE (`POST /internal/v1/notifications`); los tipos
+ * `EVENT_RESCHEDULED` y `EVENT_CANCELLED` son propuestos por este módulo y
+ * están pendientes de confirmar con CORE (ver docs/02-arquitectura/integraciones.md).
+ */
+export const avisoEventoSchema = z.object({
+  tipo: z.enum(["evento.reprogramado", "evento.cancelado"]),
+  usuarioId: z.string().min(1),
+  eventoId: z.uuid(),
+  titulo: z.string().min(1),
+  mensaje: z.string().min(1),
+  /** Único por cambio: CORE deduplica por `sourceReference`, y un evento puede reprogramarse varias veces. */
+  referencia: z.string().min(1),
+});
+
+export type AvisoEvento = z.infer<typeof avisoEventoSchema>;
+
 /** `POST /internal/v1/notifications` */
 export const coreNotificationRequestSchema = z.object({
   userId: z.string().min(1),
