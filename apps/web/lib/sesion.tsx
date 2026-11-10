@@ -176,6 +176,7 @@ export type ItemNav = { href: string; label: string; badge?: string };
 
 export function navDe(rol: Rol, inscripciones: number): ItemNav[] {
   const cuenta = { href: "/cuenta", label: "Cuenta institucional" };
+  const avisos = { href: "/avisos", label: "Avisos" };
 
   if (rol === "admin") {
     return [
@@ -188,6 +189,7 @@ export function navDe(rol: Rol, inscripciones: number): ItemNav[] {
         label: "Mis inscripciones",
         badge: String(inscripciones),
       },
+      avisos,
       cuenta,
     ];
   }
@@ -199,6 +201,7 @@ export function navDe(rol: Rol, inscripciones: number): ItemNav[] {
         label: "Mis inscripciones",
         badge: String(inscripciones),
       },
+      avisos,
       cuenta,
     ];
   }
@@ -209,6 +212,7 @@ export function navDe(rol: Rol, inscripciones: number): ItemNav[] {
       label: "Mis inscripciones",
       badge: String(inscripciones),
     },
+    avisos,
     cuenta,
   ];
 }
@@ -464,7 +468,9 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   );
 
   const inscripciones = useMemo(() => {
-    const idsPorDetalle = inscripcionesDetalle.map((i) => i.eventoId);
+    const idsPorDetalle = inscripcionesDetalle
+      .filter((i) => i.estado === "inscripto")
+      .map((i) => i.eventoId);
     const idsPorEvento = eventos
       .filter((e) => e.yaInscripto)
       .map((e) => e.id);

@@ -98,6 +98,18 @@ export default function MisInscripciones() {
     }
   };
 
+  // Bajas que dejó el creador al cancelar el evento: se conservan para seguir el reembolso.
+  const canceladas = inscripcionesDetalle
+    .filter((i) => i.estado === "cancelada")
+    .map((detalle) => ({
+      detalle,
+      evento: catalogo.find((e) => e.id === detalle.eventoId),
+    }))
+    .filter(
+      (item): item is { detalle: typeof item.detalle; evento: Evento } =>
+        Boolean(item.evento),
+    );
+
   const [proximoItem, ...otros] = mis;
   const proximo = proximoItem?.vista;
   const codigoProximo =
@@ -186,8 +198,9 @@ export default function MisInscripciones() {
               </GrupoBotones>
               {!proximoItem?.cancelable ? (
                 <p className={estilos.aviso}>
-                  La cancelación cerró: se puede hasta{" "}
-                  {HORAS_ANTICIPACION_CANCELACION} horas antes del inicio.
+                  {proximo.reprogramado
+                    ? "La cancelación cerró porque el evento ya empezó."
+                    : `La cancelación cerró: se puede hasta ${HORAS_ANTICIPACION_CANCELACION} horas antes del inicio.`}
                 </p>
               ) : null}
             </div>
@@ -250,7 +263,41 @@ export default function MisInscripciones() {
         </Seccion>
       ) : null}
 
-      {mis.length === 0 ? (
+      {canceladas.length > 0 ? (
+        <Seccion titulo="Canceladas por el organizador">
+          <div className={estilos.historial}>
+            {canceladas.map(({ detalle, evento }) => {
+              const monto = detalle.pagoConfirmado ? detalle.montoCobrado : null;
+              return (
+                <div key={detalle.id} className={estilos.filaCanceladaOrg}>
+                  <span className={estilos.historialFecha}>
+                    {fechaLarga(evento.fecha)}
+                  </span>
+                  <div className={estilos.canceladaDatos}>
+                    <span className={estilos.historialTitulo}>{evento.titulo}</span>
+                    <span className={estilos.otroSub}>
+                      Motivo: {evento.motivoCancelacion ?? "sin motivo informado"}
+                    </span>
+                  </div>
+                  <span className={estilos.celdaBadge}>
+                    {monto === null ? (
+                      <Badge tono="error">Cancelado</Badge>
+                    ) : detalle.reembolsadoEn ? (
+                      <Badge tono="exito">{pesos(monto)} devueltos</Badge>
+                    ) : (
+                      <Badge tono="atencion">
+                        Reembolso de {pesos(monto)} en proceso
+                      </Badge>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Seccion>
+      ) : null}
+
+      {mis.length === 0 && canceladas.length === 0 ? (
         <EstadoVacio
           texto={
             cargandoDatos

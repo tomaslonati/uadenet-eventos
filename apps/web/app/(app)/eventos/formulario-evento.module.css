@@ -486,3 +486,48 @@
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
 }
+
+.avisoCampo {
+  margin: 0;
+  padding: 10px 13px;
+  border: 1px solid var(--error-linea);
+  border-radius: 9px;
+  background: var(--error-fondo);
+  color: var(--error);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.textoModal {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--tinta-media);
+}
+
+.cambios {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cambios li {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 11px 13px;
+  border: 1px solid var(--linea);
+  border-radius: 9px;
+  background: var(--superficie-sutil);
+  font-size: 13px;
+  color: var(--tinta);
+}
+
+.cambioClave {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--tinta-suave);
+}

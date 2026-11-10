@@ -315,3 +315,27 @@
     position: static;
   }
 }
+
+.banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 14px 18px;
+  border: 1px solid var(--linea);
+  border-radius: 12px;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.bannerCancelado {
+  border-color: var(--error-linea);
+  background: var(--error-fondo);
+  color: var(--error);
+}
+
+.bannerReprogramado {
+  border-color: var(--atencion);
+  background: var(--atencion-fondo);
+  color: var(--atencion);
+}
