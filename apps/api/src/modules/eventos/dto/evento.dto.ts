@@ -30,4 +30,18 @@ export class EventoDto {
 
   @ApiProperty()
   creadoPor!: string;
+
+  @ApiProperty({ enum: ['publicado', 'cancelado'] })
+  estado!: 'publicado' | 'cancelado';
+
+  @ApiProperty({ nullable: true })
+  motivoCancelacion!: string | null;
+
+  @ApiProperty({
+    format: 'date-time',
+    nullable: true,
+    description:
+      'Si cambió la fecha o el lugar: desde ahí se puede cancelar la inscripción sin el límite de 24 hs.',
+  })
+  reprogramadoEn!: Date | null;
 }
