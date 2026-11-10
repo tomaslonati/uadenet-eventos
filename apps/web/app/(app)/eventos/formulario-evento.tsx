@@ -15,23 +15,37 @@ import { Cupo } from "@/components/ui/controles";
 import {
   Modal,
   ModalConfirmacion,
+  ModalCuerpo,
+  ModalHeader,
   ModalPie,
 } from "@/components/ui/modal";
 import { Encabezado } from "@/components/ui/pantalla";
 import { Select } from "@/components/ui/select";
 import {
   TIPOS_EVENTO,
+  actualizarEventoApi,
+  codificarDescripcionEvento,
   crearEventoApi,
+  fechasIso,
   hoyIso,
   reservasDeEventos,
+  type CambiosEvento,
   type CategoriaPrecio,
+  type Evento,
   type TipoEvento,
 } from "@/lib/api";
 import { choquesDe, estaLibre, primeraFranjaLibre } from "@/lib/dominio";
-import { fechaLarga, horario, minutos, pesos, sumarDias } from "@/lib/formato";
+import {
+  fechaLarga,
+  horario,
+  minutos,
+  numero,
+  pesos,
+  sumarDias,
+} from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 
-import estilos from "./nuevo.module.css";
+import estilos from "./formulario-evento.module.css";
 
 const PASOS = [
   { numero: 1, label: "Datos" },
@@ -79,8 +93,33 @@ function soloNumeros(valor: string): number {
   return Number.parseInt(valor.replace(/\D/g, ""), 10) || 0;
 }
 
-export default function NuevoEvento() {
+function formularioDe(evento: Evento): Formulario {
+  return {
+    titulo: evento.titulo,
+    tipo: evento.tipo,
+    disertante: evento.disertante,
+    descripcion: evento.descripcion,
+    fecha: evento.fecha,
+    desde: evento.desde,
+    hasta: evento.hasta,
+    sede: evento.sede,
+    locacion: evento.locacion,
+    cupo: String(evento.cupo),
+    arancelado: evento.categoriaPrecio !== null,
+    categoriaPrecio: evento.categoriaPrecio,
+    opciones: [true, true],
+  };
+}
+
+/**
+ * Alta de un evento nuevo o, si recibe `evento`, edición del existente. Es el
+ * mismo formulario en los dos casos para que el creador no tenga que aprender
+ * dos pantallas; lo que cambia es qué se puede tocar cuando ya hay inscriptos.
+ */
+export function FormularioEvento({ evento }: { evento?: Evento }) {
   const router = useRouter();
+  const editando = evento !== undefined;
+  const inscriptos = evento?.inscriptos ?? 0;
   const {
     accessToken,
     sedes,
@@ -97,7 +136,8 @@ export default function NuevoEvento() {
       : Array.from(new Set(locaciones.map((l) => l.sede)));
 
   const [paso, setPaso] = useState(1);
-  const [form, setForm] = useState<Formulario>(() => ({
+  const [form, setForm] = useState<Formulario>(() =>
+    evento ? formularioDe(evento) : ({
     titulo: "",
     tipo: "Workshop",
     disertante: "",
@@ -111,22 +151,26 @@ export default function NuevoEvento() {
     arancelado: false,
     categoriaPrecio: null,
     opciones: [true, true],
-  }));
+  }),
+  );
   const [publicando, setPublicando] = useState(false);
   const [publicado, setPublicado] = useState(false);
+  const [confirmandoCambios, setConfirmandoCambios] = useState(false);
+  const [notificados, setNotificados] = useState(0);
 
   const sedeEfectiva =
     sedesOpciones.includes(form.sede)
       ? form.sede
       : (sedesOpciones[0] ?? form.sede);
 
+  // Al editar, la locación actual sigue ofrecida aunque Backoffice ya no la marque apta.
+  const ofrecible = (l: (typeof locaciones)[number]) =>
+    l.aptoEventos || l.id === evento?.locacionId;
   const locacionesDeSede = locaciones.filter(
-    (l) => l.aptoEventos && l.sede === sedeEfectiva,
+    (l) => ofrecible(l) && l.sede === sedeEfectiva,
   );
   const catalogoLocaciones =
-    locacionesDeSede.length > 0
-      ? locacionesDeSede
-      : locaciones.filter((l) => l.aptoEventos);
+    locacionesDeSede.length > 0 ? locacionesDeSede : locaciones.filter(ofrecible);
   const nombresLocaciones = catalogoLocaciones.map((l) => l.nombre);
 
   const locacionSeleccionada =
@@ -141,20 +185,21 @@ export default function NuevoEvento() {
   const enUltimoPaso = paso === PASOS.length;
 
   const franja = { desde: form.desde, hasta: form.hasta };
+  // Al editar, el propio evento no cuenta como ocupación de la locación.
+  const otrosEventos = eventos.filter((e) => e.id !== evento?.id);
   const reservas = reservasDeEventos(
-    eventos,
+    otrosEventos,
     nombreLocacionEfectiva,
     form.fecha,
   );
   const choque = choquesDe(franja, reservas)[0];
   const hayConflicto = choque !== undefined;
-  const bloqueado = enUltimoPaso && (hayConflicto || publicando);
 
   const otrasLocaciones = nombresLocaciones
     .filter(
       (loc) =>
         loc !== nombreLocacionEfectiva &&
-        estaLibre(franja, reservasDeEventos(eventos, loc, form.fecha)),
+        estaLibre(franja, reservasDeEventos(otrosEventos, loc, form.fecha)),
     )
     .slice(0, 2);
   const otroHorario = primeraFranjaLibre(
@@ -182,6 +227,55 @@ export default function NuevoEvento() {
     : 0;
   const cupoNumero = soloNumeros(form.cupo);
   const rango = horario(form.desde, form.hasta);
+  const cupoPorDebajo = editando && cupoNumero < inscriptos;
+  const pagoBloqueado = editando && inscriptos > 0;
+
+  const cambios: CambiosEvento = {};
+  if (evento) {
+    const original = formularioDe(evento);
+    if (form.titulo.trim() !== original.titulo) {
+      cambios.titulo = form.titulo.trim();
+    }
+    if (
+      form.tipo !== original.tipo ||
+      form.disertante.trim() !== original.disertante ||
+      form.descripcion.trim() !== original.descripcion
+    ) {
+      cambios.descripcion = codificarDescripcionEvento(
+        form.tipo,
+        form.disertante,
+        form.descripcion,
+      );
+    }
+    if (cupoNumero !== evento.cupo) cambios.cupoMaximo = cupoNumero;
+    if (
+      locacionSeleccionada &&
+      locacionSeleccionada.id !== evento.locacionId
+    ) {
+      cambios.locacionId = locacionSeleccionada.id;
+    }
+    if (
+      form.fecha !== evento.fecha ||
+      form.desde !== evento.desde ||
+      form.hasta !== evento.hasta
+    ) {
+      Object.assign(cambios, fechasIso(form.fecha, form.desde, form.hasta));
+    }
+    if (form.arancelado !== (evento.categoriaPrecio !== null)) {
+      cambios.esPago = form.arancelado;
+      cambios.categoriaPrecio = form.arancelado ? form.categoriaPrecio : null;
+    } else if (form.categoriaPrecio !== evento.categoriaPrecio) {
+      cambios.categoriaPrecio = form.categoriaPrecio;
+    }
+  }
+  const hayCambios = Object.keys(cambios).length > 0;
+  const cambiaFechaOLugar =
+    cambios.fechaInicio !== undefined || cambios.locacionId !== undefined;
+  const avisaAInscriptos = cambiaFechaOLugar && inscriptos > 0;
+
+  const bloqueado =
+    enUltimoPaso &&
+    (hayConflicto || publicando || cupoPorDebajo || (editando && !hayCambios));
 
   const avanzar = async () => {
     if (paso === 1 && !form.titulo.trim()) {
@@ -199,6 +293,19 @@ export default function NuevoEvento() {
     }
     if (cupoNumero <= 0) {
       mostrarToast("El cupo máximo debe ser mayor a 0.");
+      return;
+    }
+    if (cupoPorDebajo) {
+      mostrarToast(`Ya hay ${inscriptos} inscriptos; el cupo no puede ser menor.`);
+      return;
+    }
+
+    if (editando) {
+      if (avisaAInscriptos) {
+        setConfirmandoCambios(true);
+        return;
+      }
+      await guardarCambios();
       return;
     }
 
@@ -233,11 +340,39 @@ export default function NuevoEvento() {
     }
   };
 
+  const guardarCambios = async () => {
+    if (!evento) return;
+    setConfirmandoCambios(false);
+    setPublicando(true);
+    try {
+      const resultado = await actualizarEventoApi(
+        evento.id,
+        cambios,
+        accessToken,
+      );
+      setNotificados(resultado.notificados);
+      await recargarDatos();
+      setPublicado(true);
+    } catch (err) {
+      mostrarToast(
+        err instanceof Error ? err.message : "No se pudieron guardar los cambios.",
+      );
+    } finally {
+      setPublicando(false);
+    }
+  };
+
   return (
     <>
       <Encabezado
-        titulo="Nuevo evento"
-        bajada="Tres pasos. La disponibilidad de la locación se valida antes de publicar."
+        titulo={editando ? "Editar evento" : "Nuevo evento"}
+        bajada={
+          editando
+            ? inscriptos > 0
+              ? `Ya hay ${inscriptos} inscriptos: si cambiás la fecha o el lugar, se les avisa.`
+              : "Todavía no hay inscriptos, podés cambiar lo que necesites."
+            : "Tres pasos. La disponibilidad de la locación se valida antes de publicar."
+        }
       />
 
       <ol className={estilos.pasos}>
@@ -437,6 +572,12 @@ export default function NuevoEvento() {
                 </Campo>
               </div>
 
+              {cupoPorDebajo ? (
+                <p className={estilos.avisoCampo} role="alert">
+                  Ya hay {inscriptos} inscriptos: el cupo no puede ser menor.
+                </p>
+              ) : null}
+
               <div className={estilos.ocupacion}>
                 <div className={estilos.ocupacionHeader}>
                   <span className={estilos.ocupacionTitulo}>
@@ -526,6 +667,13 @@ export default function NuevoEvento() {
           {paso === 3 ? (
             <section className={estilos.bloque}>
               <span className={estilos.bloqueTitulo}>Inscripción</span>
+              {pagoBloqueado ? (
+                <p className={estilos.avisoCampo}>
+                  Ya hay {inscriptos} inscriptos, así que no se puede cambiar si
+                  el evento es pago ni su categoría de precio. Si hace falta,
+                  cancelá el evento (se reembolsa a todos) y publicá uno nuevo.
+                </p>
+              ) : null}
               <div className={estilos.modosPago}>
                 {[
                   {
@@ -542,6 +690,7 @@ export default function NuevoEvento() {
                   <button
                     key={opcion.label}
                     type="button"
+                    disabled={pagoBloqueado}
                     aria-pressed={form.arancelado === opcion.arancelado}
                     className={`${estilos.modoPago} ${
                       form.arancelado === opcion.arancelado
@@ -574,6 +723,7 @@ export default function NuevoEvento() {
                           <button
                             key={categoria}
                             type="button"
+                            disabled={pagoBloqueado}
                             aria-pressed={form.categoriaPrecio === categoria}
                             className={`${estilos.modoPago} ${
                               form.categoriaPrecio === categoria
@@ -649,9 +799,15 @@ export default function NuevoEvento() {
               {enUltimoPaso
                 ? hayConflicto
                   ? "Resolvé el conflicto para publicar"
-                  : publicando
-                    ? "Publicando…"
-                    : "Publicar evento"
+                  : editando
+                    ? publicando
+                      ? "Guardando…"
+                      : hayCambios
+                        ? "Guardar cambios"
+                        : "Sin cambios para guardar"
+                    : publicando
+                      ? "Publicando…"
+                      : "Publicar evento"
                 : "Continuar"}
             </Boton>
           </div>
@@ -682,24 +838,94 @@ export default function NuevoEvento() {
                 {sedeEfectiva} — {nombreLocacionEfectiva}
               </span>
             </div>
-            <Cupo texto={`0 / ${form.cupo} inscriptos`} porcentaje={0} />
+            <Cupo
+              texto={`${inscriptos} / ${form.cupo} inscriptos`}
+              porcentaje={
+                cupoNumero > 0
+                  ? Math.min(100, Math.round((inscriptos / cupoNumero) * 100))
+                  : 0
+              }
+            />
           </div>
         </aside>
       </div>
 
+      {confirmandoCambios && evento ? (
+        <Modal
+          etiqueta="Confirmar cambios"
+          onCerrar={() => setConfirmandoCambios(false)}
+        >
+          <ModalHeader etiqueta="Confirmar cambios" titulo={evento.titulo} />
+          <ModalCuerpo>
+            <p className={estilos.textoModal}>
+              Vas a avisar a {inscriptos}{" "}
+              {inscriptos === 1 ? "inscripto" : "inscriptos"} de este cambio:
+            </p>
+            <ul className={estilos.cambios}>
+              {cambios.fechaInicio !== undefined ? (
+                <li>
+                  <span className={estilos.cambioClave}>Fecha y horario</span>
+                  <span>
+                    {fechaLarga(evento.fecha)} · {horario(evento.desde, evento.hasta)}
+                    {" → "}
+                    {fechaLarga(form.fecha)} · {rango}
+                  </span>
+                </li>
+              ) : null}
+              {cambios.locacionId !== undefined ? (
+                <li>
+                  <span className={estilos.cambioClave}>Lugar</span>
+                  <span>
+                    {evento.sede} — {evento.locacion}
+                    {" → "}
+                    {sedeEfectiva} — {nombreLocacionEfectiva}
+                  </span>
+                </li>
+              ) : null}
+            </ul>
+            <p className={estilos.textoModal}>
+              Como ellos no eligieron este cambio, van a poder cancelar su
+              inscripción sin el límite de 24 horas
+              {evento.categoriaPrecio ? " y recuperar lo que pagaron" : ""}.
+            </p>
+          </ModalCuerpo>
+          <ModalPie>
+            <Boton onClick={() => setConfirmandoCambios(false)}>Volver</Boton>
+            <Boton variante="primario" onClick={() => void guardarCambios()}>
+              Guardar y avisar a {inscriptos}
+            </Boton>
+          </ModalPie>
+        </Modal>
+      ) : null}
+
       {publicado ? (
         <Modal
-          etiqueta="Evento publicado"
+          etiqueta={editando ? "Cambios guardados" : "Evento publicado"}
           onCerrar={() => setPublicado(false)}
         >
           <ModalConfirmacion
-            titulo="Evento publicado"
-            texto={`El evento quedó reservado en ${nombreLocacionEfectiva} el ${fechaLarga(form.fecha)} y ya aparece en la cartelera de ${sedeEfectiva}.`}
+            titulo={editando ? "Cambios guardados" : "Evento publicado"}
+            texto={
+              editando
+                ? notificados > 0
+                  ? `Guardamos los cambios y avisamos a ${numero(notificados)} ${notificados === 1 ? "inscripto" : "inscriptos"}.`
+                  : "Guardamos los cambios del evento."
+                : `El evento quedó reservado en ${nombreLocacionEfectiva} el ${fechaLarga(form.fecha)} y ya aparece en la cartelera de ${sedeEfectiva}.`
+            }
           />
           <ModalPie centrado>
-            <Boton variante="primario" onClick={() => router.push("/gestion")}>
-              Volver a la gestión
-            </Boton>
+            {editando && evento ? (
+              <Boton
+                variante="primario"
+                onClick={() => router.push(`/eventos/${evento.id}`)}
+              >
+                Ver el evento
+              </Boton>
+            ) : (
+              <Boton variante="primario" onClick={() => router.push("/gestion")}>
+                Volver a la gestión
+              </Boton>
+            )}
           </ModalPie>
         </Modal>
       ) : null}

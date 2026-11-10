@@ -48,6 +48,11 @@ export type Evento = {
   area: string;
   descripcion: string;
   creadoPor: string;
+  /** No se llama `estado` para no pisar el badge de cupo que arma `vistaDe`. */
+  estadoPublicacion: "publicado" | "cancelado";
+  motivoCancelacion: string | null;
+  /** El creador movió la fecha o el lugar: se puede cancelar la inscripción hasta el inicio. */
+  reprogramado: boolean;
 };
 
 export type Reserva = { titulo: string; desde: string; hasta: string };
@@ -70,9 +75,12 @@ export type InscripcionApi = {
   eventoId: string;
   usuarioId: string;
   fechaInscripcion: string;
-  estado: "inscripto";
+  /** `cancelada`: la dio de baja el creador al cancelar el evento. */
+  estado: "inscripto" | "cancelada";
   pagoConfirmado: boolean;
   montoCobrado: number | null;
+  /** En una inscripción paga cancelada, `null` es reembolso pendiente. */
+  reembolsadoEn: string | null;
 };
 
 export type AsistenteEventoApi = {
@@ -117,6 +125,9 @@ type EventoDeCarteleraApi = {
   esPago: boolean;
   categoriaPrecio: CategoriaPrecio | null;
   creadoPor: string;
+  estado: "publicado" | "cancelado";
+  motivoCancelacion: string | null;
+  reprogramadoEn: string | null;
   locacion: { nombre: string; sede: string };
   inscriptos: number;
   disponibles: number;
@@ -217,6 +228,9 @@ export function adaptarEventoApi(raw: EventoDeCarteleraApi): Evento {
     area: raw.locacion.sede,
     descripcion: meta.descripcion,
     creadoPor: raw.creadoPor,
+    estadoPublicacion: raw.estado,
+    motivoCancelacion: raw.motivoCancelacion,
+    reprogramado: raw.reprogramadoEn !== null,
   };
 }
 
@@ -226,7 +240,12 @@ export function reservasDeEventos(
   fecha: string,
 ): Reserva[] {
   return eventos
-    .filter((e) => e.locacion === locacionNombre && e.fecha === fecha)
+    .filter(
+      (e) =>
+        e.estadoPublicacion === "publicado" &&
+        e.locacion === locacionNombre &&
+        e.fecha === fecha,
+    )
     .map((e) => ({
       titulo: e.titulo,
       desde: e.desde,
@@ -283,6 +302,13 @@ export async function fetchEventoPorIdApi(
   return adaptarEventoApi(raw);
 }
 
+function fechasIso(fecha: string, desde: string, hasta: string) {
+  return {
+    fechaInicio: new Date(`${fecha}T${desde}:00`).toISOString(),
+    fechaFin: new Date(`${fecha}T${hasta}:00`).toISOString(),
+  };
+}
+
 export async function crearEventoApi(
   datos: {
     titulo: string;
@@ -299,8 +325,11 @@ export async function crearEventoApi(
   },
   token?: string | null,
 ): Promise<{ id: string }> {
-  const fechaInicio = new Date(`${datos.fecha}T${datos.desde}:00`).toISOString();
-  const fechaFin = new Date(`${datos.fecha}T${datos.hasta}:00`).toISOString();
+  const { fechaInicio, fechaFin } = fechasIso(
+    datos.fecha,
+    datos.desde,
+    datos.hasta,
+  );
 
   const res = await fetch(`${API_BASE_URL}/api/v1/eventos`, {
     method: "POST",
@@ -328,6 +357,118 @@ export async function crearEventoApi(
   }
 
   return (await res.json()) as { id: string };
+}
+
+export type CambiosEvento = {
+  titulo?: string;
+  descripcion?: string;
+  locacionId?: string;
+  cupoMaximo?: number;
+  fechaInicio?: string;
+  fechaFin?: string;
+  esPago?: boolean;
+  categoriaPrecio?: CategoriaPrecio | null;
+};
+
+export type ResultadoEdicionApi = { notificados: number };
+
+/** `PATCH /eventos/:id`: manda solo lo que cambió. */
+export async function actualizarEventoApi(
+  id: string,
+  cambios: CambiosEvento,
+  token?: string | null,
+): Promise<ResultadoEdicionApi> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/eventos/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: headersDe(token, true),
+      body: JSON.stringify(cambios),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(
+      await leerErrorApi(res, "No se pudieron guardar los cambios."),
+    );
+  }
+  return (await res.json()) as ResultadoEdicionApi;
+}
+
+export { fechasIso };
+
+export type ImpactoEventoApi = {
+  eventoId: string;
+  inscriptos: number;
+  inscriptosPagos: number;
+  montoAReembolsar: number;
+  reembolsosPendientes: number;
+  asistenciasRegistradas: number;
+};
+
+export async function fetchImpactoEventoApi(
+  id: string,
+  token?: string | null,
+): Promise<ImpactoEventoApi> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/eventos/${encodeURIComponent(id)}/impacto`,
+    { headers: headersDe(token) },
+  );
+  if (!res.ok) {
+    throw new Error(
+      await leerErrorApi(res, "No se pudo calcular el impacto del evento."),
+    );
+  }
+  return (await res.json()) as ImpactoEventoApi;
+}
+
+export type ResultadoCancelacionEventoApi = {
+  eventoId: string;
+  inscriptosAfectados: number;
+  reembolsados: number;
+  reembolsosPendientes: number;
+  montoReembolsado: number;
+  notificados: number;
+};
+
+/** Idempotente: si el evento ya estaba cancelado, solo reintenta los reembolsos pendientes. */
+export async function cancelarEventoApi(
+  id: string,
+  motivo: string,
+  token?: string | null,
+): Promise<ResultadoCancelacionEventoApi> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/eventos/${encodeURIComponent(id)}/cancelacion`,
+    {
+      method: "POST",
+      headers: headersDe(token, true),
+      body: JSON.stringify({ motivo }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(await leerErrorApi(res, "No se pudo cancelar el evento."));
+  }
+  return (await res.json()) as ResultadoCancelacionEventoApi;
+}
+
+export type NotificacionApi = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  actionUrl: string | null;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export async function fetchNotificacionesApi(
+  token?: string | null,
+): Promise<NotificacionApi[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/usuarios/me/notificaciones`, {
+    headers: headersDe(token),
+  });
+  if (!res.ok) return [];
+  const data = (await res.json()) as { items?: NotificacionApi[] };
+  return data.items ?? [];
 }
 
 export async function fetchLocacionesApi(
