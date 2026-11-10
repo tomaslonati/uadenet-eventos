@@ -10,6 +10,6 @@ import { TarifasController } from './tarifas.controller';
   imports: [BackofficeModule],
   controllers: [LocacionesController, SedesController, TarifasController],
   providers: [LocacionesService, LocacionesSyncService],
-  exports: [LocacionesService],
+  exports: [LocacionesService, LocacionesSyncService],
 })
 export class LocacionesModule {}

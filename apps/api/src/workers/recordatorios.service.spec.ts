@@ -60,4 +60,33 @@ describe('RecordatoriosService', () => {
       locacion: 'Aula Magna — Monserrat',
     });
   });
+
+  it('envía en lotes y cuenta solo los que CORE aceptó', async () => {
+    const filas = Array.from({ length: 7 }, (_, i) => ({
+      usuarioId: `u-${i}`,
+      eventoId: '9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03',
+      titulo: 'Workshop de Testing',
+      fechaInicio: new Date('2026-10-22T18:00:00.000Z'),
+      locacionNombre: 'Aula Magna',
+      locacionSede: 'Monserrat',
+    }));
+    seleccionar.mockReturnValueOnce({
+      from: () => ({
+        innerJoin: () => ({
+          innerJoin: () => ({ where: () => Promise.resolve(filas) }),
+        }),
+      }),
+    });
+    enviarRecordatorio.mockImplementation(
+      ({ usuarioId }: { usuarioId: string }) =>
+        Promise.resolve(usuarioId !== 'u-3'),
+    );
+
+    const cantidad = await service.ejecutar(
+      new Date('2026-10-15T10:00:00.000Z'),
+    );
+
+    expect(enviarRecordatorio).toHaveBeenCalledTimes(7);
+    expect(cantidad).toBe(6);
+  });
 });
