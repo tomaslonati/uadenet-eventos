@@ -4,7 +4,7 @@
 
 No incluye a Analítica Institucional (consume eventos nuestros, pero su contrato sigue "Pendiente" en [`integraciones.md`](integraciones.md) y no está dentro del alcance que pide `plan-de-definicion.md` para este diagrama) ni a HU5/HU8 (son consultas de lectura, no pasos de este recorrido).
 
-Todo request a `apps/api` requiere un JWT válido de CORE (`common/guards/core-jwt.guard.ts`) — se omite del diagrama para no repetirlo en cada flecha. Hoy ese guard es un placeholder que siempre deja pasar (ver `integraciones.md`); lo que sigue es el flujo objetivo, no el estado actual de la integración.
+Todo request a `apps/api` requiere un JWT válido de CORE (`common/guards/core-jwt.guard.ts`, firma RS256 contra el JWKS de CORE) — se omite del diagrama para no repetirlo en cada flecha. La Fase 5 (gestión del evento) se agregó después y se dibuja en un diagrama aparte, más abajo.
 
 ```mermaid
 sequenceDiagram
@@ -95,8 +95,65 @@ sequenceDiagram
     Web-->>Admin: asistencia confirmada
 ```
 
+## Fase 5 — Gestión del evento por su creador
+
+Pasa en cualquier momento entre la Fase 1 y el inicio del evento. Solo lo hace quien creó el evento ([ADR 0015](../decisions/0015-ciclo-de-vida-del-evento.md)).
+
+```mermaid
+sequenceDiagram
+    actor Admin as Administrativo (creador)
+    actor Inscripto
+    participant Web as apps/web
+    participant API as apps/api
+    participant CORE
+    participant DB as packages/db (Postgres)
+
+    Note over Admin,DB: Editar
+    Admin->>Web: cambia fecha, locación, cupo, título…
+    Web->>API: PATCH /eventos/:id
+    API->>DB: ¿publicado, sin empezar? ¿cupo >= inscriptos? ¿locación libre? ¿algún inscripto con otro evento ese horario?
+    alt Alguna regla falla
+        API-->>Web: 409 con el motivo
+        Web-->>Admin: lo muestra y no guarda
+    else Cambia fecha o locación
+        API->>DB: UPDATE evento (reprogramadoEn = ahora)
+        loop por cada inscripto
+            API->>CORE: POST /internal/v1/notifications (EVENT_RESCHEDULED)
+        end
+        API-->>Web: 200 + cantidad de avisados
+        Note over Inscripto: puede cancelar su inscripción hasta el inicio, sin el límite de 24 hs
+    else Cambia título, descripción o cupo
+        API->>DB: UPDATE evento
+        API-->>Web: 200, sin avisos
+    end
+
+    Note over Admin,DB: Cancelar
+    Admin->>Web: pide cancelar
+    Web->>API: GET /eventos/:id/impacto
+    API-->>Web: inscriptos, monto a reembolsar
+    Web-->>Admin: confirmación con los números y motivo obligatorio
+    Admin->>Web: confirma
+    Web->>API: POST /eventos/:id/cancelacion
+    API->>DB: ¿sin asistencias y sin empezar? evento.estado = cancelado
+    loop por cada inscripción (de a 5)
+        opt era paga
+            API->>CORE: conciliar cobro y revertir (si no estaba REVERSED)
+            CORE-->>API: reversa confirmada o fallo
+        end
+        API->>DB: inscripción = cancelada (reembolsadoEn si se devolvió)
+        API->>CORE: POST /internal/v1/notifications (EVENT_CANCELLED)
+    end
+    API-->>Web: reembolsados, pendientes, notificados
+    opt quedaron reembolsos pendientes
+        Admin->>Web: reintentar reembolsos
+        Web->>API: POST /eventos/:id/cancelacion (misma llamada)
+        Note over API: solo reintenta los pendientes: no re-avisa ni devuelve dos veces
+    end
+```
+
 ## Notas de lectura
 
 - Las ramas de rechazo (`alt`) son las mismas de los criterios Given/When/Then de HU1/HU3/HU4 en [`../01-proyecto/backlog.md`](../01-proyecto/backlog.md) — no son un agregado del diagrama, son la traducción visual de esos criterios.
 - Fase 3 y Fase 4 pasan **días o semanas después** de la Fase 2, no en la misma sesión de usuario — el `loop`/cron de la Fase 3 y el "el día del evento" de la Fase 4 marcan ese salto en el tiempo.
-- CORE aparece en tres roles distintos según la fase (autenticación implícita en todo el diagrama, descuento de saldo en Fase 2, envío de notificación en Fase 3) — los tres contratos siguen "Pendiente" en [`integraciones.md`](integraciones.md); nada de esto está implementado contra CORE real todavía, son mocks a construir para la 2° Entrega.
+- CORE aparece en varios roles según la fase: autenticación implícita en todo el diagrama, descuento de saldo en la Fase 2, envío de notificación en la Fase 3, y reembolsos y avisos en la Fase 5. Todo está implementado y probado contra el CORE simulado de `apps/api`; el estado contra el CORE real, y lo que falta confirmar, está en [`estado-integraciones-y-faltantes.md`](estado-integraciones-y-faltantes.md).
+- Cancelar la propia inscripción (una persona, no el creador) no está dibujado: es el mismo circuito de reembolso de la Fase 5 para una sola inscripción, hasta 24 hs antes del inicio.

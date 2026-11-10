@@ -37,22 +37,30 @@ Estado de `apps/api` visto desde el portal: `http://localhost:3001/health`.
 
 Son credenciales de demo, no secretos: se van del código cuando el acceso se valide contra el directorio de la universidad. La pantalla de login las lista para no tener que abrir el código.
 
-Desde ahí: `/cartelera`, `/eventos/[id]`, `/eventos/nuevo`, `/mis-inscripciones`, `/cuenta`, `/gestion`, `/asistencia`, `/docente` y `/avisos`.
+Desde ahí: `/cartelera`, `/eventos/[id]` (con el panel de gestión para quien creó el evento), `/eventos/nuevo`, `/eventos/[id]/editar`, `/mis-inscripciones`, `/cuenta`, `/gestion`, `/asistencia` y `/avisos`.
 
-Todavía no consumen `apps/api`: los datos salen de `apps/web/lib/mock/`. El diseño y sus tokens están en [`docs/03-diseno/sistema-diseno.md`](docs/03-diseno/sistema-diseno.md).
+Todas consumen `apps/api`. Con `CORE_BASE_URL` sin definir, la API monta un CORE y un Backoffice simulados en el mismo proceso (login con las cuentas de la tabla de arriba, billetera, notificaciones, sedes y tarifas), así que se puede probar todo en local sin depender de otros grupos. Con `CORE_BASE_URL` definida habla con el CORE real y las cuentas son las de CORE. El diseño y sus tokens están en [`docs/03-diseno/sistema-diseno.md`](docs/03-diseno/sistema-diseno.md); un recorrido para presentar el módulo, en [`docs/04-guias/guion-demo.md`](docs/04-guias/guion-demo.md).
 
 ## Variables de entorno
 
-`packages/env` valida al boot con Zod. Copiar a `.env` en la raíz (no versionado):
+`packages/env` valida al boot con Zod y carga el `.env` de la raíz (no versionado) si existe. Solo `DATABASE_URL` hace falta para levantar la API en local; todo lo demás tiene un valor por defecto o activa un modo simulado:
 
 ```
 DATABASE_URL=postgres://...   # proyecto Supabase compartido de dev (ver ADR 0011 en docs/decisions/)
 NODE_ENV=development
+
+# Opcionales. Sin ellas la API monta un CORE y un Backoffice simulados en el mismo proceso.
+CORE_BASE_URL=                # CORE real (grupo 10). Con esto definido, el login y la billetera son los de CORE
+CORE_CLIENT_ID=               # default: events-service
+CORE_CLIENT_SECRET=           # secreto de servicio de events-service
+BACKOFFICE_BASE_URL=          # Backoffice real (grupo 8)
+FRONTEND_BASE_URL=            # base de los links de los avisos; default https://uadenet-eventos.vercel.app
+CRON_SECRET=                  # secreto del cron de Vercel; sin esto, /api/v1/cron/diario rechaza todo
 ```
 
-**Pendiente:** las credenciales de Supabase (proyecto compartido de dev) las comparte quien haya armado el proyecto — pedirlas al equipo, no están en el repo.
+`apps/web` toma `NEXT_PUBLIC_API_URL` (default `http://localhost:3000`) en el **build**: en Vercel hay que definirla por entorno (dev apunta a la API de dev, prod a la de prod).
 
-**Ojo:** hoy nada carga el `.env` automáticamente. `packages/env` valida `process.env`, pero ni `nest start` ni `drizzle-kit` leen el archivo. Hasta que se resuelva, hay que exportar las variables en la shell o usar `node --env-file=.env`.
+**Pendiente:** las credenciales de Supabase (proyecto compartido de dev) las comparte quien haya armado el proyecto — pedirlas al equipo, no están en el repo.
 
 ## Migrations
 
@@ -63,7 +71,7 @@ pnpm --filter @repo/db db:generate   # genera la migration a partir del schema d
 pnpm --filter @repo/db db:migrate    # la aplica
 ```
 
-El schema (`packages/db/src/schema/`) tiene `usuarios`, `locaciones`, `eventos`, `inscripciones` y `asistencias`, según [`docs/02-arquitectura/modelo-dominio.md`](docs/02-arquitectura/modelo-dominio.md).
+El schema (`packages/db/src/schema/`) tiene `usuarios`, `locaciones`, `eventos`, `inscripciones` y `asistencias`, según [`docs/02-arquitectura/modelo-dominio.md`](docs/02-arquitectura/modelo-dominio.md). Si no tenés acceso directo al pooler de sesión, [`docs/04-guias/aplicar-migraciones.md`](docs/04-guias/aplicar-migraciones.md) explica cómo aplicar el SQL a mano y registrarlo (y cuál está pendiente).
 
 Dos cosas antes de correr `db:migrate`:
 
@@ -76,10 +84,11 @@ Dos cosas antes de correr `db:migrate`:
 turbo run lint typecheck test build
 ```
 
-## Pendiente de configurar (fuera de este bootstrap)
+## Despliegue
 
-- Dos proyectos Vercel sobre este mismo repo: uno con Root Directory `apps/web`, otro con `apps/api` (confirmar que el deploy serverless de Nest funciona, puede necesitar un adapter).
-- Variables de entorno cargadas en Vercel (no en el repo) para ambos proyectos.
+Dos proyectos de Vercel sobre este repo: `uadenet-eventos-api` (Root Directory `apps/api`) y `uadenet-eventos-web` (`apps/web`). La rama `dev` despliega los entornos de dev y `main` los de prod; el mapa de URLs y de variables está en [`docs/02-arquitectura/diagrama-arquitectura.md`](docs/02-arquitectura/diagrama-arquitectura.md). Dev y prod comparten la base de Supabase: una migration afecta a los dos.
+
+Los procesos periódicos (recordatorios, polling de tarifas, sincronización de locaciones) arrancan con `setInterval` cuando la API corre como proceso largo (`pnpm dev`, `pnpm start`). En Vercel los reemplaza un cron diario (`apps/api/vercel.json`) que llama a `/api/v1/cron/diario`; requiere definir `CRON_SECRET` en el proyecto de la API (entorno Production). Es un solo cron por día porque es lo que admite el plan Hobby ([ADR 0016](docs/decisions/0016-cron-diario-de-vercel.md)).
 
 ## Convenciones
 

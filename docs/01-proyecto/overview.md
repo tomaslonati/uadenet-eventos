@@ -6,7 +6,7 @@
 
 Módulo **Eventos Académicos** del sistema **UADEnet** (TPO de Desarrollo de Aplicaciones II, UADE, 2Q 2026). UADEnet es una plataforma modular con 10 módulos desarrollados por distintos grupos; este repo es responsabilidad exclusiva de nuestro grupo.
 
-Requisitos funcionales completos del módulo: ver `TPO - DEA II 2Q 2026.pdf` (carpeta raíz del curso). Resumen: administrativos gestionan eventos (locación, cupo); estudiantes/docentes/administrativos consultan e inscriben; sin superposición de locación ni de usuario en eventos concurrentes; inscripciones gratis o pagas (descuento de saldo institucional vía CORE); verificación de asistencia; recordatorio automático una semana antes.
+Requisitos funcionales completos del módulo: ver `TPO - DEA II 2Q 2026.pdf` (carpeta raíz del curso). Resumen: administrativos gestionan eventos (locación, cupo; los crean, los editan y los cancelan con reembolso, ver [ADR 0015](../decisions/0015-ciclo-de-vida-del-evento.md)); estudiantes/docentes/administrativos consultan e inscriben; sin superposición de locación ni de usuario en eventos concurrentes; inscripciones gratis o pagas (descuento de saldo institucional vía CORE); verificación de asistencia; recordatorio automático una semana antes.
 
 ## Fechas clave (cronograma de la materia)
 
@@ -26,7 +26,7 @@ Este módulo integra con:
 - **CORE** — autenticación (valida token que emite CORE), notificaciones, descuento/consulta de saldo institucional.
 - **Analítica Institucional** — consume eventos que emitimos (frecuencia, concurrencia, presentismo).
 - **Portal del Estudiante / Portal del Docente** — reciben notificaciones nuestras con link al detalle del evento.
-- **Backoffice Administrativo** — descartado como dependencia: el catálogo de sedes/locaciones se maneja directo en nuestra propia DB, no vía integración (ver [ADR 0012](../decisions/0012-catalogo-de-locaciones-panel-propio.md)).
+- **Backoffice Administrativo** — dueño del catálogo de sedes y espacios, de las tarifas de inscripción y de los datos del usuario. Consultamos directo, con el token de servicio de CORE (ver [ADR 0013](../decisions/0013-integracion-backoffice-tarifas-y-locaciones.md), que revierte el ADR 0012). Mientras no tengamos su URL real, la API sirve un Backoffice simulado.
 
 El estado de estos contratos (definido / en negociación / pendiente) se trackea en [`../02-arquitectura/integraciones.md`](../02-arquitectura/integraciones.md).
 
