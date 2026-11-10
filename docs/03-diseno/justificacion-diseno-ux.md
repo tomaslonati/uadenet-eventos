@@ -71,6 +71,8 @@ El TPO dice "debe desarrollarse un método para comprobar la asistencia", sin es
 
 Un tercer método evaluado —código único mostrado en pantalla para toda la sala— se descartó y quedó documentado en `modelo-dominio.md`: un código compartido por todos los asistentes no puede acreditar a una persona en particular, sólo confirmar que "alguien" entró. Esa misma razón es la que en esta pantalla obliga a que cada ingreso en el registro en vivo esté atado a una persona con nombre y legajo (`Badge` "Validado" por fila), no a un contador genérico.
 
+El escáner lee el QR con la cámara trasera del celular, que es lo que el staff tiene en la mano en la puerta (ADR 0017). La cámara no se prende sola: la activa quien opera, porque en iOS el permiso lo exige y porque una pantalla que enciende la cámara sin pedirlo genera desconfianza. Si falla (permiso negado, sin cámara, navegador sin soporte), el mensaje lo dice y deja la alternativa de pegar el código: la puerta de un evento no puede quedar frenada por la cámara. La misma credencial que ve el alumno es la que se lee; no hay un formato aparte para el escáner.
+
 Los dos indicadores en vivo (acreditados, tasa de asistencia) existen para darle al staff en la puerta feedback inmediato de que el escaneo funcionó, sin salir de la pantalla a revisar un reporte aparte.
 
 ## 9. Movimiento: feedback, no decoración

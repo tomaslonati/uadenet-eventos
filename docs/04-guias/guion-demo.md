@@ -42,7 +42,8 @@
 
 **6. Asistencia** (administrativo → `/asistencia`, HU6)
 - Hace falta un evento que empiece dentro de la próxima hora (la toma de asistencia se habilita 1 hora antes): crearlo antes de la demo.
-- Mostrar el escaneo de QR y la lista manual con búsqueda; registrar y revertir un ingreso.
+- Mostrar el escaneo de QR: tocar *Activar cámara* (el navegador pide permiso la primera vez), apuntar al QR de la credencial del estudiante (abierta en su celular, en `/mis-inscripciones`) y se acredita solo. Funciona con HTTPS, que dev y prod ya tienen. Si no hay cámara o se niega el permiso, la pantalla avisa y se puede pegar el código.
+- Mostrar también la lista manual con búsqueda; registrar y revertir un ingreso.
 
 ## Si preguntan…
 
