@@ -11,7 +11,7 @@
 - `rol` (`estudiante` | `docente` | `administrativo`)
 - `actualizadoEn` — timestamp del último upsert.
 
-No es una tabla de auth propia: CORE sigue siendo la fuente de verdad y quien emite el JWT. Se hace `upsert` (por `id`) cada vez que llega un JWT válido, con los datos que trae el token — así `Evento.creadoPor` e `Inscripcion.usuarioId` pueden ser FK a una tabla local en vez de guardar un id crudo sin contexto, sin necesitar un roundtrip a CORE para mostrar nombre/rol en listados. Se completa cuando `common/guards/core-jwt.guard.ts` deje de ser placeholder (ver `integraciones.md`); hasta entonces la tabla existe pero no tiene mecanismo real de upsert.
+No es una tabla de auth propia: CORE sigue siendo la fuente de verdad y quien emite el JWT. Se hace `upsert` (por `id`) cada vez que llega un JWT válido, con los datos que trae el token — así `Evento.creadoPor` e `Inscripcion.usuarioId` pueden ser FK a una tabla local en vez de guardar un id crudo sin contexto, sin necesitar un roundtrip a CORE para mostrar nombre/rol en listados. El upsert lo hace `common/guards/core-jwt.guard.ts` con cada JWT válido (ver `integraciones.md`).
 
 ### Evento
 - `id`
@@ -22,9 +22,12 @@ No es una tabla de auth propia: CORE sigue siendo la fuente de verdad y quien em
 - `fechaInicio`, `fechaFin`
 - `esPago` (boolean)
 - `categoriaPrecio` — `general` | `especial`, sólo si `esPago = true`. No guardamos un monto acá: se resuelve contra la tarifa vigente de Backoffice al momento de listar/inscribir (ver [ADR 0013](../decisions/0013-integracion-backoffice-tarifas-y-locaciones.md)).
-- `creadoPor` (FK a Usuario) — administrativo que lo creó.
+- `creadoPor` (FK a Usuario) — administrativo que lo creó. Es el único que puede editarlo, cancelarlo y tomar su asistencia.
+- `estado` — `publicado` (default) | `cancelado`. Baja lógica: el evento cancelado se conserva para el historial de inscriptos y reembolsos, y deja de aparecer en la cartelera.
+- `motivoCancelacion`, `canceladoEn` — se completan al cancelar; el motivo se les informa a los inscriptos.
+- `reprogramadoEn` — última vez que cambió la fecha o la locación (nunca por editar título, descripción o cupo). Abre la cancelación libre de las inscripciones.
 
-Sin estado explícito: ningún HU pide borradores ni cancelación de evento. Que ya pasó se resuelve comparando `fechaFin` contra `now()`, no con un campo aparte. Si aparece la necesidad de borrador/cancelación más adelante, se agrega con su propia migration y ADR.
+No hay borradores. Que un evento "ya pasó" se resuelve comparando `fechaFin` contra `now()`, no con un campo aparte. La edición y la cancelación están en [ADR 0015](../decisions/0015-ciclo-de-vida-del-evento.md).
 
 ### Locación
 - `id`
@@ -40,10 +43,11 @@ Sin estado explícito: ningún HU pide borradores ni cancelación de evento. Que
 - `eventoId` (FK)
 - `usuarioId` (FK a Usuario — ver caché local de CORE arriba)
 - `fechaInscripcion`
-- `estado` — `inscripto`, único valor. La cancelación de inscripción no está pedida en el TP y quedó explícitamente fuera de alcance (ver `../01-proyecto/backlog.md`); si entra, es una migration nueva y su propio ADR.
+- `estado` — `inscripto` | `cancelada`. `cancelada` solo la deja la cancelación del **evento** por su creador, para poder seguir el reembolso. Cuando la persona cancela su propia inscripción (agregada fuera del TP, ver `../01-proyecto/backlog.md`) la fila se borra. Todas las cuentas de cupo, conflicto horario y asistencia consideran solo las `inscripto`.
 - `pagoConfirmado` — solo aplica si el evento es pago
+- `reembolsadoEn` — nullable. Cuándo CORE confirmó la devolución. En una inscripción **paga** `cancelada`, `null` significa reembolso pendiente: es lo que reintenta el creador desde la pantalla del evento.
 - `montoCobrado` — nullable, sólo si el evento es pago. Es el monto que devolvió Backoffice al momento de confirmarse esta inscripción puntual, no una referencia a `Evento.categoriaPrecio` — si la tarifa cambia después, esta inscripción ya tiene su monto fijado (ver [ADR 0013](../decisions/0013-integracion-backoffice-tarifas-y-locaciones.md)).
-- `codigoCredencial` — código que el método `qr` de `Asistencia` valida en la puerta. Hoy sólo existe en el mock de frontend, derivado en `apps/web/lib/dominio.ts` (`codigoCredencial(eventoId, indice)`); cuando `Inscripcion` deje de ser mock, pasa a ser un campo real de esta tabla (generado al confirmarse la inscripción).
+- Credencial — no hay una columna aparte: la credencial digital (el QR de "Mis inscripciones") codifica el `id` de la inscripción, que es lo que `Asistencia` valida en la puerta. `codigoCredencial()` en `apps/web/lib/dominio.ts` solo se usa de respaldo si la inscripción todavía no llegó desde la API.
 
 ### Asistencia
 - `id`
@@ -60,10 +64,16 @@ Sin estado explícito: ningún HU pide borradores ni cancelación de evento. Que
 - El recordatorio se dispara cuando `fechaInicio - hoy = 7 días` para cada Inscripción activa.
 - El monto cobrado en una Inscripción se fija al confirmarse contra la tarifa vigente de Backoffice; no se recalcula si la tarifa cambia después.
 - No se puede crear un Evento en una Locación con `aptoEventos = false`.
+- Un Evento cancelado no ocupa su Locación: otro evento puede reservar ese horario.
+- No se puede inscribir a un Evento cancelado ni registrar asistencia en él.
+- Solo el creador edita o cancela un Evento, y solo mientras está `publicado` y no empezó. Cancelar tampoco se puede si ya hay asistencias registradas.
+- Editar: el cupo no puede quedar por debajo de los inscriptos; con inscriptos no se cambia `esPago` ni `categoriaPrecio`; un cambio de fecha o locación revalida la reserva de la locación y que ningún inscripto quede con otro evento en el nuevo horario.
+- Reprogramar (cambia fecha o locación) avisa a los inscriptos y les deja cancelar la inscripción hasta el inicio del evento, sin el límite de 24 hs.
+- Cancelar un Evento da de baja a todos sus inscriptos, devuelve el `montoCobrado` de cada inscripción paga (reversa en CORE) y los avisa. Si un reembolso falla queda pendiente y se reintenta repitiendo la cancelación; nunca se devuelve dos veces el mismo cobro.
 - No se puede crear un Evento con una `categoriaPrecio` para la que no haya tarifa vigente en el caché de Backoffice, ni confirmar una Inscripción paga si al momento de cobrar no hay tarifa vigente para la categoría del evento (ver [ADR 0014](../decisions/0014-cache-de-tarifas-por-polling.md)).
 
 ## Pendiente de decidir
 
 Nada del modelo en sí. Con Backoffice el path y el shape de locaciones y tarifa ya están confirmados (ver ADR 0013/0014); lo que queda pendiente de ese lado es si van a embeber el nombre de la sede en la respuesta de espacios, y de nuestro lado la frecuencia del polling de tarifas. Lo que sigue sin depender de nosotros: los contratos con CORE (firma del JWT, descuento de saldo, canal de notificaciones) y con Analítica — ver [`integraciones.md`](integraciones.md) y [`flujo-de-datos-integraciones.md`](flujo-de-datos-integraciones.md).
 
-`Inscripcion.estado` y `Asistencia.metodo` estaban marcados como TBD y se cerraron con lo que ya estaba decidido en `../01-proyecto/backlog.md` (la cancelación quedó fuera de alcance) y en los mocks de vista (los tres métodos de asistencia). Si el equipo quiere revisarlos, son un cambio de schema con migration.
+`Inscripcion.estado` y `Asistencia.metodo` estaban marcados como TBD y se cerraron con lo que ya estaba decidido en los mocks de vista (los tres métodos de asistencia) y, para `estado`, con la cancelación del evento (ADR 0015). Si el equipo quiere revisarlos, son un cambio de schema con migration.

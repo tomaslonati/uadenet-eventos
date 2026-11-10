@@ -4,6 +4,8 @@
 >
 > Complementa a [`flujo-de-datos-negocio.md`](flujo-de-datos-negocio.md), que muestra el **recorrido** (quién hace qué, en qué orden). Este documento define el **contrato**: qué viaja en cada punto de ese recorrido.
 
+> **Agregado después de la 1° Entrega** (no está en la planilla entregada, que es una foto de esa fecha): edición, impacto y cancelación de evento, cancelación de inscripción, `estado` en eventos e inscripciones, los avisos de reprogramación y cancelación, y los eventos `evento.modificado` y `evento.cancelado`. Están marcados con *(nuevo)*. Si hace falta una planilla actualizada, la fuente es este documento.
+
 Base de la API: `/api/v1` — prefijo global `api` más versionado por URI (`apps/api/src/main.ts`). Todo request a `/api/v1/**` requiere el JWT de CORE.
 
 `Dirección`: **Entrada** = un módulo externo envía datos a este módulo · **Salida** = este módulo entrega datos a un módulo externo.
@@ -17,7 +19,11 @@ Base de la API: `/api/v1` — prefijo global `api` más versionado por URI (`app
 | Portales Estudiante/Docente | Salida | Restful API | [`GET /api/v1/eventos?desde=&hasta=`](#get-apiv1eventosdesdehasta) |
 | Portales Estudiante/Docente | Salida | Restful API | [`GET /api/v1/eventos/{id}`](#get-apiv1eventosid) |
 | — (consumo interno) | Salida | Restful API | [`GET /api/v1/locaciones`](#get-apiv1locaciones) |
+| — (consumo interno) | Entrada | Restful API | [`PATCH /api/v1/eventos/{id}`](#patch-apiv1eventosid) *(nuevo)* |
+| — (consumo interno) | Salida | Restful API | [`GET /api/v1/eventos/{id}/impacto`](#get-apiv1eventosidimpacto) *(nuevo)* |
+| — (consumo interno) | Entrada | Restful API | [`POST /api/v1/eventos/{id}/cancelacion`](#post-apiv1eventosidcancelacion) *(nuevo)* |
 | — (consumo interno) | Entrada | Restful API | [`POST /api/v1/inscripciones`](#post-apiv1inscripciones) |
+| — (consumo interno) | Entrada | Restful API | [`DELETE /api/v1/inscripciones/{id}`](#delete-apiv1inscripcionesid) *(nuevo)* |
 | — (consumo interno) | Salida | Restful API | [`GET /api/v1/inscripciones`](#get-apiv1inscripciones) |
 | — (consumo interno) | Entrada | Restful API | [`POST /api/v1/asistencia`](#post-apiv1asistencia) |
 | — (consumo interno) | Salida | Restful API | [`GET /api/v1/eventos/{id}/cupo`](#get-apiv1eventosidcupo) |
@@ -25,7 +31,10 @@ Base de la API: `/api/v1` — prefijo global `api` más versionado por URI (`app
 | Backoffice Administrativo | Entrada | Restful API | [`GET /api/v1/backoffice/sedes/{sedeId}/espacios?aptoEventos=true`](#backoffice--espacios-por-sede) |
 | Backoffice Administrativo | Entrada | Restful API | [`GET /api/v1/backoffice/tarifas/vigente?concepto=&fecha=`](#backoffice--tarifa-vigente) |
 | CORE | Salida | Message Queue | [`evento.recordatorio`](#core--recordatorio-de-evento) |
+| CORE | Salida | Restful API | [`POST /internal/v1/notifications` — reprogramado / cancelado](#core--aviso-de-reprogramación-o-cancelación) *(nuevo)* |
 | Analítica Institucional | Salida | Message Queue | [`evento.creado`](#analítica--eventoscreado) |
+| Analítica Institucional | Salida | Message Queue | [`evento.modificado`](#analítica--eventomodificado) *(nuevo)* |
+| Analítica Institucional | Salida | Message Queue | [`evento.cancelado`](#analítica--eventocancelado) *(nuevo)* |
 | Analítica Institucional | Salida | Message Queue | [`inscripcion.registrada`](#analítica--inscripcionregistrada) |
 | Analítica Institucional | Salida | Message Queue | [`asistencia.confirmada`](#analítica--asistenciaconfirmada) |
 
@@ -84,6 +93,8 @@ La locación viene resuelta y el cupo calculado a propósito: los portales piden
    "cupoMaximo": "number", "fechaInicio": "datetime", "fechaFin": "datetime",
    "esPago": "boolean", "categoriaPrecio": "general | especial | null",
    "creadoPor": "string (id de usuario en CORE)",
+   "estado": "publicado | cancelado", "motivoCancelacion": "string | null",
+   "reprogramadoEn": "datetime | null — si cambió la fecha o la locación",
    "locacion": { "nombre": "string", "sede": "string" },
    "inscriptos": "number", "disponibles": "number", "yaInscripto": "boolean",
    "precio": "number | null — resuelto contra la tarifa vigente de Backoffice" }]
@@ -95,15 +106,75 @@ La locación viene resuelta y el cupo calculado a propósito: los portales piden
    "locacionId": "c1a4e8d2-7b36-4f90-8e52-1d0a9c3b6f47", "cupoMaximo": 80,
    "fechaInicio": "2026-10-15T18:00:00-03:00", "fechaFin": "2026-10-15T20:00:00-03:00",
    "esPago": false, "categoriaPrecio": null, "creadoPor": "u-10432",
+   "estado": "publicado", "motivoCancelacion": null, "reprogramadoEn": null,
    "locacion": { "nombre": "Aula Magna", "sede": "Monserrat" },
    "inscriptos": 63, "disponibles": 17, "yaInscripto": false, "precio": null }]
 ```
+
+Los eventos `cancelado` también se devuelven (quien estaba inscripto necesita ver qué pasó); el cupo y `yaInscripto` cuentan solo inscripciones `inscripto`, así que un evento cancelado figura con 0 inscriptos. La cartelera de `apps/web` los oculta.
 
 Con `disponibles` y `yaInscripto` en la misma respuesta, el consumidor resuelve en una sola llamada el calendario, "a cuáles me puedo inscribir" (`disponibles > 0 && !yaInscripto`) y "a cuáles ya me inscribí" (`yaInscripto`).
 
 ### `GET /api/v1/eventos/{id}`
 
 `Salida` · `Restful API` · destino del link que enviamos en el recordatorio. Mismo objeto que el listado, sin array — también con `locacion`, `disponibles` y `yaInscripto`.
+
+### `PATCH /api/v1/eventos/{id}`
+
+`Entrada` · `Restful API` · *(nuevo)* [ADR 0015](../decisions/0015-ciclo-de-vida-del-evento.md). Solo el creador; todos los campos son opcionales y solo se tocan los que viajan. Respuestas: `403` si no es el creador, `409` si el evento está cancelado o ya empezó, si el cupo queda por debajo de los inscriptos, si se cambia `esPago`/`categoriaPrecio` habiendo inscriptos, si la locación ya tiene otro evento en el nuevo horario, o si algún inscripto quedaría con otro evento en ese horario.
+
+Si cambia `fechaInicio`, `fechaFin` o `locacionId`, el evento queda marcado `reprogramadoEn`, se avisa a cada inscripto (ver [aviso](#core--aviso-de-reprogramación-o-cancelación)) y se emite [`evento.modificado`](#analítica--eventomodificado).
+
+```jsonc
+// Estructura — cualquier subconjunto de los campos de POST /eventos (al menos uno)
+{ "titulo": "string", "descripcion": "string", "locacionId": "uuid", "cupoMaximo": "number",
+  "fechaInicio": "datetime", "fechaFin": "datetime", "esPago": "boolean",
+  "categoriaPrecio": "general | especial | null" }
+
+// Respuesta
+{ "evento": { /* el evento actualizado, sin locacion ni cupo calculado */ },
+  "notificados": "number — inscriptos a los que se les avisó (0 si el cambio no es de fecha ni de lugar)" }
+
+// Ejemplo — mover la fecha
+{ "fechaInicio": "2026-10-16T18:00:00-03:00", "fechaFin": "2026-10-16T20:00:00-03:00" }
+```
+
+### `GET /api/v1/eventos/{id}/impacto`
+
+`Salida` · `Restful API` · *(nuevo)* Solo el creador. Lo que mueve cancelar el evento; es lo que muestra la confirmación antes de hacerlo.
+
+```jsonc
+// Estructura
+{ "eventoId": "uuid", "inscriptos": "number", "inscriptosPagos": "number",
+  "montoAReembolsar": "number — suma de montoCobrado de las inscripciones pagas activas",
+  "reembolsosPendientes": "number — de una cancelación anterior que CORE no confirmó",
+  "asistenciasRegistradas": "number" }
+
+// Ejemplo
+{ "eventoId": "9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03", "inscriptos": 12, "inscriptosPagos": 10,
+  "montoAReembolsar": 55000, "reembolsosPendientes": 0, "asistenciasRegistradas": 0 }
+```
+
+### `POST /api/v1/eventos/{id}/cancelacion`
+
+`Entrada` · `Restful API` · *(nuevo)* [ADR 0015](../decisions/0015-ciclo-de-vida-del-evento.md). Solo el creador. Responde `200` (no `201`: es idempotente), `400` si falta el motivo, `403` si no es el creador, `409` si el evento ya empezó o ya tiene asistencias registradas.
+
+Marca el evento `cancelado`, da de baja las inscripciones (`cancelada`), devuelve cada pago con una reversa en CORE, avisa a cada inscripto y emite [`evento.cancelado`](#analítica--eventocancelado). **Repetirla** no vuelve a cambiar el evento ni a avisar: solo reintenta los reembolsos pendientes.
+
+```jsonc
+// Estructura
+{ "motivo": "string (1–500 caracteres) — se le informa a los inscriptos" }
+
+// Respuesta
+{ "eventoId": "uuid", "inscriptosAfectados": "number", "reembolsados": "number",
+  "reembolsosPendientes": "number — pagos que CORE no confirmó; repetir la llamada los reintenta",
+  "montoReembolsado": "number", "notificados": "number — avisos nuevos en esta llamada" }
+
+// Ejemplo
+{ "motivo": "Se suspende por ausencia del disertante" }
+// → { "eventoId": "9f2b7c14-…", "inscriptosAfectados": 12, "reembolsados": 10,
+//     "reembolsosPendientes": 0, "montoReembolsado": 55000, "notificados": 12 }
+```
 
 ### `GET /api/v1/eventos/{id}/cupo`
 
@@ -148,28 +219,38 @@ Se arma consultando `GET /api/v1/backoffice/sedes` (para tener el listado de sed
 { "eventoId": "9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03" }
 ```
 
+### `DELETE /api/v1/inscripciones/{id}`
+
+`Entrada` · `Restful API` · *(nuevo)* Cancelación de la propia inscripción (agregada fuera del TP, ver [`backlog.md`](../01-proyecto/backlog.md)). Hasta 24 hs antes del inicio —o hasta el inicio, si el evento se reprogramó— y mientras no haya asistencia registrada. Si fue paga, devuelve el monto con una reversa en CORE. Responde `404` si no es del usuario del JWT y `409` si pasó el plazo, si hay asistencia, si CORE no pudo devolver el saldo (la inscripción sigue activa) o si ya cayó por la cancelación del evento.
+
+```jsonc
+// Respuesta
+{ "inscripcionId": "uuid", "montoReembolsado": "number | null — null si era gratuita" }
+```
+
 ### `GET /api/v1/inscripciones`
 
-`Salida` · `Restful API` · HU5. Devuelve las del usuario del JWT. La cancelación de inscripción no está en el alcance del TP (ver [`backlog.md`](../01-proyecto/backlog.md)), por eso `estado` tiene un único valor.
+`Salida` · `Restful API` · HU5. Devuelve las del usuario del JWT, incluidas las `cancelada` por cancelación del evento (la persona necesita ver el estado de su reembolso). Cuando ella misma cancela, la inscripción se borra y no figura.
 
 ```jsonc
 // Estructura
 [{ "id": "uuid", "eventoId": "uuid", "usuarioId": "string", "fechaInscripcion": "datetime",
-   "estado": "inscripto", "pagoConfirmado": "boolean",
-   "montoCobrado": "number | null — congelado al confirmarse, no se recalcula si cambia la tarifa" }]
+   "estado": "inscripto | cancelada", "pagoConfirmado": "boolean",
+   "montoCobrado": "number | null — congelado al confirmarse, no se recalcula si cambia la tarifa",
+   "reembolsadoEn": "datetime | null — en una paga cancelada, null = reembolso pendiente" }]
 
 // Ejemplo
 [{ "id": "5e8d0b31-9c47-4a26-b18f-72e4c0d95a68",
    "eventoId": "9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03", "usuarioId": "u-10432",
    "fechaInscripcion": "2026-09-30T14:22:10-03:00", "estado": "inscripto",
-   "pagoConfirmado": true, "montoCobrado": 12500 }]
+   "pagoConfirmado": true, "montoCobrado": 12500, "reembolsadoEn": null }]
 ```
 
 ## Asistencia
 
 ### `POST /api/v1/asistencia`
 
-`Entrada` · `Restful API` · HU6. Los dos métodos son los que ya cubre el mock de `/asistencia` (QR y manual — se descartó "código en sala" por ser el más débil en seguridad de los tres que se evaluaron). Responde `409` si no existe una inscripción activa para esa `inscripcionId`.
+`Entrada` · `Restful API` · HU6. Los dos métodos son los que ya cubre el mock de `/asistencia` (QR y manual — se descartó "código en sala" por ser el más débil en seguridad de los tres que se evaluaron). Responde `409` si no existe una inscripción activa para esa `inscripcionId` o si el evento fue cancelado.
 
 ```jsonc
 // Estructura
@@ -260,6 +341,26 @@ Lo publica el worker diario cuando `fechaInicio - hoy = 7 días`, una vez por in
   "url": "https://uadenet-eventos.vercel.app/eventos/9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03" }
 ```
 
+## CORE — aviso de reprogramación o cancelación
+
+`Salida` · `Restful API` · *(nuevo)* una notificación por inscripto hacia `POST /internal/v1/notifications` de CORE, la misma vía que el recordatorio. Si el aviso falla, el cambio ya hecho sobre el evento no se deshace.
+
+**Los tipos `EVENT_RESCHEDULED` y `EVENT_CANCELLED` los propone este módulo y todavía no están confirmados por CORE**: contra el CORE simulado de `apps/api` funcionan; contra el real, si CORE no los acepta, el aviso no se entrega (se registra un warning) pero la operación termina bien. `sourceReference` es único por cambio (`evento/{id}/cancelado`, `evento/{id}/reprogramado/{timestamp}`): CORE deduplica por ahí y un evento puede reprogramarse más de una vez.
+
+```jsonc
+// Estructura
+{ "userId": "string", "type": "EVENT_RESCHEDULED | EVENT_CANCELLED", "title": "string",
+  "message": "string — el nuevo horario y lugar, o el motivo y el estado del reembolso",
+  "actionUrl": "string (link al detalle del evento)",
+  "sourceModule": "events", "sourceReference": "string" }
+
+// Ejemplo — cancelación con reembolso acreditado
+{ "userId": "u-10432", "type": "EVENT_CANCELLED", "title": "Se canceló un evento",
+  "message": "Se canceló «Workshop de Testing». Motivo: Se suspende por lluvia. Te devolvimos $5.500 a tu cuenta institucional.",
+  "actionUrl": "https://uadenet-eventos.vercel.app/eventos/9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03",
+  "sourceModule": "events", "sourceReference": "evento/9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03/cancelado" }
+```
+
 ## Analítica — `evento.creado`
 
 `Salida` · `Message Queue` · alimenta la métrica de frecuencia de eventos.
@@ -276,6 +377,39 @@ Lo publica el worker diario cuando `fechaInicio - hoy = 7 días`, una vez por in
   "sede": "Monserrat", "cupoMaximo": 40, "fechaInicio": "2026-10-22T18:00:00-03:00",
   "fechaFin": "2026-10-22T21:00:00-03:00", "esPago": true, "categoriaPrecio": "especial",
   "emitidoEn": "2026-09-20T11:05:00-03:00" }
+```
+
+## Analítica — `evento.modificado`
+
+`Salida` · `Message Queue` · *(nuevo, pendiente de que Analítica lo confirme)* se emite al cambiar fecha, horario o locación, o el cupo. Mantiene al día la métrica de frecuencia y concurrencia, que de otro modo se quedaría con los datos de `evento.creado`.
+
+```jsonc
+// Estructura
+{ "tipo": "evento.modificado", "eventoId": "uuid", "locacionId": "uuid", "sede": "string",
+  "cupoMaximo": "number", "fechaInicio": "datetime", "fechaFin": "datetime",
+  "reprogramado": "boolean — true si cambió fecha o locación",
+  "inscriptosNotificados": "number", "emitidoEn": "datetime" }
+
+// Ejemplo
+{ "tipo": "evento.modificado", "eventoId": "9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03",
+  "locacionId": "c1a4e8d2-7b36-4f90-8e52-1d0a9c3b6f47", "sede": "Monserrat", "cupoMaximo": 40,
+  "fechaInicio": "2026-10-23T18:00:00-03:00", "fechaFin": "2026-10-23T21:00:00-03:00",
+  "reprogramado": true, "inscriptosNotificados": 12, "emitidoEn": "2026-10-01T11:05:00-03:00" }
+```
+
+## Analítica — `evento.cancelado`
+
+`Salida` · `Message Queue` · *(nuevo, pendiente de que Analítica lo confirme)* se emite una sola vez, cuando el evento pasa a `cancelado` (repetir la cancelación no lo vuelve a emitir). Permite descontar el evento de las métricas de frecuencia y presentismo.
+
+```jsonc
+// Estructura
+{ "tipo": "evento.cancelado", "eventoId": "uuid", "motivo": "string",
+  "inscriptosAfectados": "number", "montoReembolsado": "number", "emitidoEn": "datetime" }
+
+// Ejemplo
+{ "tipo": "evento.cancelado", "eventoId": "9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03",
+  "motivo": "Se suspende por lluvia", "inscriptosAfectados": 12, "montoReembolsado": 55000,
+  "emitidoEn": "2026-10-01T11:05:00-03:00" }
 ```
 
 ## Analítica — `inscripcion.registrada`
@@ -316,8 +450,8 @@ Lo publica el worker diario cuando `fechaInicio - hoy = 7 días`, una vez por in
 Todos los endpoints `/api/v1` de este documento están implementados en `apps/api`, y cada módulo (`eventos`, `inscripciones`, `asistencia`, `locaciones`, `usuarios`) tiene tests unitarios de sus services y controllers.
 
 - **Backoffice Administrativo**: implementado contra los endpoints (`/api/v1/backoffice/sedes`, `/sedes/{sedeId}/espacios?aptoEventos=true`, `/tarifas/vigente?concepto=&fecha=`, `/usuarios/{id}`) vía `BackofficeClient`, con contratos Zod en `@repo/contracts`, sincronización en `LocacionesSyncService` y caché con polling en `TarifasService` (ADR 0014).
-- **Analítica Institucional**: los 3 eventos (`evento.creado`, `inscripcion.registrada`, `asistencia.confirmada`) se validan con Zod y se publican hacia el bus de CORE (`POST /internal/v1/events`) a través de `AnaliticaService`.
-- **CORE (Autenticación, Billetera, Bus de Eventos y Notificaciones)**: implementado en `CoreJwtGuard` + `CoreJwksService` (validación RS256 contra `/.well-known/jwks.json`, RBAC `campus-events:manage` y upsert en tabla `usuarios`), `CoreTokenService` (`POST /internal/v1/service-auth/token`), `SaldoService` (`GET /api/v1/wallets/me`, `POST /internal/v1/wallets/{userId}/debits`, `POST /internal/v1/wallet-transactions/{transactionId}/reversals`, `GET /internal/v1/wallet-transactions/by-reference`) y `NotificacionesService` + `RecordatoriosService` (HU7 — `POST /internal/v1/notifications`).
+- **Analítica Institucional**: los 5 eventos (`evento.creado`, `evento.modificado`, `evento.cancelado`, `inscripcion.registrada`, `asistencia.confirmada`) se validan con Zod y se publican hacia el bus de CORE (`POST /internal/v1/events`) a través de `AnaliticaService`.
+- **CORE (Autenticación, Billetera, Bus de Eventos y Notificaciones)**: implementado en `CoreJwtGuard` + `CoreJwksService` (validación RS256 contra `/.well-known/jwks.json`, RBAC `campus-events:manage` y upsert en tabla `usuarios`), `CoreTokenService` (`POST /internal/v1/service-auth/token`), `SaldoService` (`GET /api/v1/wallets/me`, `POST /internal/v1/wallets/{userId}/debits`, `POST /internal/v1/wallet-transactions/{transactionId}/reversals`, `GET /internal/v1/wallet-transactions/by-reference`) y `NotificacionesService` + `RecordatoriosService` (HU7 y avisos de reprogramación/cancelación — `POST /internal/v1/notifications`).
 
 Ver desglose exhaustivo y acuerdos pendientes en [`estado-integraciones-y-faltantes.md`](estado-integraciones-y-faltantes.md).
 
@@ -334,4 +468,5 @@ Siguiendo las directivas generales de cátedra (Gonza UADE):
 | Token de servicio para llamadas a Backoffice | Confirmado por cátedra |
 | Distribución de eventos a Analítica por RabbitMQ | Confirmado: Eventos entrega a CORE y CORE distribuye |
 | Canal de recordatorio (`evento.recordatorio`) | Confirmado: se entrega a CORE para la campanita del portal |
+| Tipos `EVENT_RESCHEDULED` / `EVENT_CANCELLED` y eventos `evento.modificado` / `evento.cancelado` | Propuestos por este módulo, sin confirmar con CORE ni Analítica |
 | Despliegue de ambiente compartido (`BACKOFFICE_BASE_URL` y CORE) | Pendiente de deploy de los otros equipos | 

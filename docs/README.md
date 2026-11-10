@@ -30,6 +30,8 @@ Esta carpeta es la memoria de `uadenet-eventos` entre sesiones y entre personas:
 - [`stack-y-estructura.md`](02-arquitectura/stack-y-estructura.md) — stack, estructura del monorepo, capas, flujo de datos (técnico, por capas).
 - [`flujo-de-datos-negocio.md`](02-arquitectura/flujo-de-datos-negocio.md) — diagrama de secuencia del recorrido de negocio: crear evento → inscribirse → pagar → recordatorio → asistencia.
 - [`flujo-de-datos-integraciones.md`](02-arquitectura/flujo-de-datos-integraciones.md) — contrato punto por punto: qué estructura viaja en cada entrada/salida del módulo. Versión navegable del entregable en planilla.
+- [`diagrama-arquitectura.md`](02-arquitectura/diagrama-arquitectura.md) — diagrama general: el módulo y los demás, la API por dentro y el despliegue.
+- [`roles-y-permisos.md`](02-arquitectura/roles-y-permisos.md) — de dónde sale cada rol y qué puede hacer cada perfil en cada endpoint.
 - [`modelo-dominio.md`](02-arquitectura/modelo-dominio.md) — entidades y reglas de negocio (tiene TBDs a propósito).
 - [`integraciones.md`](02-arquitectura/integraciones.md) — estado de cada contrato con CORE, Analítica y los portales.
 - [`estado-integraciones-y-faltantes.md`](02-arquitectura/estado-integraciones-y-faltantes.md) — detalle exhaustivo de integraciones implementadas, disclaimers y puntos pendientes con CORE, Backoffice y Analítica.
@@ -40,11 +42,13 @@ Esta carpeta es la memoria de `uadenet-eventos` entre sesiones y entre personas:
 
 **`04-guias/`**
 - [`bootstrap.md`](04-guias/bootstrap.md) — inicialización del monorepo desde cero (ya ejecutada; se conserva como referencia del orden y del porqué).
+- [`aplicar-migraciones.md`](04-guias/aplicar-migraciones.md) — cómo aplicar una migration al Supabase compartido (y registrarla), con la que está pendiente hoy.
+- [`guion-demo.md`](04-guias/guion-demo.md) — recorrido para presentar el módulo y datos de prueba; incluye los chequeos previos.
 
 **`05-entregas/`**
 - `Flujo de Datos - Modulo 6 - UADEnet.xlsx` — planilla entregada en la 1° Entrega (16/09/2026), en el formato común a los 10 grupos. Es un binario y no se puede revisar en un PR: la fuente navegable y diffeable es [`02-arquitectura/flujo-de-datos-integraciones.md`](02-arquitectura/flujo-de-datos-integraciones.md). Si se cambia una, se cambia la otra.
 
-**`decisions/`** — 0001 stack general · 0002 monorepo tooling · 0003 backend framework · 0004 ORM · 0005 contratos compartidos · 0006 entorno de dev DB · 0007 branching strategy · 0008 migración a Neon · 0009 branching dev/main · 0010 estilos de frontend · 0011 vuelta a Supabase.
+**`decisions/`** — 0001 stack general · 0002 monorepo tooling · 0003 backend framework · 0004 ORM · 0005 contratos compartidos · 0006 entorno de dev DB · 0007 branching strategy · 0008 migración a Neon · 0009 branching dev/main · 0010 estilos de frontend · 0011 vuelta a Supabase · 0012 catálogo de locaciones propio (superado por 0013) · 0013 Backoffice resuelve tarifas y locaciones · 0014 caché de tarifas por polling · 0015 ciclo de vida del evento (editar y cancelar) · 0016 cron diario de Vercel.
 
 **`archivo/`**
 - [`plan-de-setup-inicial.md`](archivo/plan-de-setup-inicial.md) — primer plan de setup, superado por `04-guias/bootstrap.md`.
