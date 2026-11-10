@@ -7,11 +7,11 @@ import { CoreModule } from './common/core/core.module';
 import { HealthModule } from './health/health.module';
 import { AsistenciaModule } from './modules/asistencia/asistencia.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CronModule } from './modules/cron/cron.module';
 import { EventosModule } from './modules/eventos/eventos.module';
 import { InscripcionesModule } from './modules/inscripciones/inscripciones.module';
 import { LocacionesModule } from './modules/locaciones/locaciones.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
-import { RecordatoriosService } from './workers/recordatorios.service';
 
 @Module({
   imports: [
@@ -23,10 +23,9 @@ import { RecordatoriosService } from './workers/recordatorios.service';
     InscripcionesModule,
     AsistenciaModule,
     UsuariosModule,
+    CronModule,
     ...(USA_BACKOFFICE_MOCK ? [BackofficeMockModule] : []),
     ...(USA_CORE_MOCK ? [CoreMockModule] : []),
   ],
-  providers: [RecordatoriosService],
-  exports: [RecordatoriosService],
 })
 export class AppModule {}

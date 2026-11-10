@@ -59,6 +59,11 @@ const envSchema = z.object({
   CORE_CLIENT_SECRET: textoConDefault("events-service-secret"),
   /** Secreto compartido con el API Gateway de CORE para validar X-Core-Signature. */
   CORE_GATEWAY_SECRET: textoOpcional,
+  /**
+   * Secreto del cron de Vercel: Vercel lo envía como `Authorization: Bearer` al
+   * invocar `/api/v1/cron/diario`. Sin definir, ese endpoint rechaza todo.
+   */
+  CRON_SECRET: textoOpcional,
   /** URL pública del frontend para links en notificaciones (HU7). */
   FRONTEND_BASE_URL: urlConDefault("https://uadenet-eventos.vercel.app"),
 });

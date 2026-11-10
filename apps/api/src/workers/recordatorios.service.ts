@@ -14,8 +14,12 @@ import { NotificacionesService } from '../common/core/notificaciones.service';
 export const DIAS_ANTICIPACION_RECORDATORIO = 7;
 export const INTERVALO_RECORDATORIOS_MS = 24 * 60 * 60_000;
 
+/** Cuántos recordatorios se envían en paralelo: acota la carga sobre CORE y la duración de la función. */
+const LOTE = 5;
+
 /**
- * Worker de recordatorios de eventos (HU7).
+ * Worker de recordatorios de eventos (HU7). Con la API como proceso largo corre
+ * con `setInterval`; en Vercel lo dispara el cron diario (`CronController`).
  * Busca las inscripciones activas a eventos cuya `fechaInicio` sea dentro de 7 días
  * y despacha `evento.recordatorio` hacia CORE (`NotificacionesService`).
  */
@@ -64,23 +68,26 @@ export class RecordatoriosService implements OnModuleDestroy {
         .where(
           and(
             eq(inscripciones.estado, 'inscripto'),
+            eq(eventos.estado, 'publicado'),
             gte(eventos.fechaInicio, desde),
             lt(eventos.fechaInicio, hasta),
           ),
         );
 
       let enviados = 0;
-      for (const fila of filas) {
-        const ok = await this.notificaciones.enviarRecordatorio({
-          usuarioId: fila.usuarioId,
-          eventoId: fila.eventoId,
-          titulo: fila.titulo,
-          fechaInicio: fila.fechaInicio.toISOString(),
-          locacion: `${fila.locacionNombre} — ${fila.locacionSede}`,
-        });
-        if (ok) {
-          enviados += 1;
-        }
+      for (let i = 0; i < filas.length; i += LOTE) {
+        const resultados = await Promise.all(
+          filas.slice(i, i + LOTE).map((fila) =>
+            this.notificaciones.enviarRecordatorio({
+              usuarioId: fila.usuarioId,
+              eventoId: fila.eventoId,
+              titulo: fila.titulo,
+              fechaInicio: fila.fechaInicio.toISOString(),
+              locacion: `${fila.locacionNombre} — ${fila.locacionSede}`,
+            }),
+          ),
+        );
+        enviados += resultados.filter(Boolean).length;
       }
 
       return enviados;
