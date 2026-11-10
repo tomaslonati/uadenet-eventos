@@ -21,6 +21,8 @@ import { anio, horario, iniciales, pesos } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import { vistaDe } from "@/lib/vista-evento";
 
+import { PanelOrganizador } from "./panel-organizador";
+
 import estilos from "./detalle.module.css";
 
 type Dialogo = "checkout" | "conflicto" | "confirmado" | null;
@@ -29,8 +31,10 @@ export function DetalleEvento({ eventoId }: { eventoId: string }) {
   const router = useRouter();
   const {
     rol,
+    usuario,
     accessToken,
     saldo,
+    inscripcionesDetalle,
     eventos: catalogo,
     estaInscripto,
     inscribir,
@@ -79,6 +83,11 @@ export function DetalleEvento({ eventoId }: { eventoId: string }) {
   }
 
   const vista = vistaDe(evento, estaInscripto(evento.id));
+  const cancelado = evento.estadoPublicacion === "cancelado";
+  const esCreador = evento.creadoPor === usuario.id;
+  const inscripcionCancelada = inscripcionesDetalle.find(
+    (i) => i.eventoId === evento.id && i.estado === "cancelada",
+  );
   const eventosInscriptos = catalogo.filter((e) => estaInscripto(e.id));
   const conflicto = conflictoDe(evento, eventosInscriptos);
   const saldoPosterior = saldo - evento.precio;
@@ -95,7 +104,9 @@ export function DetalleEvento({ eventoId }: { eventoId: string }) {
     },
   ];
 
-  const ctaLabel = procesando
+  const ctaLabel = cancelado
+    ? "Evento cancelado"
+    : procesando
     ? "Confirmando…"
     : vista.inscripto
       ? "Ya estás inscripto"
@@ -105,7 +116,9 @@ export function DetalleEvento({ eventoId }: { eventoId: string }) {
           ? `Inscribirme por ${pesos(evento.precio)}`
           : "Inscribirme";
 
-  const ctaHint = vista.inscripto
+  const ctaHint = cancelado
+    ? "Ya no se pueden hacer inscripciones."
+    : vista.inscripto
     ? "Ya tenés tu lugar confirmado."
     : vista.lleno
       ? "No quedan lugares disponibles."
@@ -131,7 +144,7 @@ export function DetalleEvento({ eventoId }: { eventoId: string }) {
   };
 
   const intentarInscribir = () => {
-    if (vista.inscripto || vista.lleno || procesando) return;
+    if (cancelado || vista.inscripto || vista.lleno || procesando) return;
     if (conflicto) {
       setDialogo("conflicto");
       return;
@@ -160,6 +173,36 @@ export function DetalleEvento({ eventoId }: { eventoId: string }) {
       >
         ← Volver
       </Link>
+
+      {cancelado ? (
+        <div className={`${estilos.banner} ${estilos.bannerCancelado}`} role="status">
+          <strong>Este evento fue cancelado.</strong>
+          <span>
+            Motivo: {evento.motivoCancelacion ?? "sin motivo informado"}.
+          </span>
+          {inscripcionCancelada ? (
+            <span>
+              {inscripcionCancelada.pagoConfirmado &&
+              inscripcionCancelada.montoCobrado
+                ? inscripcionCancelada.reembolsadoEn
+                  ? `Tu inscripción se dio de baja y te devolvimos ${pesos(inscripcionCancelada.montoCobrado)} a tu cuenta institucional.`
+                  : `Tu inscripción se dio de baja. Estamos procesando la devolución de ${pesos(inscripcionCancelada.montoCobrado)}; vas a verla en tu cuenta institucional.`
+                : "Tu inscripción se dio de baja."}
+            </span>
+          ) : null}
+        </div>
+      ) : evento.reprogramado ? (
+        <div className={`${estilos.banner} ${estilos.bannerReprogramado}`} role="status">
+          <strong>Este evento se reprogramó.</strong>
+          <span>
+            Revisá la nueva fecha y el lugar.
+            {vista.inscripto
+              ? " Si ya no podés asistir, podés cancelar tu inscripción hasta que empiece el evento"
+              : ""}
+            {vista.inscripto && evento.precio ? " y se te devuelve el saldo." : vista.inscripto ? "." : ""}
+          </span>
+        </div>
+      ) : null}
 
       <div className={estilos.layout}>
         <article className={estilos.ficha}>
@@ -197,14 +240,14 @@ export function DetalleEvento({ eventoId }: { eventoId: string }) {
             <Cupo texto={vista.cupoLabel} porcentaje={vista.porcentaje} alta />
             <Boton
               variante={
-                vista.inscripto
+                cancelado || vista.inscripto
                   ? "secundario"
                   : vista.lleno
                     ? "secundario"
                     : "primario"
               }
               bloque
-              disabled={vista.inscripto || vista.lleno || procesando}
+              disabled={cancelado || vista.inscripto || vista.lleno || procesando}
               onClick={intentarInscribir}
             >
               {ctaLabel}
@@ -228,6 +271,8 @@ export function DetalleEvento({ eventoId }: { eventoId: string }) {
           </div>
         </aside>
       </div>
+
+      {esCreador ? <PanelOrganizador evento={evento} /> : null}
 
       {dialogo === "checkout" ? (
         <Modal

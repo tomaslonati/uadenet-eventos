@@ -1,0 +1,53 @@
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aviso {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--linea);
+  border-radius: 12px;
+  background: var(--superficie);
+}
+
+.sinLeer {
+  border-left: 3px solid var(--acento);
+}
+
+.cabecera {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.fecha {
+  font-size: 12px;
+  color: var(--tinta-placeholder);
+}
+
+.titulo {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tinta);
+}
+
+.mensaje {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--tinta-media);
+}
+
+.enlace {
+  align-self: flex-start;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--acento);
+}

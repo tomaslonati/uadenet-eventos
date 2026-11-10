@@ -8,8 +8,8 @@
 .head,
 .fila {
   display: grid;
-  grid-template-columns: 92px minmax(160px, 1fr) 176px 150px 106px 132px;
-  min-width: 800px;
+  grid-template-columns: 92px minmax(160px, 1fr) 176px 150px 106px 190px;
+  min-width: 860px;
   gap: 14px;
   align-items: center;
 }
@@ -88,4 +88,18 @@
   display: flex;
   gap: 7px;
   justify-content: flex-end;
+}
+
+.filaCancelada .titulo,
+.filaCancelada .locacion,
+.filaCancelada .cupoTexto,
+.filaCancelada .ingresos {
+  color: var(--tinta-suave);
+  text-decoration: line-through;
+}
+
+.etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }

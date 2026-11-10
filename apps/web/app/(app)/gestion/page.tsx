@@ -5,7 +5,7 @@ import { BotonLink } from "@/components/ui/boton";
 import { BarraCupo } from "@/components/ui/controles";
 import { Datacards, Encabezado, type Indicador } from "@/components/ui/pantalla";
 import { TODAS_LAS_SEDES } from "@/lib/api";
-import { ingresosDe } from "@/lib/dominio";
+import { ingresosDe, puedeGestionar } from "@/lib/dominio";
 import { numero, pesos } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import { vistaDe } from "@/lib/vista-evento";
@@ -27,18 +27,22 @@ export default function Gestion() {
   const eventos = deLaSede.map((evento) =>
     vistaDe(evento, estaInscripto(evento.id)),
   );
+  // Los cancelados quedan en la tabla como historial, pero no cuentan en los indicadores.
+  const activos = deLaSede.filter(
+    (evento) => evento.estadoPublicacion === "publicado",
+  );
 
-  const inscriptos = deLaSede.reduce(
+  const inscriptos = activos.reduce(
     (total, evento) => total + evento.inscriptos,
     0,
   );
-  const ocupacionMedia = deLaSede.length
+  const ocupacionMedia = activos.length
     ? Math.round(
-        (deLaSede.reduce(
+        (activos.reduce(
           (total, evento) => total + evento.inscriptos / evento.cupo,
           0,
         ) /
-          deLaSede.length) *
+          activos.length) *
           100,
       )
     : 0;
@@ -46,7 +50,7 @@ export default function Gestion() {
   const indicadores: Indicador[] = [
     {
       label: "Eventos activos",
-      valor: String(deLaSede.length),
+      valor: String(activos.length),
       sub: `en ${sede === TODAS_LAS_SEDES ? `${sedes.length || 3} sedes` : sede}`,
     },
     {
@@ -85,18 +89,27 @@ export default function Gestion() {
           <span />
         </div>
         {eventos.map((evento) => {
-          const esCreador =
-            catalogo.find((e) => e.id === evento.id)?.creadoPor === usuario.id;
+          const original = catalogo.find((e) => e.id === evento.id);
+          const esCreador = original?.creadoPor === usuario.id;
+          const cancelado = evento.estadoPublicacion === "cancelado";
 
           return (
-            <div key={evento.id} className={estilos.fila}>
+            <div
+              key={evento.id}
+              className={`${estilos.fila} ${cancelado ? estilos.filaCancelada : ""}`}
+            >
               <div className={estilos.celdaFecha}>
                 <span className={estilos.fecha}>{evento.fechaCorta}</span>
                 <span className={estilos.horario}>{evento.rangoHorario}</span>
               </div>
               <div className={estilos.celdaEvento}>
                 <span className={estilos.titulo}>{evento.titulo}</span>
-                <Badge>{evento.tipo}</Badge>
+                <div className={estilos.etiquetas}>
+                  <Badge>{evento.tipo}</Badge>
+                  {cancelado || evento.reprogramado ? (
+                    <Badge tono={evento.estado.tono}>{evento.estado.texto}</Badge>
+                  ) : null}
+                </div>
               </div>
               <span className={estilos.locacion}>{evento.locacion}</span>
               <div className={estilos.celdaCupo}>
@@ -110,7 +123,12 @@ export default function Gestion() {
                 <BotonLink href={`/eventos/${evento.id}`} tamano="xs">
                   Ver
                 </BotonLink>
-                {esCreador ? (
+                {esCreador && original && puedeGestionar(original) ? (
+                  <BotonLink href={`/eventos/${evento.id}/editar`} tamano="xs">
+                    Editar
+                  </BotonLink>
+                ) : null}
+                {esCreador && !cancelado ? (
                   <BotonLink
                     href={`/asistencia?evento=${evento.id}`}
                     tamano="xs"

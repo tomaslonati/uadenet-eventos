@@ -4,7 +4,7 @@ import {
 } from "@repo/contracts";
 
 import type { Evento } from "./api";
-import { minutos, seSolapan } from "./formato";
+import { minutos, seSolapan, sumarDias } from "./formato";
 
 export type Tono = "neutro" | "exito" | "atencion" | "error";
 
@@ -15,6 +15,12 @@ export type EstadoEvento = { texto: string; tono: Tono };
  * pesan más que el hecho de estar inscripto.
  */
 export function estadoDe(evento: Evento, inscripto: boolean): EstadoEvento {
+  if (evento.estadoPublicacion === "cancelado") {
+    return { texto: "Cancelado", tono: "error" };
+  }
+  if (evento.reprogramado) {
+    return { texto: "Reprogramado", tono: "atencion" };
+  }
   if (evento.inscriptos >= evento.cupo) {
     return { texto: "Cupo completo", tono: "atencion" };
   }
@@ -126,6 +132,38 @@ export const FILTROS_CARTELERA: FiltroCartelera[] = [
   "Con cupo disponible",
 ];
 
+export type PeriodoCartelera = "Cualquier fecha" | "Próximos 7 días" | "Este mes";
+
+export const PERIODOS_CARTELERA: PeriodoCartelera[] = [
+  "Cualquier fecha",
+  "Próximos 7 días",
+  "Este mes",
+];
+
+/** `hoy` en ISO `YYYY-MM-DD`. */
+export function enPeriodo(
+  evento: Evento,
+  periodo: PeriodoCartelera,
+  hoy: string,
+): boolean {
+  if (periodo === "Cualquier fecha") return true;
+  if (periodo === "Este mes") return evento.fecha.slice(0, 7) === hoy.slice(0, 7);
+  return evento.fecha >= hoy && evento.fecha <= sumarDias(hoy, 7);
+}
+
+function sinTildes(texto: string): string {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+/** Busca por título, tipo, disertante, locación y sede, sin distinguir tildes ni mayúsculas. */
+export function coincideConBusqueda(evento: Evento, busqueda: string): boolean {
+  const termino = sinTildes(busqueda.trim());
+  if (!termino) return true;
+  return sinTildes(
+    [evento.titulo, evento.tipo, evento.disertante, evento.locacion, evento.sede].join(" "),
+  ).includes(termino);
+}
+
 export function filtrarEventos(
   eventos: Evento[],
   filtro: FiltroCartelera,
@@ -142,16 +180,28 @@ export function filtrarEventos(
   }
 }
 
-/** La cancelación (con devolución del saldo si fue paga) cierra 24 hs antes del inicio. */
+/**
+ * La cancelación (con devolución del saldo si fue paga) cierra 24 hs antes del
+ * inicio. Si el creador movió la fecha o el lugar, queda abierta hasta el inicio.
+ */
 export function puedeCancelarInscripcion(
   evento: Evento,
   ahora: Date = new Date(),
 ): boolean {
   const inicio = new Date(`${evento.fecha}T${evento.desde}:00`);
-  return (
-    inicio.getTime() - ahora.getTime() >=
-    HORAS_ANTICIPACION_CANCELACION * 60 * 60_000
-  );
+  const anticipacion = evento.reprogramado
+    ? 0
+    : HORAS_ANTICIPACION_CANCELACION * 60 * 60_000;
+  return inicio.getTime() - ahora.getTime() >= anticipacion;
+}
+
+export function haComenzado(evento: Evento, ahora: Date = new Date()): boolean {
+  return new Date(`${evento.fecha}T${evento.desde}:00`).getTime() <= ahora.getTime();
+}
+
+/** El creador puede editar o cancelar mientras el evento esté publicado y no haya empezado. */
+export function puedeGestionar(evento: Evento, ahora: Date = new Date()): boolean {
+  return evento.estadoPublicacion === "publicado" && !haComenzado(evento, ahora);
 }
 
 /**
