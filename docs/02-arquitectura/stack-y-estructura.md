@@ -25,24 +25,28 @@ uadenet-eventos/
 │   │   │   ├── page.tsx            # login
 │   │   │   └── (app)/              # rutas con la shell (header + sidebar)
 │   │   │       ├── layout.tsx
-│   │   │       ├── cartelera/
-│   │   │       ├── eventos/[id]/   # detalle e inscripción
-│   │   │       ├── eventos/nuevo/  # alta de evento (wizard)
+│   │   │       ├── cartelera/      # listado con búsqueda y filtros
+│   │   │       ├── eventos/
+│   │   │       │   ├── formulario-evento.tsx      # el wizard: alta y edición
+│   │   │       │   ├── nuevo/                     # alta de evento
+│   │   │       │   └── [id]/                      # detalle, inscripción y panel del creador
+│   │   │       │       ├── panel-organizador.tsx  # inscriptos, presentismo, CSV, cancelar
+│   │   │       │       └── editar/                # edición del evento
 │   │   │       ├── mis-inscripciones/
 │   │   │       ├── cuenta/
 │   │   │       ├── gestion/
 │   │   │       ├── asistencia/
-│   │   │       ├── docente/
-│   │   │       └── avisos/
+│   │   │       └── avisos/         # notificaciones de CORE del usuario
 │   │   ├── components/
-│   │   │   ├── shell/              # header, sidebar, panel de avisos
+│   │   │   ├── shell/              # header y sidebar
 │   │   │   ├── ui/                 # botones, badges, campos, modal, toast…
 │   │   │   └── eventos/            # vistas de cartelera (tarjetas/tabla/agenda)
 │   │   ├── lib/
-│   │   │   ├── sesion.tsx          # contexto de perfil, sede, saldo e inscripciones
-│   │   │   ├── dominio.ts          # estado del evento, conflictos, cupo
-│   │   │   ├── formato.ts          # montos, fechas y horarios
-│   │   │   └── mock/               # datos de prueba hasta que exista la API
+│   │   │   ├── api.ts              # cliente de apps/api y adaptación a los tipos de las pantallas
+│   │   │   ├── sesion.tsx          # contexto de perfil, sede, saldo, eventos e inscripciones
+│   │   │   ├── dominio.ts          # estado del evento, conflictos, cupo, filtros, qué se puede gestionar
+│   │   │   ├── vista-evento.ts     # campos derivados que usan todas las vistas
+│   │   │   └── formato.ts          # montos, fechas y horarios
 │   │   └── package.json
 │   │
 │   └── api/                        # NestJS
@@ -50,21 +54,27 @@ uadenet-eventos/
 │       │   ├── modules/
 │       │   │   ├── eventos/
 │       │   │   │   ├── eventos.controller.ts
-│       │   │   │   ├── eventos.service.ts
+│       │   │   │   ├── eventos.service.ts           # alta, listado, cupo
+│       │   │   │   ├── eventos-gestion.service.ts   # editar, cancelar con reembolso, impacto (ADR 0015)
 │       │   │   │   ├── eventos.module.ts
-│       │   │   │   ├── eventos.controller.spec.ts
+│       │   │   │   ├── *.spec.ts
 │       │   │   │   └── dto/
 │       │   │   ├── inscripciones/
-│       │   │   └── asistencia/
+│       │   │   ├── asistencia/
+│       │   │   ├── locaciones/         # catálogo sincronizado desde Backoffice
+│       │   │   ├── usuarios/
+│       │   │   └── auth/
 │       │   ├── workers/
-│       │   │   └── recordatorio-evento.worker.ts  # (pendiente, 2° entrega — HU7, ver backlog.md)
+│       │   │   └── recordatorios.service.ts   # HU7: recordatorio a los 7 días
 │       │   ├── common/
 │       │   │   ├── guards/
 │       │   │   │   └── core-jwt.guard.ts
-│       │   │   ├── pipes/
-│       │   │   │   └── zod-validation.pipe.ts
-│       │   │   ├── interceptors/
-│       │   │   └── helpers/
+│       │   │   ├── core/          # integración con CORE: token M2M, JWKS, saldo, notificaciones (+ CORE simulado)
+│       │   │   ├── backoffice/    # integración con Backoffice: sedes, espacios, tarifas (+ Backoffice simulado)
+│       │   │   ├── analitica/     # eventos de dominio hacia el bus de CORE
+│       │   │   ├── decorators/
+│       │   │   └── pipes/
+│       │   │       └── zod-validation.pipe.ts
 │       │   ├── health/
 │       │   │   └── health.controller.ts
 │       │   ├── main.ts             # bootstrap + Swagger + versionado URI + CORS
@@ -77,7 +87,10 @@ uadenet-eventos/
 │   │   └── src/
 │   │       ├── evento.schema.ts
 │   │       ├── inscripcion.schema.ts
-│   │       └── asistencia.schema.ts
+│   │       ├── asistencia.schema.ts
+│   │       ├── analitica.schema.ts
+│   │       ├── backoffice.schema.ts
+│   │       └── core.schema.ts
 │   ├── db/                         # Drizzle: schema, client, migrations, seed
 │   │   └── src/
 │   │       ├── schema/
@@ -108,7 +121,7 @@ uadenet-eventos/
 
 Estilos: CSS Modules con los tokens en `app/globals.css` — ver ADR 0010 y `../03-diseno/sistema-diseno.md`.
 
-Datos: mientras `apps/api` no exponga los endpoints, las pantallas leen de `lib/mock/`. Todo lo que sale de ahí está tipado con las mismas formas que después van a venir de `packages/contracts`, para que el reemplazo sea cambiar el origen y no reescribir la pantalla. La fecha "hoy" del prototipo está fija en `lib/mock/eventos.ts` a propósito: un `new Date()` real haría divergir el render del servidor del render del cliente.
+Datos: las pantallas leen de `apps/api` a través de `lib/api.ts`, que también adapta lo que devuelve la API (fechas ISO, descripción con tipo y disertante) a los tipos que usan las vistas. `lib/sesion.tsx` carga eventos, inscripciones, locaciones, tarifas y saldo una vez por sesión y los comparte; las acciones que cambian datos (inscribirse, crear, editar, cancelar) recargan ese estado al terminar.
 
 ## Flujo de datos
 
@@ -127,9 +140,9 @@ Esto es la vista técnica por capas. Para el recorrido de negocio completo (crea
 ## Capas dentro de `apps/api` (por módulo)
 
 1. **Controller** — recibe el request, valida con el schema de `packages/contracts`, delega al service. No tiene lógica de negocio.
-2. **Service** — reglas de negocio (ej. validar no-solapamiento de locación/usuario, calcular si hay cupo).
+2. **Service** — reglas de negocio (ej. validar no-solapamiento de locación/usuario, calcular si hay cupo, decidir si un evento se puede editar o cancelar). Cuando un módulo tiene una parte que depende de CORE y otra que no, se parte en dos services: `EventosService` (cartelera, sin CORE) y `EventosGestionService` (reembolsos y avisos).
 3. **Repository / Drizzle client** (`packages/db`) — acceso a datos, sin lógica de negocio.
 
 ## Seguridad / auth
 
-`common/guards/core-jwt.guard.ts` valida el token emitido por CORE en cada request. El mecanismo exacto (secreto compartido vs JWKS) todavía no está cerrado — ver `integraciones.md`. Hasta que se defina, el guard queda como placeholder documentado, no implementado a ciegas.
+`common/guards/core-jwt.guard.ts` valida el token emitido por CORE en cada request: firma RS256 y vencimiento contra el JWKS de CORE, y el permiso `@RequierePermiso('campus-events:manage')` donde corresponde. Además, cada módulo verifica la pertenencia (por ejemplo, "solo el creador del evento"). El detalle de quién puede qué está en [`roles-y-permisos.md`](roles-y-permisos.md); el panorama general, en [`diagrama-arquitectura.md`](diagrama-arquitectura.md).

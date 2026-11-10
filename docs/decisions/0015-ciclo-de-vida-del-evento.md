@@ -1,0 +1,21 @@
+# ADR 0015 — Ciclo de vida del evento: edición y cancelación por su creador
+
+**Contexto:** hasta ahora un evento solo se podía crear. El TPO dice que los administrativos "gestionan eventos", y un evento publicado cambia: se corrige un dato, se mueve de fecha o de sala, o se suspende. El backlog dejaba afuera "edición/borrado de evento" por no estar pedido explícitamente; el equipo decidió incorporarlo (como ya se hizo con la cancelación de inscripción) porque sin esto un error al publicar no tiene salida y, con inscriptos pagos, hay dinero de por medio.
+
+**Opciones consideradas:**
+1. Borrado físico del evento (`DELETE`). Descartada: rompe las FK de inscripciones y asistencias, borra el historial y no deja rastro de qué se reembolsó.
+2. Baja lógica con un campo `estado` en `Evento` (`publicado` | `cancelado`), y la inscripción se conserva como `cancelada` cuando cae por esa cancelación. **Elegida.**
+3. Reembolsar en un worker en background (como los recordatorios). Descartada: en Vercel las funciones se congelan al terminar la request y `setInterval` no es confiable (ver [`../02-arquitectura/estado-integraciones-y-faltantes.md`](../02-arquitectura/estado-integraciones-y-faltantes.md)), y el creador necesita saber en el momento cuántos pagos se devolvieron.
+
+**Decisión:**
+- **Quién:** solo el creador del evento, igual que la asistencia (HU6). No hay override de administrador: es un cambio de una línea en `EventosGestionService` si el equipo lo pide.
+- **Datos** (migration `0003_gestion_de_eventos`): `eventos.estado`, `motivo_cancelacion`, `cancelado_en`, `reprogramado_en`; `inscripciones.estado` suma `cancelada` y `reembolsado_en`. Cuando la propia persona cancela su inscripción, la fila se sigue borrando como antes.
+- **Editar** (`PATCH /eventos/:id`): solo si está publicado y no empezó. El cupo no puede quedar por debajo de los inscriptos. Si ya hay inscriptos no se puede cambiar si el evento es pago ni su categoría de precio (los montos ya cobrados quedarían inconsistentes). Un cambio de fecha o locación se revalida con las mismas reglas que el alta —locación libre— más la regla de usuario: si un inscripto quedaría con otro evento en el nuevo horario, se rechaza.
+- **Reprogramar:** guarda `reprogramado_en`, avisa a cada inscripto y, como esa persona no eligió el cambio, deja cancelar su inscripción hasta el inicio del evento en vez de hasta 24 hs antes (con reembolso si era paga).
+- **Cancelar** (`POST /eventos/:id/cancelacion`, con motivo obligatorio): marca el evento, da de baja cada inscripción y, si fue paga, revierte el cobro en CORE (`conciliarPorReferencia` + `revertir`, el mismo camino de la cancelación de inscripción). No se puede cancelar un evento que ya empezó ni uno con asistencias registradas. La locación queda libre.
+- **Idempotencia y fallas parciales:** repetir la cancelación no vuelve a cambiar el evento, no re-avisa ni re-emite, solo reintenta los reembolsos que CORE no confirmó (`reembolsado_en` nulo en una inscripción paga cancelada). Antes de revertir se consulta el estado del cobro en CORE: si ya figura `REVERSED` no se devuelve dos veces. La UI muestra "N reembolsos pendientes" con un botón de reintento que es la misma llamada.
+- **Impacto antes de confirmar** (`GET /eventos/:id/impacto`): inscriptos, monto a reembolsar y pendientes, para que la confirmación muestre números reales.
+- **Avisos:** notificaciones de CORE (`POST /internal/v1/notifications`) con tipos `EVENT_RESCHEDULED` y `EVENT_CANCELLED`, deduplicadas por `sourceReference`. Si el aviso falla, el cambio ya hecho no se deshace. Son tipos propuestos por este módulo: contra el CORE simulado funcionan, contra el real están pendientes de confirmar (ver [`../02-arquitectura/integraciones.md`](../02-arquitectura/integraciones.md)).
+- **Analítica:** dos eventos nuevos en el bus, `evento.modificado.v1` y `evento.cancelado.v1`. También pendientes de que Analítica los confirme.
+
+**Motivo:** mantiene el historial, usa el circuito de reembolso que ya existía y está probado, y evita que un fallo de CORE a mitad de camino deje al creador sin saber qué quedó pagado. El costo es una migration en el proyecto Supabase compartido, que hay que avisar al grupo antes de correr (ver [`../04-guias/aplicar-migraciones.md`](../04-guias/aplicar-migraciones.md)).
