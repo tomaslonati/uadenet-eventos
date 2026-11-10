@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import {
+  avisoEventoSchema,
   coreEventEnvelopeSchema,
   coreNotificationRequestSchema,
   coreNotificationsPageSchema,
   recordatorioEventoSchema,
+  type AvisoEvento,
   type CoreNotificationsPage,
   type RecordatorioEvento,
 } from '@repo/contracts';
@@ -18,8 +20,19 @@ export type DatosRecordatorio = Omit<RecordatorioEvento, 'tipo' | 'url'> & {
 
 const MAXIMO_RETENIDOS = 100;
 
+const TIPO_NOTIFICACION_AVISO: Record<AvisoEvento['tipo'], string> = {
+  'evento.reprogramado': 'EVENT_RESCHEDULED',
+  'evento.cancelado': 'EVENT_CANCELLED',
+};
+
+const TITULO_AVISO: Record<AvisoEvento['tipo'], string> = {
+  'evento.reprogramado': 'Cambió la fecha o el lugar de un evento',
+  'evento.cancelado': 'Se canceló un evento',
+};
+
 /**
- * Envía recordatorios de eventos (HU7 — `evento.recordatorio`) hacia CORE:
+ * Envía notificaciones de eventos hacia CORE: recordatorios (HU7), y avisos de
+ * reprogramación o cancelación (`enviarAviso`). El recordatorio va así:
  * - Notificación para campanita/correo del portal (`POST /internal/v1/notifications`)
  * - Evento en el bus (`POST /internal/v1/events`, `eventType: 'evento.recordatorio.v1'`)
  */
@@ -27,6 +40,7 @@ const MAXIMO_RETENIDOS = 100;
 export class NotificacionesService {
   private readonly logger = new Logger(NotificacionesService.name);
   readonly enviados: RecordatorioEvento[] = [];
+  readonly avisos: AvisoEvento[] = [];
 
   constructor(@Optional() private readonly tokenService?: CoreTokenService) {}
 
@@ -102,6 +116,57 @@ export class NotificacionesService {
     } catch (err) {
       this.logger.warn(
         `No se pudo entregar recordatorio a CORE para ${recordatorio.usuarioId}: ${String(err)}`,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Avisa a un inscripto que el evento se reprogramó o se canceló. Nunca lanza:
+   * un aviso que no sale no puede deshacer el cambio ya hecho sobre el evento.
+   */
+  async enviarAviso(datos: AvisoEvento): Promise<boolean> {
+    const aviso = avisoEventoSchema.parse(datos);
+
+    this.avisos.push(aviso);
+    if (this.avisos.length > MAXIMO_RETENIDOS) {
+      this.avisos.shift();
+    }
+
+    try {
+      const payload = coreNotificationRequestSchema.parse({
+        userId: aviso.usuarioId,
+        type: TIPO_NOTIFICACION_AVISO[aviso.tipo],
+        title: TITULO_AVISO[aviso.tipo],
+        message: aviso.mensaje,
+        actionUrl: `${env.FRONTEND_BASE_URL.replace(/\/$/, '')}/eventos/${aviso.eventoId}`,
+        sourceModule: 'events',
+        sourceReference: aviso.referencia,
+      });
+
+      const token = await this.tokenService?.obtenerToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const res = await fetch(
+        `${obtenerCoreBaseUrl()}/internal/v1/notifications`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(5_000),
+        },
+      );
+
+      return res.ok || res.status === 409;
+    } catch (err) {
+      this.logger.warn(
+        `No se pudo entregar el aviso ${aviso.tipo} a ${aviso.usuarioId}: ${String(err)}`,
       );
       return false;
     }

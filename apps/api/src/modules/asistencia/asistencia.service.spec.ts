@@ -178,6 +178,27 @@ describe('AsistenciaService', () => {
       );
     });
 
+    it('rechaza registrar asistencia en un evento cancelado', async () => {
+      seleccionar.mockReturnValueOnce(
+        queryMock([
+          {
+            id: datos.inscripcionId,
+            eventoId,
+            usuarioId: 'usr-1',
+            estado: 'cancelada',
+            eventoEstado: 'cancelado',
+            eventoCreadoPor: creadorId,
+            fechaInicio: new Date(),
+          },
+        ]),
+      );
+
+      await expect(service.registrar(datos, creadorId)).rejects.toThrow(
+        'El evento fue cancelado',
+      );
+      expect(insertar).not.toHaveBeenCalled();
+    });
+
     it('rechaza cuando no existe la inscripción', async () => {
       seleccionar.mockReturnValueOnce(queryMock([]));
 

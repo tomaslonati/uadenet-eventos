@@ -5,7 +5,9 @@ import {
   eventoAnaliticaSchema,
   type AsistenciaConfirmada,
   type EventoAnalitica,
+  type EventoCancelado,
   type EventoCreado,
+  type EventoModificado,
   type InscripcionRegistrada,
 } from '@repo/contracts';
 import { env } from '@repo/env';
@@ -18,7 +20,7 @@ const MAXIMO_RETENIDOS = 100;
 
 /**
  * Publica hacia Analítica Institucional (vía bus de eventos de CORE) los eventos
- * de frecuencia (`evento.creado`), concurrencia (`inscripcion.registrada`) y
+ * de frecuencia (`evento.creado`, `evento.modificado`, `evento.cancelado`), concurrencia (`inscripcion.registrada`) y
  * presentismo (`asistencia.confirmada`).
  *
  * Envía `POST /internal/v1/events` a CORE con el sobre estándar v1 (`specVersion: '1.0'`).
@@ -32,6 +34,14 @@ export class AnaliticaService {
 
   eventoCreado(datos: SinMetadatos<EventoCreado>): void {
     this.publicar({ tipo: 'evento.creado', ...datos, emitidoEn: ahora() });
+  }
+
+  eventoModificado(datos: SinMetadatos<EventoModificado>): void {
+    this.publicar({ tipo: 'evento.modificado', ...datos, emitidoEn: ahora() });
+  }
+
+  eventoCancelado(datos: SinMetadatos<EventoCancelado>): void {
+    this.publicar({ tipo: 'evento.cancelado', ...datos, emitidoEn: ahora() });
   }
 
   inscripcionRegistrada(datos: SinMetadatos<InscripcionRegistrada>): void {

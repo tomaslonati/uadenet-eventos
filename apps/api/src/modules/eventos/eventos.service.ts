@@ -79,6 +79,7 @@ export class EventosService {
       .where(
         and(
           eq(eventos.locacionId, datos.locacionId),
+          eq(eventos.estado, 'publicado'),
           lt(eventos.fechaInicio, datos.fechaFin),
           gt(eventos.fechaFin, datos.fechaInicio),
         ),
@@ -178,7 +179,12 @@ export class EventosService {
     const conteos = await db
       .select({ eventoId: inscripciones.eventoId, total: count() })
       .from(inscripciones)
-      .where(inArray(inscripciones.eventoId, ids))
+      .where(
+        and(
+          inArray(inscripciones.eventoId, ids),
+          eq(inscripciones.estado, 'inscripto'),
+        ),
+      )
       .groupBy(inscripciones.eventoId);
 
     const propias = await db
@@ -187,6 +193,7 @@ export class EventosService {
       .where(
         and(
           eq(inscripciones.usuarioId, usuarioId),
+          eq(inscripciones.estado, 'inscripto'),
           inArray(inscripciones.eventoId, ids),
         ),
       );

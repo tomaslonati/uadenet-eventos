@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  and,
   asistencias,
   db,
   eq,
@@ -62,7 +63,12 @@ export class AsistenciaService {
       .from(inscripciones)
       .innerJoin(usuarios, eq(inscripciones.usuarioId, usuarios.id))
       .leftJoin(asistencias, eq(asistencias.inscripcionId, inscripciones.id))
-      .where(eq(inscripciones.eventoId, eventoId))
+      .where(
+        and(
+          eq(inscripciones.eventoId, eventoId),
+          eq(inscripciones.estado, 'inscripto'),
+        ),
+      )
       .orderBy(inscripciones.fechaInscripcion);
 
     return filas.map((fila) => {
@@ -96,6 +102,8 @@ export class AsistenciaService {
         id: inscripciones.id,
         eventoId: inscripciones.eventoId,
         usuarioId: inscripciones.usuarioId,
+        estado: inscripciones.estado,
+        eventoEstado: eventos.estado,
         eventoCreadoPor: eventos.creadoPor,
         fechaInicio: eventos.fechaInicio,
       })
@@ -121,6 +129,15 @@ export class AsistenciaService {
     if (!usuarioId || inscripcion.eventoCreadoPor !== usuarioId) {
       throw new ForbiddenException(
         'Solo el creador del evento puede registrar la asistencia.',
+      );
+    }
+
+    if (
+      inscripcion.eventoEstado === 'cancelado' ||
+      inscripcion.estado === 'cancelada'
+    ) {
+      throw new ConflictException(
+        'El evento fue cancelado; no se puede registrar asistencia.',
       );
     }
 

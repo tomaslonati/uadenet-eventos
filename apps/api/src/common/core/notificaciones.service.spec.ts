@@ -53,4 +53,58 @@ describe('NotificacionesService', () => {
     expect(urlEn(0)).toMatch(/\/internal\/v1\/notifications$/);
     expect(urlEn(1)).toMatch(/\/internal\/v1\/events$/);
   });
+
+  describe('enviarAviso', () => {
+    const aviso = {
+      tipo: 'evento.cancelado' as const,
+      usuarioId: 'u-10432',
+      eventoId: EVENTO_ID,
+      titulo: 'Workshop de Testing',
+      mensaje: 'Se canceló «Workshop de Testing». Motivo: lluvia.',
+      referencia: `evento/${EVENTO_ID}/cancelado`,
+    };
+
+    const cuerpoEnviado = () => {
+      const llamadas = fetchMock.mock.calls as [string, RequestInit][];
+      return JSON.parse(llamadas[0]![1].body as string) as Record<
+        string,
+        string
+      >;
+    };
+
+    it('publica una notificación de CORE con el tipo, la referencia y el link al evento', async () => {
+      await expect(service.enviarAviso(aviso)).resolves.toBe(true);
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(urlEn(0)).toMatch(/\/internal\/v1\/notifications$/);
+      expect(cuerpoEnviado()).toMatchObject({
+        userId: 'u-10432',
+        type: 'EVENT_CANCELLED',
+        sourceModule: 'events',
+        sourceReference: aviso.referencia,
+        actionUrl: `https://uadenet-eventos.vercel.app/eventos/${EVENTO_ID}`,
+      });
+    });
+
+    it('usa EVENT_RESCHEDULED para una reprogramación', async () => {
+      await service.enviarAviso({ ...aviso, tipo: 'evento.reprogramado' });
+
+      expect(cuerpoEnviado()).toMatchObject({ type: 'EVENT_RESCHEDULED' });
+    });
+
+    it('toma como entregado un aviso que CORE ya tenía (409)', async () => {
+      fetchMock.mockImplementation(() =>
+        Promise.resolve(new Response('{}', { status: 409 })),
+      );
+
+      await expect(service.enviarAviso(aviso)).resolves.toBe(true);
+    });
+
+    it('devuelve false sin lanzar si CORE no responde', async () => {
+      fetchMock.mockImplementation(() => Promise.reject(new Error('caído')));
+
+      await expect(service.enviarAviso(aviso)).resolves.toBe(false);
+      expect(service.avisos).toHaveLength(1);
+    });
+  });
 });
