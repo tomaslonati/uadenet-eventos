@@ -70,7 +70,7 @@ Que el backend funcione no significa que la historia esté entregada: el DoD exi
 | HU3 inscripción gratuita | Must | ✅ | `/eventos/[id]` | Rechaza por cupo y por conflicto horario del usuario |
 | HU4 inscripción paga | Must | ✅ | `/eventos/[id]`, `/cuenta` | Débito idempotente contra CORE. Probado contra el CORE simulado; contra el CORE real falta cargar saldo en las billeteras de prueba |
 | HU5 mis inscripciones | Should | ✅ | `/mis-inscripciones` | Incluye cancelar la inscripción (con reembolso) y las bajas por cancelación del evento |
-| HU6 registrar asistencia | Must | ✅ | `/asistencia` | Solo el creador; QR y lista manual; se habilita 1 hora antes del inicio |
+| HU6 registrar asistencia | Must | ✅ | `/asistencia` | Solo el creador; QR leído con la cámara del celular (o pegando el código) y lista manual; se habilita 1 hora antes del inicio |
 | HU7 recordatorio | Must | ✅ | `/avisos` | `RecordatoriosService` publica en CORE a los 7 días. En Vercel lo dispara un cron diario ([ADR 0016](../decisions/0016-cron-diario-de-vercel.md)): falta definir `CRON_SECRET` y mergear a `main` |
 | HU8 ver cupo | Could | ✅ | `/gestion`, panel del evento | Cupo, presentismo y recaudación del evento |
 | Gestión del evento (extra) | — | ✅ | `/eventos/[id]/editar`, panel en `/eventos/[id]` | Editar y cancelar con reembolso y avisos (ADR 0015). **Requiere aplicar la migration `0003`** |
