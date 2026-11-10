@@ -12,10 +12,14 @@ import { eventos } from "./evento.js";
 import { usuarios } from "./usuario.js";
 
 /**
- * Un solo valor: la cancelación de inscripción no está en el alcance del TP
- * (ver docs/01-proyecto/backlog.md). Si se agrega, va con su propia migration.
+ * `cancelada` solo la deja la cancelación del evento por su creador: la fila se
+ * conserva para poder seguir el reembolso. Cuando es la propia persona la que
+ * cancela, la inscripción se borra (ver docs/02-arquitectura/modelo-dominio.md).
  */
-export const estadoInscripcion = pgEnum("estado_inscripcion", ["inscripto"]);
+export const estadoInscripcion = pgEnum("estado_inscripcion", [
+  "inscripto",
+  "cancelada",
+]);
 
 export const inscripciones = pgTable(
   "inscripciones",
@@ -34,6 +38,8 @@ export const inscripciones = pgTable(
     pagoConfirmado: boolean("pago_confirmado").notNull(),
     /** Monto que devolvió Backoffice al confirmarse; se congela acá, no se recalcula (ver ADR 0013). */
     montoCobrado: integer("monto_cobrado"),
+    /** Se completa cuando CORE confirma la reversa; en una inscripción paga cancelada, `null` significa reembolso pendiente. */
+    reembolsadoEn: timestamp("reembolsado_en", { withTimezone: true }),
   },
   (tabla) => [unique().on(tabla.eventoId, tabla.usuarioId)],
 );
