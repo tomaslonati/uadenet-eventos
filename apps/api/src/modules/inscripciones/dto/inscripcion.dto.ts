@@ -13,14 +13,26 @@ export class InscripcionDto {
   @ApiProperty({ format: 'date-time' })
   fechaInscripcion!: Date;
 
-  @ApiProperty({ enum: ['inscripto'] })
-  estado!: 'inscripto';
+  @ApiProperty({
+    enum: ['inscripto', 'cancelada'],
+    description:
+      '`cancelada` es la baja que deja el creador al cancelar el evento.',
+  })
+  estado!: 'inscripto' | 'cancelada';
 
   @ApiProperty()
   pagoConfirmado!: boolean;
 
   @ApiProperty({ nullable: true })
   montoCobrado!: number | null;
+
+  @ApiProperty({
+    format: 'date-time',
+    nullable: true,
+    description:
+      'Cuándo se devolvió el pago; null en una inscripción paga cancelada significa reembolso pendiente.',
+  })
+  reembolsadoEn!: Date | null;
 }
 
 export class CancelacionInscripcionDto {

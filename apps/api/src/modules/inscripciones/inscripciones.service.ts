@@ -48,6 +48,10 @@ export class InscripcionesService {
       usuario.id,
     );
 
+    if (evento.estado === 'cancelado') {
+      throw new ConflictException('El evento fue cancelado.');
+    }
+
     if (evento.disponibles <= 0) {
       throw new ConflictException('El evento no tiene cupo disponible.');
     }
@@ -59,6 +63,8 @@ export class InscripcionesService {
       .where(
         and(
           eq(inscripciones.usuarioId, usuario.id),
+          eq(inscripciones.estado, 'inscripto'),
+          eq(eventos.estado, 'publicado'),
           lt(eventos.fechaInicio, evento.fechaFin),
           gt(eventos.fechaFin, evento.fechaInicio),
         ),
@@ -147,10 +153,12 @@ export class InscripcionesService {
     const encontradas = await db
       .select({
         id: inscripciones.id,
+        estado: inscripciones.estado,
         pagoConfirmado: inscripciones.pagoConfirmado,
         montoCobrado: inscripciones.montoCobrado,
         titulo: eventos.titulo,
         fechaInicio: eventos.fechaInicio,
+        reprogramadoEn: eventos.reprogramadoEn,
       })
       .from(inscripciones)
       .innerJoin(eventos, eq(inscripciones.eventoId, eventos.id))
@@ -167,9 +175,17 @@ export class InscripcionesService {
       throw new NotFoundException('No existe esa inscripción.');
     }
 
-    const limite =
-      inscripcion.fechaInicio.getTime() -
-      HORAS_ANTICIPACION_CANCELACION * 60 * 60_000;
+    if (inscripcion.estado === 'cancelada') {
+      throw new ConflictException(
+        'Esta inscripción ya fue cancelada junto con el evento.',
+      );
+    }
+
+    // Si el creador movió la fecha o el lugar, la persona no eligió ese cambio: puede salirse hasta el inicio.
+    const anticipacion = inscripcion.reprogramadoEn
+      ? 0
+      : HORAS_ANTICIPACION_CANCELACION * 60 * 60_000;
+    const limite = inscripcion.fechaInicio.getTime() - anticipacion;
     if (ahora.getTime() > limite) {
       throw new ConflictException(
         `Solo se puede cancelar hasta ${HORAS_ANTICIPACION_CANCELACION} horas antes del inicio del evento.`,

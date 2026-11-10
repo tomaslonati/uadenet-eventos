@@ -45,6 +45,9 @@ describe('InscripcionesService', () => {
     esPago: false,
     categoriaPrecio: null,
     creadoPor: 'seed-admin-demo',
+    estado: 'publicado',
+    motivoCancelacion: null,
+    reprogramadoEn: null,
     locacion: { nombre: 'Aula Magna', sede: 'Monserrat' },
     inscriptos: 0,
     disponibles: 2,
@@ -148,6 +151,13 @@ describe('InscripcionesService', () => {
     expect(inscripcionRegistrada).not.toHaveBeenCalled();
   });
 
+  it('rechaza inscribirse a un evento cancelado', async () => {
+    construir({ ...eventoGratuito, estado: 'cancelado' });
+
+    await expect(service.crear(datos)).rejects.toThrow('fue cancelado');
+    expect(insertar).not.toHaveBeenCalled();
+  });
+
   it('rechaza cuando el evento ya llegó al cupo máximo', async () => {
     construir({ ...eventoGratuito, inscriptos: 2, disponibles: 0 });
 
@@ -207,18 +217,22 @@ describe('InscripcionesService', () => {
 
     const inscripcionEncontrada = (
       sobreescribir: Partial<{
+        estado: 'inscripto' | 'cancelada';
         pagoConfirmado: boolean;
         montoCobrado: number | null;
         fechaInicio: Date;
+        reprogramadoEn: Date | null;
       }> = {},
     ) =>
       superpuestas([
         {
           id: inscripcionCreada.id,
+          estado: 'inscripto',
           pagoConfirmado: false,
           montoCobrado: null,
           titulo: 'Charla abierta',
           fechaInicio: eventoGratuito.fechaInicio,
+          reprogramadoEn: null,
           ...sobreescribir,
         } as { id: string },
       ]);
@@ -289,6 +303,53 @@ describe('InscripcionesService', () => {
       await expect(
         service.cancelar(inscripcionCreada.id, usuario, ahora),
       ).rejects.toBeInstanceOf(ConflictException);
+      expect(revertir).not.toHaveBeenCalled();
+      expect(borrar).not.toHaveBeenCalled();
+    });
+
+    it('si el evento se reprogramó, deja cancelar a menos de 24 horas y devuelve el pago', async () => {
+      seleccionar
+        .mockReturnValueOnce(
+          inscripcionEncontrada({
+            pagoConfirmado: true,
+            montoCobrado: 4500,
+            fechaInicio: new Date('2026-10-10T18:00:00Z'),
+            reprogramadoEn: new Date('2026-10-09T10:00:00Z'),
+          }),
+        )
+        .mockReturnValueOnce(asistencias([]));
+
+      await expect(
+        service.cancelar(inscripcionCreada.id, usuario, ahora),
+      ).resolves.toEqual({
+        inscripcionId: inscripcionCreada.id,
+        montoReembolsado: 4500,
+      });
+      expect(revertir).toHaveBeenCalledTimes(1);
+    });
+
+    it('aun reprogramado, no deja cancelar una vez que el evento empezó', async () => {
+      seleccionar.mockReturnValueOnce(
+        inscripcionEncontrada({
+          fechaInicio: new Date('2026-10-10T11:00:00Z'),
+          reprogramadoEn: new Date('2026-10-09T10:00:00Z'),
+        }),
+      );
+
+      await expect(
+        service.cancelar(inscripcionCreada.id, usuario, ahora),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(borrar).not.toHaveBeenCalled();
+    });
+
+    it('rechaza cancelar una inscripción que ya cayó con la cancelación del evento', async () => {
+      seleccionar.mockReturnValueOnce(
+        inscripcionEncontrada({ estado: 'cancelada' }),
+      );
+
+      await expect(
+        service.cancelar(inscripcionCreada.id, usuario, ahora),
+      ).rejects.toThrow('ya fue cancelada junto con el evento');
       expect(revertir).not.toHaveBeenCalled();
       expect(borrar).not.toHaveBeenCalled();
     });
