@@ -24,6 +24,29 @@ export const eventoCreadoSchema = z.object({
   emitidoEn: fecha,
 });
 
+/** Cambio de fecha u horario o de locación de un evento ya publicado. */
+export const eventoModificadoSchema = z.object({
+  tipo: z.literal("evento.modificado"),
+  eventoId: z.uuid(),
+  locacionId: z.uuid(),
+  sede: z.string(),
+  cupoMaximo: z.number().int(),
+  fechaInicio: fecha,
+  fechaFin: fecha,
+  reprogramado: z.boolean(),
+  inscriptosNotificados: z.number().int(),
+  emitidoEn: fecha,
+});
+
+export const eventoCanceladoSchema = z.object({
+  tipo: z.literal("evento.cancelado"),
+  eventoId: z.uuid(),
+  motivo: z.string(),
+  inscriptosAfectados: z.number().int(),
+  montoReembolsado: z.number().int(),
+  emitidoEn: fecha,
+});
+
 export const inscripcionRegistradaSchema = z.object({
   tipo: z.literal("inscripcion.registrada"),
   inscripcionId: z.uuid(),
@@ -45,11 +68,15 @@ export const asistenciaConfirmadaSchema = z.object({
 
 export const eventoAnaliticaSchema = z.discriminatedUnion("tipo", [
   eventoCreadoSchema,
+  eventoModificadoSchema,
+  eventoCanceladoSchema,
   inscripcionRegistradaSchema,
   asistenciaConfirmadaSchema,
 ]);
 
 export type EventoCreado = z.infer<typeof eventoCreadoSchema>;
+export type EventoModificado = z.infer<typeof eventoModificadoSchema>;
+export type EventoCancelado = z.infer<typeof eventoCanceladoSchema>;
 export type InscripcionRegistrada = z.infer<typeof inscripcionRegistradaSchema>;
 export type AsistenciaConfirmada = z.infer<typeof asistenciaConfirmadaSchema>;
 export type EventoAnalitica = z.infer<typeof eventoAnaliticaSchema>;
