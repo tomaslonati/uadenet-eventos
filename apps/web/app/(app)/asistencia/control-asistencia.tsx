@@ -20,6 +20,7 @@ import { horario, iniciales } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 
 import estilos from "./asistencia.module.css";
+import { LectorQr } from "./lector-qr";
 
 type Metodo = "qr" | "manual";
 
@@ -304,8 +305,8 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
     }
   };
 
-  const escanearQr = () => {
-    const limpio = codigoQr.trim();
+  const validarCodigo = (codigo: string) => {
+    const limpio = codigo.trim();
     if (!limpio) return;
 
     if (!asistenciaHabilitada) {
@@ -343,6 +344,8 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
       encontrado.usuario.nombre,
     );
   };
+
+  const escanearQr = () => validarCodigo(codigoQr);
 
   return (
     <>
@@ -465,21 +468,19 @@ export function ControlAsistencia({ eventoId }: { eventoId?: string }) {
             <>
               <span className={estilos.metodoTitulo}>Escáner en puerta</span>
               <p className={estilos.metodoTexto}>
-                El asistente muestra la credencial desde su portal. Pegá o
-                escaneá el código UUID de la credencial o el legajo del
-                inscripto.
+                El asistente muestra la credencial desde su portal. Escaneá el
+                QR con la cámara o pegá el código de la credencial (o el
+                mail del inscripto).
               </p>
-              <div className={estilos.escanerWrapper}>
-                <div className={estilos.escaner} aria-hidden>
-                  <div className={estilos.escanerMarco} />
-                  <div className={estilos.escanerLinea} />
-                </div>
-              </div>
+              <LectorQr
+                habilitado={asistenciaHabilitada}
+                onCodigo={validarCodigo}
+              />
               <input
                 className={claseControl}
                 placeholder={
                   asistenciaHabilitada
-                    ? "Código de credencial o legajo"
+                    ? "Código de credencial o mail"
                     : "Asistencia no habilitada aún"
                 }
                 value={codigoQr}
