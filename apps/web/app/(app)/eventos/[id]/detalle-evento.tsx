@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/modal";
 import { EstadoVacio } from "@/components/ui/pantalla";
 import { fetchEventoPorIdApi, type Evento } from "@/lib/api";
-import { conflictoDe } from "@/lib/dominio";
+import { conflictoDe, haFinalizado } from "@/lib/dominio";
 import { anio, horario, iniciales, pesos } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import { vistaDe } from "@/lib/vista-evento";
@@ -84,6 +84,7 @@ export function DetalleEvento({ eventoId }: { eventoId: string }) {
 
   const vista = vistaDe(evento, estaInscripto(evento.id));
   const cancelado = evento.estadoPublicacion === "cancelado";
+  const finalizado = haFinalizado(evento);
   const esCreador = evento.creadoPor === usuario.id;
   const inscripcionCancelada = inscripcionesDetalle.find(
     (i) => i.eventoId === evento.id && i.estado === "cancelada",
@@ -106,6 +107,8 @@ export function DetalleEvento({ eventoId }: { eventoId: string }) {
 
   const ctaLabel = cancelado
     ? "Evento cancelado"
+    : finalizado
+    ? "Evento finalizado"
     : procesando
     ? "Confirmando…"
     : vista.inscripto
@@ -118,6 +121,8 @@ export function DetalleEvento({ eventoId }: { eventoId: string }) {
 
   const ctaHint = cancelado
     ? "Ya no se pueden hacer inscripciones."
+    : finalizado
+    ? "El evento ya concluyó."
     : vista.inscripto
     ? "Ya tenés tu lugar confirmado."
     : vista.lleno
@@ -144,7 +149,7 @@ export function DetalleEvento({ eventoId }: { eventoId: string }) {
   };
 
   const intentarInscribir = () => {
-    if (cancelado || vista.inscripto || vista.lleno || procesando) return;
+    if (cancelado || finalizado || vista.inscripto || vista.lleno || procesando) return;
     if (conflicto) {
       setDialogo("conflicto");
       return;
@@ -240,14 +245,14 @@ export function DetalleEvento({ eventoId }: { eventoId: string }) {
             <Cupo texto={vista.cupoLabel} porcentaje={vista.porcentaje} alta />
             <Boton
               variante={
-                cancelado || vista.inscripto
+                cancelado || finalizado || vista.inscripto
                   ? "secundario"
                   : vista.lleno
                     ? "secundario"
                     : "primario"
               }
               bloque
-              disabled={cancelado || vista.inscripto || vista.lleno || procesando}
+              disabled={cancelado || finalizado || vista.inscripto || vista.lleno || procesando}
               onClick={intentarInscribir}
             >
               {ctaLabel}

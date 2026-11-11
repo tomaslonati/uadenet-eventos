@@ -52,6 +52,10 @@ export class InscripcionesService {
       throw new ConflictException('El evento fue cancelado.');
     }
 
+    if (new Date(evento.fechaFin).getTime() <= Date.now()) {
+      throw new ConflictException('El evento ya finalizó.');
+    }
+
     if (evento.disponibles <= 0) {
       throw new ConflictException('El evento no tiene cupo disponible.');
     }
