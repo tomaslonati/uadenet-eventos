@@ -102,13 +102,52 @@ const CUENTAS_DEMO_CORE: CuentaDemoCore[] = [
     nombre: 'Estudiante UADE',
     password: 'StrongPass123!',
   },
+  {
+    user: {
+      id: 'seed-test-admin',
+      email: 'test.admin@uade.edu.ar',
+      careerIds: [],
+      roles: ['OPERATIONS_ADMIN'],
+      permissions: [
+        'campus-events:manage',
+        'wallet:read:self',
+        'wallet:credit:self',
+      ],
+      status: 'ACTIVE',
+    },
+    nombre: 'Test Admin',
+    password: 'yYO7X9zqZx4eqXdy',
+  },
+  {
+    user: {
+      id: 'seed-test-docente',
+      email: 'test.docente@uade.edu.ar',
+      careerIds: [],
+      roles: ['TEACHER'],
+      permissions: ['wallet:read:self', 'wallet:credit:self'],
+      status: 'ACTIVE',
+    },
+    nombre: 'Test Docente',
+    password: '7yqb2Ftt0S68zSv4',
+  },
+  {
+    user: {
+      id: 'seed-test-estudiante',
+      email: 'test.estudiante@uade.edu.ar',
+      careerIds: ['ing-informatica'],
+      roles: ['STUDENT'],
+      permissions: ['wallet:read:self', 'wallet:credit:self'],
+      status: 'ACTIVE',
+    },
+    nombre: 'Test Estudiante',
+    password: 'HsfDp9SXey3160RY',
+  },
 ];
 
 /**
  * CORE simulado sobre los contratos oficiales de G10 (Authentication, IAM/JWKS,
- * Wallets, Event Bus y Notificaciones). Solo se monta cuando `CORE_BASE_URL`
- * no está definido o en entorno de test; con `CORE_BASE_URL` configurado los
- * servicios consumen el CORE real.
+ * Wallets, Event Bus y Notificaciones). Se monta siempre: los servicios nunca
+ * consumen el CORE real.
  */
 @ApiExcludeController()
 @Controller({ path: 'core', version: '1' })
