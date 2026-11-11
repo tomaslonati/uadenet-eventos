@@ -18,6 +18,9 @@ export function estadoDe(evento: Evento, inscripto: boolean): EstadoEvento {
   if (evento.estadoPublicacion === "cancelado") {
     return { texto: "Cancelado", tono: "error" };
   }
+  if (haFinalizado(evento)) {
+    return { texto: "Finalizado", tono: "neutro" };
+  }
   if (evento.reprogramado) {
     return { texto: "Reprogramado", tono: "atencion" };
   }
@@ -197,6 +200,10 @@ export function puedeCancelarInscripcion(
 
 export function haComenzado(evento: Evento, ahora: Date = new Date()): boolean {
   return new Date(`${evento.fecha}T${evento.desde}:00`).getTime() <= ahora.getTime();
+}
+
+export function haFinalizado(evento: Evento, ahora: Date = new Date()): boolean {
+  return new Date(`${evento.fecha}T${evento.hasta}:00`).getTime() <= ahora.getTime();
 }
 
 /** El creador puede editar o cancelar mientras el evento esté publicado y no haya empezado. */
