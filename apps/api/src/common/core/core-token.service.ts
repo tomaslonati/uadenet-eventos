@@ -3,6 +3,7 @@ import { serviceTokenResponseSchema } from '@repo/contracts';
 import { env } from '@repo/env';
 import {
   firmarJwtCore,
+  fetchCore,
   obtenerCoreBaseUrl,
   USA_CORE_MOCK,
 } from './core-crypto';
@@ -28,7 +29,7 @@ export class CoreTokenService {
     }
 
     try {
-      const res = await fetch(
+      const res = await fetchCore(
         `${obtenerCoreBaseUrl()}/internal/v1/service-auth/token`,
         {
           method: 'POST',

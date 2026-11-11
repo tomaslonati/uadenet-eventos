@@ -8,7 +8,7 @@ import {
   type WalletTransaction,
   type WalletTransactionsPage,
 } from '@repo/contracts';
-import { obtenerCoreBaseUrl } from './core-crypto';
+import { fetchCore, obtenerCoreBaseUrl } from './core-crypto';
 import { CoreTokenService } from './core-token.service';
 
 export interface DescuentoSaldo {
@@ -48,7 +48,7 @@ export class SaldoService {
     if (tokenUsuario) {
       headers.Authorization = `Bearer ${tokenUsuario}`;
       headers['X-User-Id'] = usuarioId;
-      const res = await fetch(`${baseUrl}/api/v1/wallets/me`, {
+      const res = await fetchCore(`${baseUrl}/api/v1/wallets/me`, {
         headers,
         signal: AbortSignal.timeout(5_000),
       });
@@ -65,7 +65,7 @@ export class SaldoService {
       headers.Authorization = `Bearer ${serviceToken}`;
     }
 
-    const res = await fetch(
+    const res = await fetchCore(
       `${baseUrl}/internal/v1/wallets/${encodeURIComponent(usuarioId)}`,
       {
         headers,
@@ -101,7 +101,7 @@ export class SaldoService {
       ? `${baseUrl}/api/v1/wallets/me/transactions?limit=${limit}`
       : `${baseUrl}/internal/v1/wallets/${encodeURIComponent(usuarioId)}/transactions?limit=${limit}`;
 
-    const res = await fetch(ruta, {
+    const res = await fetchCore(ruta, {
       headers,
       signal: AbortSignal.timeout(5_000),
     });
@@ -129,7 +129,7 @@ export class SaldoService {
       headers.Authorization = `Bearer ${tokenUsuario}`;
     }
 
-    const res = await fetch(`${baseUrl}/api/v1/wallets/me/top-ups`, {
+    const res = await fetchCore(`${baseUrl}/api/v1/wallets/me/top-ups`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -162,7 +162,7 @@ export class SaldoService {
         headers.Authorization = `Bearer ${token}`;
       }
 
-      const res = await fetch(
+      const res = await fetchCore(
         `${baseUrl}/internal/v1/wallets/${encodeURIComponent(datos.usuarioId)}/debits`,
         {
           method: 'POST',
@@ -263,7 +263,7 @@ export class SaldoService {
         headers.Authorization = `Bearer ${token}`;
       }
 
-      const res = await fetch(
+      const res = await fetchCore(
         `${obtenerCoreBaseUrl()}/internal/v1/wallet-transactions/${encodeURIComponent(transaccionId)}/reversals`,
         {
           method: 'POST',
@@ -305,7 +305,7 @@ export class SaldoService {
       sourceModule: 'events',
       externalReference: referenciaId,
     });
-    const res = await fetch(
+    const res = await fetchCore(
       `${obtenerCoreBaseUrl()}/internal/v1/wallet-transactions/by-reference?${query.toString()}`,
       {
         headers,

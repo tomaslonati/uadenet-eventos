@@ -11,7 +11,7 @@ import {
   type InscripcionRegistrada,
 } from '@repo/contracts';
 import { env } from '@repo/env';
-import { obtenerCoreBaseUrl } from '../core/core-crypto';
+import { fetchCore, obtenerCoreBaseUrl } from '../core/core-crypto';
 import { CoreTokenService } from '../core/core-token.service';
 
 type SinMetadatos<T extends EventoAnalitica> = Omit<T, 'tipo' | 'emitidoEn'>;
@@ -103,12 +103,15 @@ export class AnaliticaService {
         data: evento,
       });
 
-      const res = await fetch(`${obtenerCoreBaseUrl()}/internal/v1/events`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(envelope),
-        signal: AbortSignal.timeout(5_000),
-      });
+      const res = await fetchCore(
+        `${obtenerCoreBaseUrl()}/internal/v1/events`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(envelope),
+          signal: AbortSignal.timeout(5_000),
+        },
+      );
 
       if (!res.ok && !env.CORE_BASE_URL) {
         return;
