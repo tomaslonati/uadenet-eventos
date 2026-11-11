@@ -225,3 +225,20 @@ export function puedeTomarAsistencia(
     inicio.getTime() - HORAS_ANTICIPACION_ASISTENCIA * 60 * 60_000
   );
 }
+
+/**
+ * Ordena eventos cronológicamente por fecha y hora de inicio.
+ * 'asc': del más próximo al más lejano (ideal para eventos por ocurrir).
+ * 'desc': del más reciente al más antiguo (ideal para historial de finalizados).
+ */
+export function ordenarEventosCronologico<
+  T extends { fecha: string; desde: string; titulo: string },
+>(eventos: T[], orden: "asc" | "desc" = "asc"): T[] {
+  return [...eventos].sort((a, b) => {
+    const fechaA = `${a.fecha}T${a.desde || "00:00"}`;
+    const fechaB = `${b.fecha}T${b.desde || "00:00"}`;
+    const cmp = fechaA.localeCompare(fechaB) || a.titulo.localeCompare(b.titulo);
+    return orden === "asc" ? cmp : -cmp;
+  });
+}
+
