@@ -6,7 +6,7 @@
 
 1. **La migration `0003` está aplicada** en Supabase ([`aplicar-migraciones.md`](aplicar-migraciones.md)). Sin ella la API nueva falla en cada consulta de eventos.
 2. **La API responde**: `GET /health` y `GET /api/v1/locaciones` (tiene que devolver las locaciones sincronizadas; si viene vacío, la sincronización con Backoffice no corrió).
-3. **Las tres cuentas entran.** Contra el CORE real, las cuentas son las que muestra la pantalla de login ("Cuentas del prototipo", definidas en `CUENTAS_DEMO` de `apps/web/lib/sesion.tsx`); en local con CORE simulado, las del [README](../../README.md#pantallas).
+3. **Las tres cuentas entran.** Contra el CORE real, las cuentas son las que muestra la pantalla de login ("Cuentas del prototipo", definidas en `CUENTAS_DEMO` de `apps/web/lib/sesion.tsx`); en dev y en local con CORE simulado, las del [README](../../README.md#pantallas) (también entran las `test.*` que lista el login).
 4. **El estudiante tiene saldo.** Contra el CORE real las billeteras de prueba pueden estar en cero: cargar desde `/cuenta` (recarga de prueba) antes de la demo. Contra el CORE simulado ya arrancan con saldo.
 5. **El recordatorio automático** (HU7) no se puede mostrar en vivo: sale una vez por día. Para explicarlo, tener a mano un evento a 7 días con un inscripto y, si hace falta, llamar al cron a mano: `curl -H "Authorization: Bearer $CRON_SECRET" https://<api>/api/v1/cron/diario` (el aviso aparece en `/avisos` del inscripto).
 6. **Dos ventanas**: una con el administrativo y otra (privada) con el estudiante, para ver los dos lados sin cerrar sesión.

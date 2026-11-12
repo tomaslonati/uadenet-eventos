@@ -7,7 +7,7 @@
 ## 1. CORE
 
 ### Situación actual
-La integración completa con CORE está implementada de punta a punta en `apps/api/src/common/core/` y `apps/api/src/common/guards/core-jwt.guard.ts`, respaldada por contratos Zod canónicos en `@repo/contracts/src/core.schema.ts`. Cuando `CORE_BASE_URL` no está definida, la API monta automáticamente `CoreMockController` (`/api/v1/core/**`) con criptografía RS256 real, idempotencia de billetera y bus de eventos para desarrollo local y tests e2e; al definir `CORE_BASE_URL`, todos los servicios apuntan sin cambios al servidor real de CORE.
+La integración completa con CORE está implementada de punta a punta en `apps/api/src/common/core/` y `apps/api/src/common/guards/core-jwt.guard.ts`, respaldada por contratos Zod canónicos en `@repo/contracts/src/core.schema.ts`. Cuando `CORE_BASE_URL` no está definida, la API monta automáticamente `CoreMockController` (`/api/v1/core/**`) con criptografía RS256 real, idempotencia de billetera y bus de eventos para desarrollo local y tests e2e; al definir `CORE_BASE_URL`, todos los servicios apuntan sin cambios al servidor real de CORE. **Dev está mockeado (sin `CORE_BASE_URL`) y prod usa el CORE real**, porque el CORE no respondía bien y la entrega 2 admite integraciones simuladas ([ADR 0018](../decisions/0018-core-simulado-en-dev-y-real-en-prod.md)). Los servicios hacen sus pedidos con `fetchCore`, que en Vercel sirve el mock desde un puerto interno del mismo proceso. El estado del mock (saldos, notificaciones) está en memoria.
 
 ### Capacidades y endpoints implementados (Swagger: `https://core-api-production-e458.up.railway.app/docs`)
 

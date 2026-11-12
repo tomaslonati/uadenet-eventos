@@ -37,7 +37,7 @@ Estado de `apps/api` visto desde el portal: `http://localhost:3001/health`.
 
 ### Pantallas
 
-`apps/web` arranca en `/` (login con mail institucional y contraseña). El rol sale de la cuenta con la que entrás. Sin `CORE_BASE_URL`, el login lo resuelve el CORE simulado de la API, con una cuenta por perfil definida en `apps/api/src/common/core/core-mock.controller.ts`.
+`apps/web` arranca en `/` (login con mail institucional y contraseña). El rol sale de la cuenta con la que entrás. En dev (sin `CORE_BASE_URL`) el login lo resuelve el CORE simulado de la API, con las cuentas definidas en `apps/api/src/common/core/core-mock.controller.ts`; en prod (con `CORE_BASE_URL`) lo resuelve el CORE real.
 
 | Perfil | Mail | Contraseña |
 | :---- | :---- | :---- |
@@ -45,11 +45,13 @@ Estado de `apps/api` visto desde el portal: `http://localhost:3001/health`.
 | Docente | `e.ruiz@uadenet.edu` | `docente.2026` |
 | Estudiante | `t.vidal@uadenet.edu` | `alumno.2026` |
 
+El CORE simulado también acepta las cuentas `test.admin`, `test.docente` y `test.estudiante` (`@uade.edu.ar`) que lista la pantalla de login, con las mismas contraseñas que esa pantalla.
+
 Son credenciales de demo, no secretos: se van del código cuando el acceso se valide contra el directorio de la universidad. La pantalla de login las lista para no tener que abrir el código.
 
 Desde ahí: `/cartelera`, `/eventos/[id]` (con el panel de gestión para quien creó el evento), `/eventos/nuevo`, `/eventos/[id]/editar`, `/mis-inscripciones`, `/cuenta`, `/gestion`, `/asistencia` y `/avisos`.
 
-Todas consumen `apps/api`. Con `CORE_BASE_URL` sin definir, la API monta un CORE y un Backoffice simulados en el mismo proceso (login con las cuentas de la tabla de arriba, billetera, notificaciones, sedes y tarifas), así que se puede probar todo en local sin depender de otros grupos. Con `CORE_BASE_URL` definida habla con el CORE real y las cuentas son las de CORE. El diseño y sus tokens están en [`docs/03-diseno/sistema-diseno.md`](docs/03-diseno/sistema-diseno.md); un recorrido para presentar el módulo, en [`docs/04-guias/guion-demo.md`](docs/04-guias/guion-demo.md).
+Todas consumen `apps/api`. Con `CORE_BASE_URL` sin definir, la API monta un CORE y un Backoffice simulados en el mismo proceso (login con las cuentas de la tabla de arriba, billetera, notificaciones, sedes y tarifas), así que se puede probar todo en local sin depender de otros grupos. Con `CORE_BASE_URL` definida habla con el CORE real y las cuentas son las de CORE. **Dev está mockeado y prod usa el CORE real**: el CORE no respondía bien y la entrega 2 admite integraciones simuladas (ver [ADR 0018](docs/decisions/0018-core-simulado-en-dev-y-real-en-prod.md)). El estado del CORE simulado (saldos, notificaciones) está en memoria y se reinicia con la API. El diseño y sus tokens están en [`docs/03-diseno/sistema-diseno.md`](docs/03-diseno/sistema-diseno.md); un recorrido para presentar el módulo, en [`docs/04-guias/guion-demo.md`](docs/04-guias/guion-demo.md).
 
 ## Variables de entorno
 
