@@ -11,7 +11,7 @@ import {
   type RecordatorioEvento,
 } from '@repo/contracts';
 import { env } from '@repo/env';
-import { obtenerCoreBaseUrl } from './core-crypto';
+import { fetchCore, obtenerCoreBaseUrl } from './core-crypto';
 import { CoreTokenService } from './core-token.service';
 
 export type DatosRecordatorio = Omit<RecordatorioEvento, 'tipo' | 'url'> & {
@@ -98,13 +98,13 @@ export class NotificacionesService {
 
     try {
       const [resNotif, resEvent] = await Promise.all([
-        fetch(`${baseUrl}/internal/v1/notifications`, {
+        fetchCore(`${baseUrl}/internal/v1/notifications`, {
           method: 'POST',
           headers,
           body: JSON.stringify(payloadNotificacion),
           signal: AbortSignal.timeout(5_000),
         }),
-        fetch(`${baseUrl}/internal/v1/events`, {
+        fetchCore(`${baseUrl}/internal/v1/events`, {
           method: 'POST',
           headers,
           body: JSON.stringify(envelope),
@@ -153,7 +153,7 @@ export class NotificacionesService {
         headers.Authorization = `Bearer ${token}`;
       }
 
-      const res = await fetch(
+      const res = await fetchCore(
         `${obtenerCoreBaseUrl()}/internal/v1/notifications`,
         {
           method: 'POST',
@@ -179,13 +179,16 @@ export class NotificacionesService {
       return { items: [], nextCursor: null };
     }
     try {
-      const res = await fetch(`${obtenerCoreBaseUrl()}/api/v1/notifications`, {
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${tokenUsuario}`,
+      const res = await fetchCore(
+        `${obtenerCoreBaseUrl()}/api/v1/notifications`,
+        {
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${tokenUsuario}`,
+          },
+          signal: AbortSignal.timeout(5_000),
         },
-        signal: AbortSignal.timeout(5_000),
-      });
+      );
       if (!res.ok) {
         return { items: [], nextCursor: null };
       }
