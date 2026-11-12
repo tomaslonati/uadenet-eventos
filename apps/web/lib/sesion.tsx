@@ -239,6 +239,8 @@ type Sesion = {
   rol: Rol;
   usuario: Usuario;
   accessToken: string | null;
+  /** `true` cuando ya se intentó recuperar la sesión guardada (haya o no una). */
+  sesionLista: boolean;
   ingresar: (rol: Rol, datosCore: ResultadoLoginCore) => void;
   cerrarSesion: () => Promise<void>;
 
@@ -273,6 +275,7 @@ const DURACION_TOAST = 2600;
 export function SesionProvider({ children }: { children: ReactNode }) {
   const [rol, setRol] = useState<Rol>("alumno");
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [sesionLista, setSesionLista] = useState(false);
   const [emailSesion, setEmailSesion] = useState<string>("usuario@uadenet.edu");
   const [nombreSesion, setNombreSesion] = useState<string>("Usuario UADE");
   const [usuarioIdSesion, setUsuarioIdSesion] =
@@ -420,7 +423,9 @@ export function SesionProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    void rehidratar();
+    void rehidratar().finally(() => {
+      if (!cancelado) setSesionLista(true);
+    });
 
     return () => {
       cancelado = true;
@@ -523,6 +528,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
         iniciales: iniciales(nombreSesion),
       },
       accessToken,
+      sesionLista,
       ingresar,
       cerrarSesion,
 
@@ -554,6 +560,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     nombreSesion,
     emailSesion,
     accessToken,
+    sesionLista,
     ingresar,
     cerrarSesion,
     sede,

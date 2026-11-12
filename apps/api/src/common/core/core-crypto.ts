@@ -66,6 +66,12 @@ let parClavesDemo: { privateKey: KeyObject; publicKey: KeyObject } | null =
   null;
 
 function asegurarClavesDemo(): { privateKey: KeyObject; publicKey: KeyObject } {
+  if (!parClavesDemo && env.CORE_MOCK_PRIVATE_KEY) {
+    const privateKey = createPrivateKey(
+      Buffer.from(env.CORE_MOCK_PRIVATE_KEY, 'base64').toString('utf8'),
+    );
+    parClavesDemo = { privateKey, publicKey: createPublicKey(privateKey) };
+  }
   if (!parClavesDemo) {
     const { privateKey, publicKey } = generateKeyPairSync('rsa', {
       modulusLength: 2048,
