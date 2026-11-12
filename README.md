@@ -132,6 +132,11 @@ turbo run lint typecheck test build
 
 ## Despliegue
 
+| Rama | Front (`apps/web`) | Back (`apps/api`) |
+| :---- | :---- | :---- |
+| `dev` | https://uadenet-eventos-web-dev.vercel.app | https://uadenet-eventos-api-dev.vercel.app (Swagger en `/api/docs`) |
+| `main` | https://uadenet-eventos-web.vercel.app | https://uadenet-eventos-api.vercel.app (Swagger en `/api/docs`) |
+
 Dos proyectos de Vercel sobre este repo: `uadenet-eventos-api` (Root Directory `apps/api`) y `uadenet-eventos-web` (`apps/web`). La rama `dev` despliega los entornos de dev y `main` los de prod; el mapa de URLs y de variables está en [`docs/02-arquitectura/diagrama-arquitectura.md`](docs/02-arquitectura/diagrama-arquitectura.md). Dev y prod comparten la base de Supabase: una migration afecta a los dos.
 
 Los procesos periódicos (recordatorios, polling de tarifas, sincronización de locaciones) arrancan con `setInterval` cuando la API corre como proceso largo (`pnpm dev`, `pnpm start`). En Vercel los reemplaza un cron diario (`apps/api/vercel.json`) que llama a `/api/v1/cron/diario`; requiere definir `CRON_SECRET` en el proyecto de la API (entorno Production). Es un solo cron por día porque es lo que admite el plan Hobby ([ADR 0016](docs/decisions/0016-cron-diario-de-vercel.md)).
