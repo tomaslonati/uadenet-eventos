@@ -15,6 +15,7 @@ import {
 import { env } from '@repo/env';
 import {
   firmarJwtCore,
+  fetchCore,
   obtenerCoreBaseUrl,
   USA_CORE_MOCK,
 } from '../../common/core/core-crypto';
@@ -91,7 +92,7 @@ export class AuthService {
     const credenciales: CoreLoginRequest = parsed.data;
 
     try {
-      const res = await fetch(`${obtenerCoreBaseUrl()}/api/v1/auth/login`, {
+      const res = await fetchCore(`${obtenerCoreBaseUrl()}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -155,7 +156,7 @@ export class AuthService {
       headers.Authorization = authHeader;
     }
 
-    const res = await fetch(`${obtenerCoreBaseUrl()}/api/v1/auth/refresh`, {
+    const res = await fetchCore(`${obtenerCoreBaseUrl()}/api/v1/auth/refresh`, {
       method: 'POST',
       headers,
       signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -184,7 +185,7 @@ export class AuthService {
     }
 
     try {
-      await fetch(`${obtenerCoreBaseUrl()}/api/v1/auth/logout`, {
+      await fetchCore(`${obtenerCoreBaseUrl()}/api/v1/auth/logout`, {
         method: 'POST',
         headers,
         signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -197,7 +198,7 @@ export class AuthService {
   async me(usuario: UsuarioAutenticado): Promise<CoreAuthUser> {
     if (usuario.token) {
       try {
-        const res = await fetch(`${obtenerCoreBaseUrl()}/api/v1/auth/me`, {
+        const res = await fetchCore(`${obtenerCoreBaseUrl()}/api/v1/auth/me`, {
           headers: {
             Accept: 'application/json',
             Authorization: `Bearer ${usuario.token}`,

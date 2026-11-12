@@ -18,6 +18,9 @@ export function estadoDe(evento: Evento, inscripto: boolean): EstadoEvento {
   if (evento.estadoPublicacion === "cancelado") {
     return { texto: "Cancelado", tono: "error" };
   }
+  if (haFinalizado(evento)) {
+    return { texto: "Finalizado", tono: "neutro" };
+  }
   if (evento.reprogramado) {
     return { texto: "Reprogramado", tono: "atencion" };
   }
@@ -199,6 +202,10 @@ export function haComenzado(evento: Evento, ahora: Date = new Date()): boolean {
   return new Date(`${evento.fecha}T${evento.desde}:00`).getTime() <= ahora.getTime();
 }
 
+export function haFinalizado(evento: Evento, ahora: Date = new Date()): boolean {
+  return new Date(`${evento.fecha}T${evento.hasta}:00`).getTime() <= ahora.getTime();
+}
+
 /** El creador puede editar o cancelar mientras el evento esté publicado y no haya empezado. */
 export function puedeGestionar(evento: Evento, ahora: Date = new Date()): boolean {
   return evento.estadoPublicacion === "publicado" && !haComenzado(evento, ahora);
@@ -218,3 +225,20 @@ export function puedeTomarAsistencia(
     inicio.getTime() - HORAS_ANTICIPACION_ASISTENCIA * 60 * 60_000
   );
 }
+
+/**
+ * Ordena eventos cronológicamente por fecha y hora de inicio.
+ * 'asc': del más próximo al más lejano (ideal para eventos por ocurrir).
+ * 'desc': del más reciente al más antiguo (ideal para historial de finalizados).
+ */
+export function ordenarEventosCronologico<
+  T extends { fecha: string; desde: string; titulo: string },
+>(eventos: T[], orden: "asc" | "desc" = "asc"): T[] {
+  return [...eventos].sort((a, b) => {
+    const fechaA = `${a.fecha}T${a.desde || "00:00"}`;
+    const fechaB = `${b.fecha}T${b.desde || "00:00"}`;
+    const cmp = fechaA.localeCompare(fechaB) || a.titulo.localeCompare(b.titulo);
+    return orden === "asc" ? cmp : -cmp;
+  });
+}
+

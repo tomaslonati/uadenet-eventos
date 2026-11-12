@@ -40,8 +40,8 @@ describe('InscripcionesService', () => {
     descripcion: 'Descripción',
     locacionId: 'c1a4e8d2-7b36-4f90-8e52-1d0a9c3b6f47',
     cupoMaximo: 2,
-    fechaInicio: new Date('2026-10-15T18:00:00Z'),
-    fechaFin: new Date('2026-10-15T20:00:00Z'),
+    fechaInicio: new Date('2028-10-15T18:00:00Z'),
+    fechaFin: new Date('2028-10-15T20:00:00Z'),
     esPago: false,
     categoriaPrecio: null,
     creadoPor: 'seed-admin-demo',
@@ -155,6 +155,16 @@ describe('InscripcionesService', () => {
     construir({ ...eventoGratuito, estado: 'cancelado' });
 
     await expect(service.crear(datos)).rejects.toThrow('fue cancelado');
+    expect(insertar).not.toHaveBeenCalled();
+  });
+
+  it('rechaza inscribirse a un evento que ya finalizó', async () => {
+    construir({
+      ...eventoGratuito,
+      fechaFin: new Date(Date.now() - 60_000),
+    });
+
+    await expect(service.crear(datos)).rejects.toThrow('ya finalizó');
     expect(insertar).not.toHaveBeenCalled();
   });
 

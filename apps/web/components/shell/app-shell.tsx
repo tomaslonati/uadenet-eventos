@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Select } from "@/components/ui/select";
@@ -12,7 +12,10 @@ import estilos from "./app-shell.module.css";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const {
+    accessToken,
+    sesionLista,
     rol,
     usuario,
     sede,
@@ -25,6 +28,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const menu = useRef<HTMLDivElement>(null);
 
   const nav = navDe(rol, inscripciones.length);
+
+  // Sin sesión válida no se muestra la app con los valores por defecto: se vuelve al login.
+  useEffect(() => {
+    if (sesionLista && !accessToken) router.replace("/");
+  }, [sesionLista, accessToken, router]);
 
   useEffect(() => {
     if (!menuAbierto) return;
@@ -41,6 +49,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       document.removeEventListener("keydown", alSoltarTecla);
     };
   }, [menuAbierto]);
+
+  if (!sesionLista || !accessToken) return null;
 
   return (
     <div className={estilos.shell}>

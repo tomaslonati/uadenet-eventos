@@ -62,6 +62,19 @@ const STORAGE_KEY_SESION = "uadenet.core.sesion";
 
 export const DOMINIO_MAIL = "@uade.edu.ar";
 
+// La carga sin sesión (al abrir la página) puede responder después de la carga con sesión:
+// solo la última carga iniciada puede actualizar el estado.
+let cargaVigente = 0;
+
+function nuevaCarga(): number {
+  cargaVigente += 1;
+  return cargaVigente;
+}
+
+function esCargaVigente(id: number): boolean {
+  return id === cargaVigente;
+}
+
 export const CUENTAS_DEMO = [
   {
     perfil: "Administrativo",
@@ -135,23 +148,28 @@ export async function autenticarEnCore(
       data.user.permissions ?? [],
     );
 
-    let nombreRemoto: string | undefined;
-    try {
-      const usuarioRes = await fetch(`${API_BASE_URL}/api/v1/usuarios/me`, {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${data.accessToken}`,
-        },
-      });
-      if (usuarioRes.ok) {
-        const perfilBo = (await usuarioRes.json()) as { nombre?: string };
-        nombreRemoto = perfilBo.nombre;
-      }
-    } catch {
-      // Si Backoffice no devuelve perfil extendido, se usa el identificador de email
-    }
+    // Perfil y saldo se piden en paralelo y con tope: un CORE o Backoffice lentos
+    // no deben demorar el ingreso (ambos se vuelven a cargar apenas hay sesión).
+    const conTope = <T,>(p: Promise<T>): Promise<T | null> =>
+      Promise.race([
+        p.catch(() => null),
+        new Promise<null>((resolver) => setTimeout(() => resolver(null), 4_000)),
+      ]);
 
-    const saldoRemoto = await fetchSaldoApi(data.accessToken).catch(() => null);
+    const [perfilBo, saldoRemoto] = await Promise.all([
+      conTope(
+        fetch(`${API_BASE_URL}/api/v1/usuarios/me`, {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${data.accessToken}`,
+          },
+        }).then((r) =>
+          r.ok ? (r.json() as Promise<{ nombre?: string }>) : null,
+        ),
+      ),
+      conTope(fetchSaldoApi(data.accessToken)),
+    ]);
+    const nombreRemoto = perfilBo?.nombre;
 
     return {
       rol,
@@ -221,6 +239,8 @@ type Sesion = {
   rol: Rol;
   usuario: Usuario;
   accessToken: string | null;
+  /** `true` cuando ya se intentó recuperar la sesión guardada (haya o no una). */
+  sesionLista: boolean;
   ingresar: (rol: Rol, datosCore: ResultadoLoginCore) => void;
   cerrarSesion: () => Promise<void>;
 
@@ -255,6 +275,7 @@ const DURACION_TOAST = 2600;
 export function SesionProvider({ children }: { children: ReactNode }) {
   const [rol, setRol] = useState<Rol>("alumno");
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [sesionLista, setSesionLista] = useState(false);
   const [emailSesion, setEmailSesion] = useState<string>("usuario@uadenet.edu");
   const [nombreSesion, setNombreSesion] = useState<string>("Usuario UADE");
   const [usuarioIdSesion, setUsuarioIdSesion] =
@@ -280,38 +301,43 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const cargarTodoDesdeApi = useCallback(async (token: string | null) => {
+    const miCarga = nuevaCarga();
+    const vigente = () => esCargaVigente(miCarga);
     setCargandoDatos(true);
+    // Cada recurso se aplica apenas llega: un saldo o un catálogo lentos no
+    // deben dejar la cartelera esperando.
+    const tareas = [
+      fetchEventosApi(token).then((r) => {
+        if (vigente()) setEventos(r);
+      }),
+      fetchInscripcionesApi(token).then((r) => {
+        if (vigente()) setInscripcionesDetalle(r);
+      }),
+      fetchSedesApi(token).then((sedesRemotas) => {
+        if (vigente() && sedesRemotas.length > 0) {
+          setSedes(sedesRemotas.map((s) => s.nombre));
+        }
+      }),
+      fetchLocacionesApi(token).then((locacionesRemotas) => {
+        if (!vigente()) return;
+        setLocaciones(locacionesRemotas);
+        setSedes((actuales) =>
+          actuales.length > 0
+            ? actuales
+            : Array.from(new Set(locacionesRemotas.map((l) => l.sede))),
+        );
+      }),
+      fetchTarifasApi(token).then((r) => {
+        if (vigente()) setTarifas(r);
+      }),
+      fetchSaldoApi(token).then((saldoRemoto) => {
+        if (vigente() && saldoRemoto !== null) setSaldo(saldoRemoto);
+      }),
+    ];
     try {
-      const [
-        eventosRemotos,
-        inscripcionesRemotas,
-        sedesRemotas,
-        locacionesRemotas,
-        tarifasRemotas,
-        saldoRemoto,
-      ] = await Promise.all([
-        fetchEventosApi(token).catch(() => []),
-        fetchInscripcionesApi(token).catch(() => []),
-        fetchSedesApi(token).catch(() => []),
-        fetchLocacionesApi(token).catch(() => []),
-        fetchTarifasApi(token).catch(() => TARIFAS_DEFAULT),
-        fetchSaldoApi(token).catch(() => null),
-      ]);
-
-      setEventos(eventosRemotos);
-      setInscripcionesDetalle(inscripcionesRemotas);
-      if (sedesRemotas.length > 0) {
-        setSedes(sedesRemotas.map((s) => s.nombre));
-      } else if (locacionesRemotas.length > 0) {
-        setSedes(Array.from(new Set(locacionesRemotas.map((l) => l.sede))));
-      }
-      setLocaciones(locacionesRemotas);
-      setTarifas(tarifasRemotas);
-      if (saldoRemoto !== null) {
-        setSaldo(saldoRemoto);
-      }
+      await Promise.allSettled(tareas);
     } finally {
-      setCargandoDatos(false);
+      if (vigente()) setCargandoDatos(false);
     }
   }, []);
 
@@ -352,6 +378,16 @@ export function SesionProvider({ children }: { children: ReactNode }) {
               Authorization: `Bearer ${parsed.accessToken}`,
             },
           });
+          if (meRes.status === 401) {
+            // El token de CORE vence a los 15 min: sin sesión válida se vuelve al login.
+            try {
+              sessionStorage.removeItem(STORAGE_KEY_SESION);
+            } catch {
+              // Ignorar errores de sessionStorage
+            }
+            await cargarTodoDesdeApi(null);
+            return;
+          }
           if (meRes.ok) {
             const user = (await meRes.json()) as CoreAuthUserWeb;
             rolVerificado = mapearRolCore(
@@ -387,7 +423,9 @@ export function SesionProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    void rehidratar();
+    void rehidratar().finally(() => {
+      if (!cancelado) setSesionLista(true);
+    });
 
     return () => {
       cancelado = true;
@@ -490,6 +528,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
         iniciales: iniciales(nombreSesion),
       },
       accessToken,
+      sesionLista,
       ingresar,
       cerrarSesion,
 
@@ -521,6 +560,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     nombreSesion,
     emailSesion,
     accessToken,
+    sesionLista,
     ingresar,
     cerrarSesion,
     sede,

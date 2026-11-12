@@ -9,6 +9,7 @@ import {
 import { env } from '@repo/env';
 import {
   CORE_DEMO_KID,
+  fetchCore,
   obtenerCoreBaseUrl,
   obtenerJwkPublicaDemo,
   USA_CORE_MOCK,
@@ -125,10 +126,13 @@ export class CoreJwksService {
   private async refrescarJwks(): Promise<void> {
     let jwks: Jwk[] = [];
     try {
-      const res = await fetch(`${obtenerCoreBaseUrl()}/.well-known/jwks.json`, {
-        headers: { Accept: 'application/json' },
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      });
+      const res = await fetchCore(
+        `${obtenerCoreBaseUrl()}/.well-known/jwks.json`,
+        {
+          headers: { Accept: 'application/json' },
+          signal: AbortSignal.timeout(TIMEOUT_MS),
+        },
+      );
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }

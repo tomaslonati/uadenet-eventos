@@ -20,6 +20,8 @@ import {
   coincideConBusqueda,
   enPeriodo,
   filtrarEventos,
+  haFinalizado,
+  ordenarEventosCronologico,
   type FiltroCartelera,
   type PeriodoCartelera,
 } from "@/lib/dominio";
@@ -28,9 +30,21 @@ import { vistaDe } from "@/lib/vista-evento";
 
 import estilos from "./cartelera.module.css";
 
+type EstadoTemporalCartelera = "proximos" | "finalizados";
+
+const OPCIONES_ESTADO_CARTELERA: {
+  valor: EstadoTemporalCartelera;
+  label: string;
+}[] = [
+  { valor: "proximos", label: "Próximos" },
+  { valor: "finalizados", label: "Finalizados" },
+];
+
 export default function Cartelera() {
   const { sede, eventos: catalogo, cargandoDatos, estaInscripto } = useSesion();
   const [vista, setVista] = useState<VistaCartelera>("agenda");
+  const [estadoTemporal, setEstadoTemporal] =
+    useState<EstadoTemporalCartelera>("proximos");
   const [filtro, setFiltro] = useState<FiltroCartelera>("Todos");
   const [periodo, setPeriodo] = useState<PeriodoCartelera>("Cualquier fecha");
   const [busqueda, setBusqueda] = useState("");
@@ -41,14 +55,25 @@ export default function Cartelera() {
       evento.estadoPublicacion === "publicado" &&
       (sede === TODAS_LAS_SEDES || evento.sede === sede),
   );
+  const segunEstadoTemporal = deLaSede.filter((evento) =>
+    estadoTemporal === "proximos" ? !haFinalizado(evento) : haFinalizado(evento),
+  );
+  const ordenados = ordenarEventosCronologico(
+    segunEstadoTemporal,
+    estadoTemporal === "proximos" ? "asc" : "desc",
+  );
   const hoy = hoyIso();
-  const eventos = filtrarEventos(deLaSede, filtro)
-    .filter((evento) => enPeriodo(evento, periodo, hoy))
+  const eventos = filtrarEventos(ordenados, filtro)
+    .filter((evento) =>
+      estadoTemporal === "proximos" ? enPeriodo(evento, periodo, hoy) : true,
+    )
     .filter((evento) => coincideConBusqueda(evento, busqueda))
     .map((evento) => vistaDe(evento, estaInscripto(evento.id)));
 
   const hayFiltros =
-    filtro !== "Todos" || periodo !== "Cualquier fecha" || busqueda.trim() !== "";
+    filtro !== "Todos" ||
+    (estadoTemporal === "proximos" && periodo !== "Cualquier fecha") ||
+    busqueda.trim() !== "";
   const limpiarFiltros = () => {
     setFiltro("Todos");
     setPeriodo("Cualquier fecha");
@@ -59,7 +84,11 @@ export default function Cartelera() {
     <>
       <Encabezado
         titulo="Cartelera de eventos"
-        bajada={`${eventos.length} eventos · ${sede.toLowerCase()}`}
+        bajada={`${eventos.length} ${
+          estadoTemporal === "finalizados"
+            ? "eventos finalizados"
+            : "eventos próximos"
+        } · ${sede.toLowerCase()}`}
         accion={
           <Segmentado
             etiqueta="Vista de la cartelera"
@@ -70,6 +99,15 @@ export default function Cartelera() {
         }
       />
 
+      <div className={estilos.selectorEstado}>
+        <Segmentado
+          etiqueta="Filtro de eventos por estado"
+          opciones={OPCIONES_ESTADO_CARTELERA}
+          activa={estadoTemporal}
+          onCambio={setEstadoTemporal}
+        />
+      </div>
+
       <div className={estilos.barra}>
         <input
           type="search"
@@ -79,11 +117,13 @@ export default function Cartelera() {
           value={busqueda}
           onChange={(evento) => setBusqueda(evento.target.value)}
         />
-        <ChipsFiltro
-          opciones={PERIODOS_CARTELERA}
-          activa={periodo}
-          onCambio={setPeriodo}
-        />
+        {estadoTemporal === "proximos" ? (
+          <ChipsFiltro
+            opciones={PERIODOS_CARTELERA}
+            activa={periodo}
+            onCambio={setPeriodo}
+          />
+        ) : null}
       </div>
 
       <ChipsFiltro
@@ -99,7 +139,9 @@ export default function Cartelera() {
           texto={
             hayFiltros
               ? "Ningún evento coincide con la búsqueda y los filtros elegidos."
-              : "Todavía no hay eventos publicados en esta sede."
+              : estadoTemporal === "proximos"
+                ? "Todavía no hay eventos próximos publicados en esta sede."
+                : "No hay eventos finalizados en esta sede."
           }
           accion={
             hayFiltros ? (

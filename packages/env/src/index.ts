@@ -60,6 +60,12 @@ const envSchema = z.object({
   /** Secreto compartido con el API Gateway de CORE para validar X-Core-Signature. */
   CORE_GATEWAY_SECRET: textoOpcional,
   /**
+   * Clave privada RSA (PEM en base64) con la que el CORE simulado firma sus tokens. Sin definir
+   * se genera una por proceso, y en Vercel cada instancia tendría la suya: un token emitido por
+   * una no lo valida otra. Solo para el entorno con CORE simulado; nunca se acepta con CORE real.
+   */
+  CORE_MOCK_PRIVATE_KEY: textoOpcional,
+  /**
    * Secreto del cron de Vercel: Vercel lo envía como `Authorization: Bearer` al
    * invocar `/api/v1/cron/diario`. Sin definir, ese endpoint rechaza todo.
    */

@@ -47,6 +47,7 @@ export default function MisInscripciones() {
   } = useSesion();
   const [cancelacion, setCancelacion] = useState<Cancelacion | null>(null);
   const [cancelando, setCancelando] = useState(false);
+  const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
 
   const hoy = hoyIso();
   const mis = inscripciones
@@ -110,11 +111,20 @@ export default function MisInscripciones() {
         Boolean(item.evento),
     );
 
-  const [proximoItem, ...otros] = mis;
+  const codigoDe = (item: (typeof mis)[number]) =>
+    item.inscripcionId ?? codigoCredencial(item.vista.id, mis.indexOf(item));
+
+  const proximoItem =
+    mis.find((item) => item.vista.id === seleccionadoId) ?? mis[0];
+  const otros = mis.filter((item) => item !== proximoItem);
   const proximo = proximoItem?.vista;
-  const codigoProximo =
-    proximoItem?.inscripcionId ??
-    (proximo ? codigoCredencial(proximo.id, 0) : "");
+  const codigoProximo = proximoItem ? codigoDe(proximoItem) : "";
+  const esElProximo = proximoItem === mis[0];
+
+  const destacar = (id: string) => {
+    setSeleccionadoId(id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <>
@@ -133,7 +143,7 @@ export default function MisInscripciones() {
       />
 
       {proximo ? (
-        <Seccion titulo="Tu próximo evento">
+        <Seccion titulo={esElProximo ? "Tu próximo evento" : "Evento seleccionado"}>
           <div className={estilos.proximo}>
             <div className={estilos.fecha}>
               <div>
@@ -207,7 +217,7 @@ export default function MisInscripciones() {
 
             <div className={estilos.credencial}>
               <span className={estilos.credencialLabel}>Credencial</span>
-              <Credencial semilla={1} codigo={codigoProximo} />
+              <Credencial codigo={codigoProximo} />
               <span className={estilos.credencialCodigo}>{codigoProximo}</span>
               <span className={estilos.credencialNota}>
                 Se marca usada al primer escaneo
@@ -220,25 +230,31 @@ export default function MisInscripciones() {
       {otros.length > 0 ? (
         <Seccion titulo="También estás anotado">
           <div className={estilos.otros}>
-            {otros.map((item, indice) => {
+            {otros.map((item) => {
               const evento = item.vista;
-              const codigo =
-                item.inscripcionId ?? codigoCredencial(evento.id, indice + 1);
+              const codigo = codigoDe(item);
               return (
                 <div key={evento.id} className={estilos.otro}>
-                  <div className={estilos.calendario}>
-                    <span className={estilos.calendarioDia}>{evento.dia}</span>
-                    <span className={estilos.calendarioMes}>
-                      {evento.mesCorto}
-                    </span>
-                  </div>
-                  <div className={estilos.otroDatos}>
-                    <span className={estilos.otroTitulo}>{evento.titulo}</span>
-                    <span className={estilos.otroSub}>
-                      {evento.rangoHorario} · {evento.sede} — {evento.locacion}{" "}
-                      · {codigo}
-                    </span>
-                  </div>
+                  <button
+                    type="button"
+                    className={estilos.otroSeleccion}
+                    onClick={() => destacar(evento.id)}
+                    aria-label={`Ver en grande: ${evento.titulo}`}
+                  >
+                    <div className={estilos.calendario}>
+                      <span className={estilos.calendarioDia}>{evento.dia}</span>
+                      <span className={estilos.calendarioMes}>
+                        {evento.mesCorto}
+                      </span>
+                    </div>
+                    <div className={estilos.otroDatos}>
+                      <span className={estilos.otroTitulo}>{evento.titulo}</span>
+                      <span className={estilos.otroSub}>
+                        {evento.rangoHorario} · {evento.sede} — {evento.locacion}{" "}
+                        · {codigo}
+                      </span>
+                    </div>
+                  </button>
                   <Boton
                     tamano="xs"
                     disabled={!item.cancelable || !item.inscripcionId}
@@ -251,11 +267,7 @@ export default function MisInscripciones() {
                   >
                     {item.montoCobrado ? "Cancelar y reembolsar" : "Cancelar"}
                   </Boton>
-                  <Credencial
-                    semilla={indice + 2}
-                    codigo={codigo}
-                    tamano="chica"
-                  />
+                  <Credencial codigo={codigo} tamano="chica" />
                 </div>
               );
             })}

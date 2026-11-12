@@ -139,6 +139,13 @@ export const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 ).replace(/\/+$/, "");
 
+/** Corta los pedidos que quedan colgados para que la UI nunca espere indefinidamente a la API. */
+const TIMEOUT_API_MS = 15_000;
+
+function fetchApi(input: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(input, { signal: AbortSignal.timeout(TIMEOUT_API_MS), ...init });
+}
+
 function headersDe(token?: string | null, json = false): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -274,7 +281,7 @@ async function leerErrorApi(res: Response, fallback: string): Promise<string> {
 }
 
 export async function fetchEventosApi(token?: string | null): Promise<Evento[]> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/eventos`, {
+  const res = await fetchApi(`${API_BASE_URL}/api/v1/eventos`, {
     headers: headersDe(token),
   });
   if (!res.ok) {
@@ -288,7 +295,7 @@ export async function fetchEventoPorIdApi(
   id: string,
   token?: string | null,
 ): Promise<Evento | null> {
-  const res = await fetch(
+  const res = await fetchApi(
     `${API_BASE_URL}/api/v1/eventos/${encodeURIComponent(id)}`,
     { headers: headersDe(token) },
   );
@@ -331,7 +338,7 @@ export async function crearEventoApi(
     datos.hasta,
   );
 
-  const res = await fetch(`${API_BASE_URL}/api/v1/eventos`, {
+  const res = await fetchApi(`${API_BASE_URL}/api/v1/eventos`, {
     method: "POST",
     headers: headersDe(token, true),
     body: JSON.stringify({
@@ -378,7 +385,7 @@ export async function actualizarEventoApi(
   cambios: CambiosEvento,
   token?: string | null,
 ): Promise<ResultadoEdicionApi> {
-  const res = await fetch(
+  const res = await fetchApi(
     `${API_BASE_URL}/api/v1/eventos/${encodeURIComponent(id)}`,
     {
       method: "PATCH",
@@ -409,7 +416,7 @@ export async function fetchImpactoEventoApi(
   id: string,
   token?: string | null,
 ): Promise<ImpactoEventoApi> {
-  const res = await fetch(
+  const res = await fetchApi(
     `${API_BASE_URL}/api/v1/eventos/${encodeURIComponent(id)}/impacto`,
     { headers: headersDe(token) },
   );
@@ -436,7 +443,7 @@ export async function cancelarEventoApi(
   motivo: string,
   token?: string | null,
 ): Promise<ResultadoCancelacionEventoApi> {
-  const res = await fetch(
+  const res = await fetchApi(
     `${API_BASE_URL}/api/v1/eventos/${encodeURIComponent(id)}/cancelacion`,
     {
       method: "POST",
@@ -463,7 +470,7 @@ export type NotificacionApi = {
 export async function fetchNotificacionesApi(
   token?: string | null,
 ): Promise<NotificacionApi[]> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/usuarios/me/notificaciones`, {
+  const res = await fetchApi(`${API_BASE_URL}/api/v1/usuarios/me/notificaciones`, {
     headers: headersDe(token),
   });
   if (!res.ok) return [];
@@ -474,7 +481,7 @@ export async function fetchNotificacionesApi(
 export async function fetchLocacionesApi(
   token?: string | null,
 ): Promise<LocacionApi[]> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/locaciones`, {
+  const res = await fetchApi(`${API_BASE_URL}/api/v1/locaciones`, {
     headers: headersDe(token),
   });
   if (!res.ok) return [];
@@ -482,7 +489,7 @@ export async function fetchLocacionesApi(
 }
 
 export async function fetchSedesApi(token?: string | null): Promise<SedeApi[]> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/sedes`, {
+  const res = await fetchApi(`${API_BASE_URL}/api/v1/sedes`, {
     headers: headersDe(token),
   });
   if (!res.ok) return [];
@@ -492,7 +499,7 @@ export async function fetchSedesApi(token?: string | null): Promise<SedeApi[]> {
 export async function fetchTarifasApi(
   token?: string | null,
 ): Promise<Record<CategoriaPrecio, number>> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/tarifas`, {
+  const res = await fetchApi(`${API_BASE_URL}/api/v1/tarifas`, {
     headers: headersDe(token),
   });
   if (!res.ok) return TARIFAS_DEFAULT;
@@ -509,7 +516,7 @@ export async function fetchTarifasApi(
 export async function fetchInscripcionesApi(
   token?: string | null,
 ): Promise<InscripcionApi[]> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/inscripciones`, {
+  const res = await fetchApi(`${API_BASE_URL}/api/v1/inscripciones`, {
     headers: headersDe(token),
   });
   if (!res.ok) return [];
@@ -520,7 +527,7 @@ export async function crearInscripcionApi(
   eventoId: string,
   token?: string | null,
 ): Promise<InscripcionApi> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/inscripciones`, {
+  const res = await fetchApi(`${API_BASE_URL}/api/v1/inscripciones`, {
     method: "POST",
     headers: headersDe(token, true),
     body: JSON.stringify({ eventoId }),
@@ -542,7 +549,7 @@ export async function cancelarInscripcionApi(
   inscripcionId: string,
   token?: string | null,
 ): Promise<CancelacionInscripcionApi> {
-  const res = await fetch(
+  const res = await fetchApi(
     `${API_BASE_URL}/api/v1/inscripciones/${encodeURIComponent(inscripcionId)}`,
     { method: "DELETE", headers: headersDe(token) },
   );
@@ -558,7 +565,7 @@ export async function fetchAsistenciaEventoApi(
   eventoId: string,
   token?: string | null,
 ): Promise<AsistenteEventoApi[]> {
-  const res = await fetch(
+  const res = await fetchApi(
     `${API_BASE_URL}/api/v1/asistencia?eventoId=${encodeURIComponent(eventoId)}`,
     { headers: headersDe(token) },
   );
@@ -572,7 +579,7 @@ export async function registrarAsistenciaApi(
   token?: string | null,
   eventoId?: string,
 ): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/asistencia`, {
+  const res = await fetchApi(`${API_BASE_URL}/api/v1/asistencia`, {
     method: "POST",
     headers: headersDe(token, true),
     body: JSON.stringify({ inscripcionId, metodo, eventoId }),
@@ -592,7 +599,7 @@ export async function eliminarAsistenciaApi(
   const url = `${API_BASE_URL}/api/v1/asistencia/${encodeURIComponent(inscripcionId)}${
     eventoId ? `?eventoId=${encodeURIComponent(eventoId)}` : ""
   }`;
-  const res = await fetch(url, {
+  const res = await fetchApi(url, {
     method: "DELETE",
     headers: headersDe(token),
   });
@@ -608,7 +615,7 @@ export const quitarAsistenciaApi = eliminarAsistenciaApi;
 export async function fetchSaldoApi(
   token?: string | null,
 ): Promise<number | null> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/usuarios/me/saldo`, {
+  const res = await fetchApi(`${API_BASE_URL}/api/v1/usuarios/me/saldo`, {
     headers: headersDe(token),
   });
   if (!res.ok) return null;
@@ -620,7 +627,7 @@ export async function fetchSaldoApi(
 export async function fetchMovimientosWalletApi(
   token?: string | null,
 ): Promise<MovimientoWalletApi[]> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/usuarios/me/movimientos`, {
+  const res = await fetchApi(`${API_BASE_URL}/api/v1/usuarios/me/movimientos`, {
     headers: headersDe(token),
   });
   if (!res.ok) return [];
@@ -632,7 +639,7 @@ export async function recargarSaldoApi(
   monto: number,
   token?: string | null,
 ): Promise<MovimientoWalletApi> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/usuarios/me/recargas`, {
+  const res = await fetchApi(`${API_BASE_URL}/api/v1/usuarios/me/recargas`, {
     method: "POST",
     headers: headersDe(token, true),
     body: JSON.stringify({ monto }),
