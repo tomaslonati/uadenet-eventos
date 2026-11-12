@@ -338,7 +338,7 @@ Lo publica el worker diario cuando `fechaInicio - hoy = 7 días`, una vez por in
 { "tipo": "evento.recordatorio", "usuarioId": "u-10432",
   "eventoId": "9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03", "titulo": "Workshop de Testing",
   "fechaInicio": "2026-10-22T18:00:00-03:00", "locacion": "Aula Magna — Monserrat",
-  "url": "https://uadenet-eventos.vercel.app/eventos/9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03" }
+  "url": "https://uadenet-eventos-web.vercel.app/eventos/9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03" }
 ```
 
 ## CORE — aviso de reprogramación o cancelación
@@ -357,7 +357,7 @@ Lo publica el worker diario cuando `fechaInicio - hoy = 7 días`, una vez por in
 // Ejemplo — cancelación con reembolso acreditado
 { "userId": "u-10432", "type": "EVENT_CANCELLED", "title": "Se canceló un evento",
   "message": "Se canceló «Workshop de Testing». Motivo: Se suspende por lluvia. Te devolvimos $5.500 a tu cuenta institucional.",
-  "actionUrl": "https://uadenet-eventos.vercel.app/eventos/9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03",
+  "actionUrl": "https://uadenet-eventos-web.vercel.app/eventos/9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03",
   "sourceModule": "events", "sourceReference": "evento/9f2b7c14-3d5a-4e88-9a10-6c2d5e7f1b03/cancelado" }
 ```
 

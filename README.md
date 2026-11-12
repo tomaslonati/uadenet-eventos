@@ -97,7 +97,7 @@ CORE_CLIENT_ID=               # default: events-service
 CORE_CLIENT_SECRET=           # secreto de servicio de events-service
 CORE_GATEWAY_SECRET=          # valida la firma X-Core-Signature del gateway de CORE; sin esto no se chequea
 BACKOFFICE_BASE_URL=          # Backoffice real (grupo 8)
-FRONTEND_BASE_URL=            # base de los links de los avisos; default https://uadenet-eventos.vercel.app
+FRONTEND_BASE_URL=            # base de los links de los avisos; default https://uadenet-eventos-web.vercel.app
 CRON_SECRET=                  # secreto del cron de Vercel; sin esto, /api/v1/cron/diario rechaza todo
 ```
 
