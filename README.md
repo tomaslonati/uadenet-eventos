@@ -6,6 +6,16 @@ Módulo **Eventos Académicos** del sistema UADEnet (TPO Desarrollo de Aplicacio
 
 Next.js (`apps/web`) + NestJS (`apps/api`) + Drizzle + Supabase (Postgres) + TypeScript, monorepo con Turborepo + pnpm, deploy en Vercel. Detalle en [`docs/02-arquitectura/stack-y-estructura.md`](docs/02-arquitectura/stack-y-estructura.md) y el porqué de cada elección en [`docs/decisions/`](docs/decisions/).
 
+```
+apps/api                 NestJS: API REST, Swagger, CORE y Backoffice simulados, cron
+apps/web                 Next.js: portal (cartelera, inscripciones, gestión, asistencia)
+packages/contracts       DTOs y schemas Zod compartidos entre api y web
+packages/db              schema de Drizzle, migrations y seed
+packages/env             validación de variables de entorno al boot
+packages/eslint-config   config de ESLint compartida
+packages/typescript-config  tsconfig base
+```
+
 ## Instalar
 
 ```bash
@@ -27,7 +37,7 @@ Estado de `apps/api` visto desde el portal: `http://localhost:3001/health`.
 
 ### Pantallas
 
-`apps/web` arranca en `/` (login con mail institucional y contraseña). El rol sale de la cuenta con la que entrás: el prototipo tiene tres usuarios hardcodeados en `apps/web/lib/sesion.tsx`, uno por perfil.
+`apps/web` arranca en `/` (login con mail institucional y contraseña). El rol sale de la cuenta con la que entrás. En dev (sin `CORE_BASE_URL`) el login lo resuelve el CORE simulado de la API, con las cuentas definidas en `apps/api/src/common/core/core-mock.controller.ts`; en prod (con `CORE_BASE_URL`) lo resuelve el CORE real.
 
 | Perfil | Mail | Contraseña |
 | :---- | :---- | :---- |
@@ -35,24 +45,28 @@ Estado de `apps/api` visto desde el portal: `http://localhost:3001/health`.
 | Docente | `e.ruiz@uadenet.edu` | `docente.2026` |
 | Estudiante | `t.vidal@uadenet.edu` | `alumno.2026` |
 
+El CORE simulado también acepta las cuentas `test.admin`, `test.docente` y `test.estudiante` (`@uade.edu.ar`) que lista la pantalla de login, con las mismas contraseñas que esa pantalla.
+
 Son credenciales de demo, no secretos: se van del código cuando el acceso se valide contra el directorio de la universidad. La pantalla de login las lista para no tener que abrir el código.
 
 Desde ahí: `/cartelera`, `/eventos/[id]` (con el panel de gestión para quien creó el evento), `/eventos/nuevo`, `/eventos/[id]/editar`, `/mis-inscripciones`, `/cuenta`, `/gestion`, `/asistencia` y `/avisos`.
 
-Todas consumen `apps/api`. Con `CORE_BASE_URL` sin definir, la API monta un CORE y un Backoffice simulados en el mismo proceso (login con las cuentas de la tabla de arriba, billetera, notificaciones, sedes y tarifas), así que se puede probar todo en local sin depender de otros grupos. Con `CORE_BASE_URL` definida habla con el CORE real y las cuentas son las de CORE. El diseño y sus tokens están en [`docs/03-diseno/sistema-diseno.md`](docs/03-diseno/sistema-diseno.md); un recorrido para presentar el módulo, en [`docs/04-guias/guion-demo.md`](docs/04-guias/guion-demo.md).
+Todas consumen `apps/api`. Con `CORE_BASE_URL` sin definir, la API monta un CORE y un Backoffice simulados en el mismo proceso (login con las cuentas de la tabla de arriba, billetera, notificaciones, sedes y tarifas), así que se puede probar todo en local sin depender de otros grupos. Con `CORE_BASE_URL` definida habla con el CORE real y las cuentas son las de CORE. **Dev está mockeado y prod usa el CORE real**: el CORE no respondía bien y la entrega 2 admite integraciones simuladas (ver [ADR 0018](docs/decisions/0018-core-simulado-en-dev-y-real-en-prod.md)). El estado del CORE simulado (saldos, notificaciones) está en memoria y se reinicia con la API. El diseño y sus tokens están en [`docs/03-diseno/sistema-diseno.md`](docs/03-diseno/sistema-diseno.md); un recorrido para presentar el módulo, en [`docs/04-guias/guion-demo.md`](docs/04-guias/guion-demo.md).
 
 ## Variables de entorno
 
-`packages/env` valida al boot con Zod y carga el `.env` de la raíz (no versionado) si existe. Solo `DATABASE_URL` hace falta para levantar la API en local; todo lo demás tiene un valor por defecto o activa un modo simulado:
+`packages/env` valida al boot con Zod y carga el `.env` de la raíz (no versionado) si existe. Solo `DATABASE_URL` hace falta para levantar la API en local (sin definir apunta a un Postgres en `localhost:5432`); todo lo demás tiene un valor por defecto o activa un modo simulado:
 
 ```
 DATABASE_URL=postgres://...   # proyecto Supabase compartido de dev (ver ADR 0011 en docs/decisions/)
 NODE_ENV=development
+PORT=                         # puerto de la API; default 3000
 
 # Opcionales. Sin ellas la API monta un CORE y un Backoffice simulados en el mismo proceso.
 CORE_BASE_URL=                # CORE real (grupo 10). Con esto definido, el login y la billetera son los de CORE
 CORE_CLIENT_ID=               # default: events-service
 CORE_CLIENT_SECRET=           # secreto de servicio de events-service
+CORE_GATEWAY_SECRET=          # valida la firma X-Core-Signature del gateway de CORE; sin esto no se chequea
 BACKOFFICE_BASE_URL=          # Backoffice real (grupo 8)
 FRONTEND_BASE_URL=            # base de los links de los avisos; default https://uadenet-eventos.vercel.app
 CRON_SECRET=                  # secreto del cron de Vercel; sin esto, /api/v1/cron/diario rechaza todo
@@ -69,7 +83,10 @@ Con `packages/db`:
 ```bash
 pnpm --filter @repo/db db:generate   # genera la migration a partir del schema de Drizzle
 pnpm --filter @repo/db db:migrate    # la aplica
+pnpm --filter @repo/db db:seed       # inserta el usuario demo (seed-admin-demo); idempotente
 ```
+
+Las migrations generadas viven en `packages/db/src/migrations/`.
 
 El schema (`packages/db/src/schema/`) tiene `usuarios`, `locaciones`, `eventos`, `inscripciones` y `asistencias`, según [`docs/02-arquitectura/modelo-dominio.md`](docs/02-arquitectura/modelo-dominio.md). Si no tenés acceso directo al pooler de sesión, [`docs/04-guias/aplicar-migraciones.md`](docs/04-guias/aplicar-migraciones.md) explica cómo aplicar el SQL a mano y registrarlo (y cuál está pendiente).
 

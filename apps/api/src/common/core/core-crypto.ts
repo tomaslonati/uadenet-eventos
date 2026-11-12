@@ -1,3 +1,5 @@
+import { createServer, type RequestListener } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import {
   createPrivateKey,
   createPublicKey,
@@ -21,10 +23,55 @@ export function obtenerCoreBaseUrl(): string {
   return env.CORE_BASE_URL;
 }
 
+let manejadorLocal: RequestListener | null = null;
+let puertoInterno: Promise<number> | null = null;
+
+/** Registra la app HTTP para que, en Vercel, el CORE simulado se sirva desde un puerto interno del mismo proceso. */
+export function registrarAppCore(manejador: unknown): void {
+  manejadorLocal = manejador as RequestListener;
+}
+
+function obtenerPuertoInterno(manejador: RequestListener): Promise<number> {
+  puertoInterno ??= new Promise<number>((resolver, rechazar) => {
+    const servidor = createServer(manejador);
+    servidor.once('error', rechazar);
+    servidor.listen(0, '127.0.0.1', () => {
+      servidor.unref();
+      resolver((servidor.address() as AddressInfo).port);
+    });
+  });
+  return puertoInterno;
+}
+
+/**
+ * `fetch` hacia CORE. Con el CORE simulado en Vercel no hay un puerto local conocido al que apuntar,
+ * así que se levanta uno interno con la misma app; con el CORE real o fuera de Vercel es `fetch` común.
+ */
+export async function fetchCore(
+  url: string | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  if (!USA_CORE_MOCK || process.env.VERCEL !== '1' || !manejadorLocal) {
+    return fetch(url, init);
+  }
+  const destino = new URL(url);
+  const puerto = await obtenerPuertoInterno(manejadorLocal);
+  return fetch(
+    `http://127.0.0.1:${puerto}${destino.pathname}${destino.search}`,
+    init,
+  );
+}
+
 let parClavesDemo: { privateKey: KeyObject; publicKey: KeyObject } | null =
   null;
 
 function asegurarClavesDemo(): { privateKey: KeyObject; publicKey: KeyObject } {
+  if (!parClavesDemo && env.CORE_MOCK_PRIVATE_KEY) {
+    const privateKey = createPrivateKey(
+      Buffer.from(env.CORE_MOCK_PRIVATE_KEY, 'base64').toString('utf8'),
+    );
+    parClavesDemo = { privateKey, publicKey: createPublicKey(privateKey) };
+  }
   if (!parClavesDemo) {
     const { privateKey, publicKey } = generateKeyPairSync('rsa', {
       modulusLength: 2048,

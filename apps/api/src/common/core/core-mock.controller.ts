@@ -102,6 +102,48 @@ const CUENTAS_DEMO_CORE: CuentaDemoCore[] = [
     nombre: 'Estudiante UADE',
     password: 'StrongPass123!',
   },
+  // Las cuentas test.* usan los mismos ids que en el CORE real: así los eventos y las
+  // inscripciones ya creados siguen siendo de su dueño al pasar de un CORE al otro.
+  {
+    user: {
+      id: '00000000-0000-4000-8000-000000000101',
+      email: 'test.admin@uade.edu.ar',
+      careerIds: [],
+      roles: ['OPERATIONS_ADMIN'],
+      permissions: [
+        'campus-events:manage',
+        'wallet:read:self',
+        'wallet:credit:self',
+      ],
+      status: 'ACTIVE',
+    },
+    nombre: 'Test Admin',
+    password: 'yYO7X9zqZx4eqXdy',
+  },
+  {
+    user: {
+      id: '00000000-0000-4000-8000-000000000103',
+      email: 'test.docente@uade.edu.ar',
+      careerIds: [],
+      roles: ['TEACHER'],
+      permissions: ['wallet:read:self', 'wallet:credit:self'],
+      status: 'ACTIVE',
+    },
+    nombre: 'Test Docente',
+    password: '7yqb2Ftt0S68zSv4',
+  },
+  {
+    user: {
+      id: '00000000-0000-4000-8000-000000000102',
+      email: 'test.estudiante@uade.edu.ar',
+      careerIds: ['ing-informatica'],
+      roles: ['STUDENT'],
+      permissions: ['wallet:read:self', 'wallet:credit:self'],
+      status: 'ACTIVE',
+    },
+    nombre: 'Test Estudiante',
+    password: 'HsfDp9SXey3160RY',
+  },
 ];
 
 /**

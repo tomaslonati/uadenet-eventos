@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { registrarAppCore } from './common/core/core-crypto';
 import { TarifasService } from './common/backoffice/tarifas.service';
 import { LocacionesSyncService } from './modules/locaciones/locaciones-sync.service';
 import { RecordatoriosService } from './workers/recordatorios.service';
@@ -39,6 +40,9 @@ async function bootstrap() {
         }
       : undefined,
   );
+
+  await app.init();
+  registrarAppCore(app.getHttpAdapter().getInstance());
 
   if (esVercel) {
     await app.get(TarifasService).asegurarCargado();

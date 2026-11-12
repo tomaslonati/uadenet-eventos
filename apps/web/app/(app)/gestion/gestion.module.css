@@ -1,3 +1,9 @@
+.barraFiltros {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .tabla {
   background: var(--superficie);
   border: 1px solid var(--linea);

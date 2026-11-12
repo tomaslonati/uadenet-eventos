@@ -1,5 +1,7 @@
 # Integraciones con otros módulos
 
+> **Dev corre con CORE simulado y prod con el CORE real** (se elige por `CORE_BASE_URL`, ver [ADR 0018](../decisions/0018-core-simulado-en-dev-y-real-en-prod.md)): el estado "Implementado" de las filas de CORE vale para el contrato; en dev responde el mock.
+>
 > Documento vivo. Cada fila se actualiza cuando haya novedades de la conversación con el otro grupo. Ver detalle exhaustivo y acuerdos en [`estado-integraciones-y-faltantes.md`](estado-integraciones-y-faltantes.md).
 
 | Con quién | Qué necesitamos | Estado | Notas |
