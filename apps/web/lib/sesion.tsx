@@ -62,6 +62,19 @@ const STORAGE_KEY_SESION = "uadenet.core.sesion";
 
 export const DOMINIO_MAIL = "@uade.edu.ar";
 
+// La carga sin sesión (al abrir la página) puede responder después de la carga con sesión:
+// solo la última carga iniciada puede actualizar el estado.
+let cargaVigente = 0;
+
+function nuevaCarga(): number {
+  cargaVigente += 1;
+  return cargaVigente;
+}
+
+function esCargaVigente(id: number): boolean {
+  return id === cargaVigente;
+}
+
 export const CUENTAS_DEMO = [
   {
     perfil: "Administrativo",
@@ -285,18 +298,25 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const cargarTodoDesdeApi = useCallback(async (token: string | null) => {
+    const miCarga = nuevaCarga();
+    const vigente = () => esCargaVigente(miCarga);
     setCargandoDatos(true);
     // Cada recurso se aplica apenas llega: un saldo o un catálogo lentos no
     // deben dejar la cartelera esperando.
     const tareas = [
-      fetchEventosApi(token).then(setEventos),
-      fetchInscripcionesApi(token).then(setInscripcionesDetalle),
+      fetchEventosApi(token).then((r) => {
+        if (vigente()) setEventos(r);
+      }),
+      fetchInscripcionesApi(token).then((r) => {
+        if (vigente()) setInscripcionesDetalle(r);
+      }),
       fetchSedesApi(token).then((sedesRemotas) => {
-        if (sedesRemotas.length > 0) {
+        if (vigente() && sedesRemotas.length > 0) {
           setSedes(sedesRemotas.map((s) => s.nombre));
         }
       }),
       fetchLocacionesApi(token).then((locacionesRemotas) => {
+        if (!vigente()) return;
         setLocaciones(locacionesRemotas);
         setSedes((actuales) =>
           actuales.length > 0
@@ -304,17 +324,17 @@ export function SesionProvider({ children }: { children: ReactNode }) {
             : Array.from(new Set(locacionesRemotas.map((l) => l.sede))),
         );
       }),
-      fetchTarifasApi(token).then(setTarifas),
+      fetchTarifasApi(token).then((r) => {
+        if (vigente()) setTarifas(r);
+      }),
       fetchSaldoApi(token).then((saldoRemoto) => {
-        if (saldoRemoto !== null) {
-          setSaldo(saldoRemoto);
-        }
+        if (vigente() && saldoRemoto !== null) setSaldo(saldoRemoto);
       }),
     ];
     try {
       await Promise.allSettled(tareas);
     } finally {
-      setCargandoDatos(false);
+      if (vigente()) setCargandoDatos(false);
     }
   }, []);
 
