@@ -16,21 +16,50 @@ packages/eslint-config   config de ESLint compartida
 packages/typescript-config  tsconfig base
 ```
 
-## Instalar
+## Levantar el proyecto en local
 
-```bash
-pnpm install
-```
+Requiere **Node >= 20.12**, pnpm 10.26.2 y **Docker** (para la base local). Para pnpm, `corepack enable pnpm`; si en Windows falla por permisos (escribe en `C:\Program Files\nodejs`), sirve `npm install -g pnpm@10.26.2`.
 
-Requiere **Node >= 20** y pnpm 10.26.2. Para pnpm, `corepack enable pnpm`; si en Windows falla por permisos (escribe en `C:\Program Files\nodejs`), sirve `npm install -g pnpm@10.26.2`.
+1. **Base de datos.** Un Postgres 16 en Docker, en el puerto `54330`:
+
+   ```bash
+   docker run -d --name uadenet-eventos-db -e POSTGRES_PASSWORD=postgres -p 54330:5432 postgres:16
+   ```
+
+   Las veces siguientes alcanza con `docker start uadenet-eventos-db`.
+
+2. **Variables de entorno.** Un `.env` en la raíz del repo (no está versionado) que apunte a esa base:
+
+   ```
+   DATABASE_URL=postgres://postgres:postgres@localhost:54330/postgres
+   NODE_ENV=development
+   ```
+
+   No hace falta nada más: sin `CORE_BASE_URL` ni `BACKOFFICE_BASE_URL` la API usa el CORE y el Backoffice simulados (ver [Variables de entorno](#variables-de-entorno)).
+
+3. **Dependencias.**
+
+   ```bash
+   pnpm install
+   ```
+
+4. **Tablas.** Aplica las migrations de `packages/db` sobre la base del `.env`:
+
+   ```bash
+   pnpm --filter @repo/db db:migrate
+   ```
+
+5. **Levantar.**
+
+   ```bash
+   pnpm dev
+   ```
+
+   Compila los paquetes compartidos (`packages/*`) y levanta `apps/api` en http://localhost:3000 y `apps/web` en http://localhost:3001. Las sedes y locaciones las carga la API sola al arrancar, desde el Backoffice simulado. Para entrar, abrir http://localhost:3001 y usar alguna de las [cuentas de demo](#pantallas).
 
 ## Correr en dev
 
-```bash
-pnpm dev
-```
-
-Levanta `apps/api` en http://localhost:3000 y `apps/web` en http://localhost:3001. `apps/web` pega contra `apps/api` en `NEXT_PUBLIC_API_URL` (default `http://localhost:3000`).
+Con la base y el `.env` listos, `pnpm dev` levanta `apps/api` en http://localhost:3000 y `apps/web` en http://localhost:3001. `apps/web` pega contra `apps/api` en `NEXT_PUBLIC_API_URL` (default `http://localhost:3000`).
 
 Documentación de la API (Swagger): `http://localhost:3000/api/docs`.
 Estado de `apps/api` visto desde el portal: `http://localhost:3001/health`.
@@ -58,7 +87,7 @@ Todas consumen `apps/api`. Con `CORE_BASE_URL` sin definir, la API monta un CORE
 `packages/env` valida al boot con Zod y carga el `.env` de la raíz (no versionado) si existe. Solo `DATABASE_URL` hace falta para levantar la API en local (sin definir apunta a un Postgres en `localhost:5432`); todo lo demás tiene un valor por defecto o activa un modo simulado:
 
 ```
-DATABASE_URL=postgres://...   # proyecto Supabase compartido de dev (ver ADR 0011 en docs/decisions/)
+DATABASE_URL=postgres://...   # base local (ver arriba) o el Supabase compartido de dev (ADR 0011 en docs/decisions/)
 NODE_ENV=development
 PORT=                         # puerto de la API; default 3000
 
