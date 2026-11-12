@@ -71,7 +71,7 @@ const envSchema = z.object({
    */
   CRON_SECRET: textoOpcional,
   /** URL pública del frontend para links en notificaciones (HU7). */
-  FRONTEND_BASE_URL: urlConDefault("https://uadenet-eventos.vercel.app"),
+  FRONTEND_BASE_URL: urlConDefault("https://uadenet-eventos-web.vercel.app"),
 });
 
 export type Env = z.infer<typeof envSchema>;
