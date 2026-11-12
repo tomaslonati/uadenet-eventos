@@ -1,6 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { IDLE_TIMEOUT_SERVERLESS_S } from '@repo/db';
+import { waitUntil } from '@vercel/functions';
+import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { registrarAppCore } from './common/core/core-crypto';
 import { TarifasService } from './common/backoffice/tarifas.service';
@@ -9,6 +12,21 @@ import { RecordatoriosService } from './workers/recordatorios.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const esVercel = process.env.VERCEL === '1';
+
+  if (esVercel) {
+    // Sin esto la función se congela con conexiones a la base abiertas y la próxima query se cuelga (ver packages/db/src/client.ts).
+    app.use((_req: Request, res: Response, next: NextFunction) => {
+      waitUntil(
+        new Promise<void>((resolve) =>
+          res.on('close', () =>
+            setTimeout(resolve, IDLE_TIMEOUT_SERVERLESS_S * 1000 + 500),
+          ),
+        ),
+      );
+      next();
+    });
+  }
 
   app.enableCors({
     origin: true,
@@ -24,7 +42,6 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
-  const esVercel = process.env.VERCEL === '1';
   SwaggerModule.setup(
     'api/docs',
     app,

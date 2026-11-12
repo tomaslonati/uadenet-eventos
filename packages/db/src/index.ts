@@ -1,4 +1,4 @@
-export { db } from "./client.js";
+export { db, IDLE_TIMEOUT_SERVERLESS_S } from "./client.js";
 export * from "./schema/index.js";
 export {
   and,
