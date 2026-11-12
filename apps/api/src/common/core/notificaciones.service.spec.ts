@@ -47,7 +47,7 @@ describe('NotificacionesService', () => {
       tipo: 'evento.recordatorio',
       usuarioId: 'u-10432',
       eventoId: EVENTO_ID,
-      url: `https://uadenet-eventos.vercel.app/eventos/${EVENTO_ID}`,
+      url: `https://uadenet-eventos-web.vercel.app/eventos/${EVENTO_ID}`,
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(urlEn(0)).toMatch(/\/internal\/v1\/notifications$/);
@@ -82,7 +82,7 @@ describe('NotificacionesService', () => {
         type: 'EVENT_CANCELLED',
         sourceModule: 'events',
         sourceReference: aviso.referencia,
-        actionUrl: `https://uadenet-eventos.vercel.app/eventos/${EVENTO_ID}`,
+        actionUrl: `https://uadenet-eventos-web.vercel.app/eventos/${EVENTO_ID}`,
       });
     });
 
