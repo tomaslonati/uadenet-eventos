@@ -327,7 +327,7 @@ export function FormularioEvento({ evento }: { evento?: Evento }) {
         },
         accessToken,
       );
-      await recargarDatos();
+      void recargarDatos();
       setPublicado(true);
     } catch (err) {
       mostrarToast(
@@ -351,7 +351,7 @@ export function FormularioEvento({ evento }: { evento?: Evento }) {
         accessToken,
       );
       setNotificados(resultado.notificados);
-      await recargarDatos();
+      void recargarDatos();
       setPublicado(true);
     } catch (err) {
       mostrarToast(
