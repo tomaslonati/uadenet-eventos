@@ -102,9 +102,11 @@ const CUENTAS_DEMO_CORE: CuentaDemoCore[] = [
     nombre: 'Estudiante UADE',
     password: 'StrongPass123!',
   },
+  // Las cuentas test.* usan los mismos ids que en el CORE real: así los eventos y las
+  // inscripciones ya creados siguen siendo de su dueño al pasar de un CORE al otro.
   {
     user: {
-      id: 'seed-test-admin',
+      id: '00000000-0000-4000-8000-000000000101',
       email: 'test.admin@uade.edu.ar',
       careerIds: [],
       roles: ['OPERATIONS_ADMIN'],
@@ -120,7 +122,7 @@ const CUENTAS_DEMO_CORE: CuentaDemoCore[] = [
   },
   {
     user: {
-      id: 'seed-test-docente',
+      id: '00000000-0000-4000-8000-000000000103',
       email: 'test.docente@uade.edu.ar',
       careerIds: [],
       roles: ['TEACHER'],
@@ -132,7 +134,7 @@ const CUENTAS_DEMO_CORE: CuentaDemoCore[] = [
   },
   {
     user: {
-      id: 'seed-test-estudiante',
+      id: '00000000-0000-4000-8000-000000000102',
       email: 'test.estudiante@uade.edu.ar',
       careerIds: ['ing-informatica'],
       roles: ['STUDENT'],
