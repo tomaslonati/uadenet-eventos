@@ -146,8 +146,9 @@ const CUENTAS_DEMO_CORE: CuentaDemoCore[] = [
 
 /**
  * CORE simulado sobre los contratos oficiales de G10 (Authentication, IAM/JWKS,
- * Wallets, Event Bus y Notificaciones). Se monta siempre: los servicios nunca
- * consumen el CORE real.
+ * Wallets, Event Bus y Notificaciones). Solo se monta cuando `CORE_BASE_URL`
+ * no está definido o en entorno de test; con `CORE_BASE_URL` configurado los
+ * servicios consumen el CORE real.
  */
 @ApiExcludeController()
 @Controller({ path: 'core', version: '1' })

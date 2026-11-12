@@ -8,14 +8,19 @@ import {
   type KeyObject,
 } from 'node:crypto';
 import type { CoreJwtClaims, Jwk } from '@repo/contracts';
+import { env } from '@repo/env';
 
 export const CORE_DEMO_KID = 'core-rsa-key-1';
 
-/** CORE siempre es el controlador simulado montado en esta misma API; `CORE_BASE_URL` ya no se usa. */
-export const USA_CORE_MOCK = true;
+/** Sin `CORE_BASE_URL` (o en entorno de test) se monta el controlador simulado de CORE en esta misma API. */
+export const USA_CORE_MOCK =
+  env.CORE_BASE_URL === undefined || env.NODE_ENV === 'test';
 
 export function obtenerCoreBaseUrl(): string {
-  return `http://localhost:${process.env.PORT ?? 3000}/api/v1/core`;
+  if (env.NODE_ENV === 'test' || !env.CORE_BASE_URL) {
+    return `http://localhost:${process.env.PORT ?? 3000}/api/v1/core`;
+  }
+  return env.CORE_BASE_URL;
 }
 
 let manejadorLocal: RequestListener | null = null;
@@ -39,14 +44,14 @@ function obtenerPuertoInterno(manejador: RequestListener): Promise<number> {
 }
 
 /**
- * `fetch` hacia el CORE simulado. En Vercel no hay un puerto local conocido al que apuntar,
- * así que se levanta uno interno con la misma app; en el resto de los casos es `fetch` común.
+ * `fetch` hacia CORE. Con el CORE simulado en Vercel no hay un puerto local conocido al que apuntar,
+ * así que se levanta uno interno con la misma app; con el CORE real o fuera de Vercel es `fetch` común.
  */
 export async function fetchCore(
   url: string | URL,
   init?: RequestInit,
 ): Promise<Response> {
-  if (process.env.VERCEL !== '1' || !manejadorLocal) {
+  if (!USA_CORE_MOCK || process.env.VERCEL !== '1' || !manejadorLocal) {
     return fetch(url, init);
   }
   const destino = new URL(url);
