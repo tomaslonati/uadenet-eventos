@@ -62,6 +62,19 @@ const STORAGE_KEY_SESION = "uadenet.core.sesion";
 
 export const DOMINIO_MAIL = "@uade.edu.ar";
 
+// La carga sin sesión (al abrir la página) puede responder después de la carga con sesión:
+// solo la última carga iniciada puede actualizar el estado.
+let cargaVigente = 0;
+
+function nuevaCarga(): number {
+  cargaVigente += 1;
+  return cargaVigente;
+}
+
+function esCargaVigente(id: number): boolean {
+  return id === cargaVigente;
+}
+
 export const CUENTAS_DEMO = [
   {
     perfil: "Administrativo",
@@ -284,53 +297,44 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     temporizador.current = setTimeout(() => setToast(null), DURACION_TOAST);
   }, []);
 
-  // La carga sin sesión (al abrir la página) puede responder después de la carga con sesión:
-  // solo la última carga iniciada puede actualizar el estado.
-  const cargaVigente = useRef(0);
-
   const cargarTodoDesdeApi = useCallback(async (token: string | null) => {
-    const miCarga = ++cargaVigente.current;
-    const aplicar =
-      <T,>(setter: (valor: T) => void) =>
-      (valor: T) => {
-        if (miCarga === cargaVigente.current) setter(valor);
-      };
+    const miCarga = nuevaCarga();
+    const vigente = () => esCargaVigente(miCarga);
     setCargandoDatos(true);
     // Cada recurso se aplica apenas llega: un saldo o un catálogo lentos no
     // deben dejar la cartelera esperando.
     const tareas = [
-      fetchEventosApi(token).then(aplicar(setEventos)),
-      fetchInscripcionesApi(token).then(aplicar(setInscripcionesDetalle)),
-      fetchSedesApi(token).then(
-        aplicar((sedesRemotas) => {
-          if (sedesRemotas.length > 0) {
-            setSedes(sedesRemotas.map((s) => s.nombre));
-          }
-        }),
-      ),
-      fetchLocacionesApi(token).then(
-        aplicar((locacionesRemotas) => {
-          setLocaciones(locacionesRemotas);
-          setSedes((actuales) =>
-            actuales.length > 0
-              ? actuales
-              : Array.from(new Set(locacionesRemotas.map((l) => l.sede))),
-          );
-        }),
-      ),
-      fetchTarifasApi(token).then(aplicar(setTarifas)),
-      fetchSaldoApi(token).then(
-        aplicar((saldoRemoto) => {
-          if (saldoRemoto !== null) {
-            setSaldo(saldoRemoto);
-          }
-        }),
-      ),
+      fetchEventosApi(token).then((r) => {
+        if (vigente()) setEventos(r);
+      }),
+      fetchInscripcionesApi(token).then((r) => {
+        if (vigente()) setInscripcionesDetalle(r);
+      }),
+      fetchSedesApi(token).then((sedesRemotas) => {
+        if (vigente() && sedesRemotas.length > 0) {
+          setSedes(sedesRemotas.map((s) => s.nombre));
+        }
+      }),
+      fetchLocacionesApi(token).then((locacionesRemotas) => {
+        if (!vigente()) return;
+        setLocaciones(locacionesRemotas);
+        setSedes((actuales) =>
+          actuales.length > 0
+            ? actuales
+            : Array.from(new Set(locacionesRemotas.map((l) => l.sede))),
+        );
+      }),
+      fetchTarifasApi(token).then((r) => {
+        if (vigente()) setTarifas(r);
+      }),
+      fetchSaldoApi(token).then((saldoRemoto) => {
+        if (vigente() && saldoRemoto !== null) setSaldo(saldoRemoto);
+      }),
     ];
     try {
       await Promise.allSettled(tareas);
     } finally {
-      if (miCarga === cargaVigente.current) setCargandoDatos(false);
+      if (vigente()) setCargandoDatos(false);
     }
   }, []);
 
