@@ -23,6 +23,13 @@ interface RequestConUsuario {
   usuario?: UsuarioAutenticado;
 }
 
+/** Cada pedido autenticado no necesita reescribir el usuario: se sincroniza si cambió o pasaron 10 minutos. */
+const TTL_SINCRONIZACION_USUARIO_MS = 10 * 60_000;
+const usuariosSincronizados = new Map<
+  string,
+  { huella: string; hasta: number }
+>();
+
 function leerHeader(
   headers: Record<string, string | string[] | undefined>,
   nombre: string,
@@ -257,6 +264,12 @@ export class CoreJwtGuard implements CanActivate {
   }
 
   private async upsertUsuarioLocal(usuario: UsuarioAutenticado): Promise<void> {
+    const huella = `${usuario.nombre}|${usuario.email}|${usuario.rol}`;
+    const previo = usuariosSincronizados.get(usuario.id);
+    if (previo && previo.huella === huella && previo.hasta > Date.now()) {
+      return;
+    }
+
     try {
       await db
         .insert(usuarios)
@@ -275,6 +288,10 @@ export class CoreJwtGuard implements CanActivate {
             actualizadoEn: new Date(),
           },
         });
+      usuariosSincronizados.set(usuario.id, {
+        huella,
+        hasta: Date.now() + TTL_SINCRONIZACION_USUARIO_MS,
+      });
     } catch {
       // En tests unitarios o e2e sin conexión activa a Postgres, no bloquear el guard.
     }

@@ -135,23 +135,28 @@ export async function autenticarEnCore(
       data.user.permissions ?? [],
     );
 
-    let nombreRemoto: string | undefined;
-    try {
-      const usuarioRes = await fetch(`${API_BASE_URL}/api/v1/usuarios/me`, {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${data.accessToken}`,
-        },
-      });
-      if (usuarioRes.ok) {
-        const perfilBo = (await usuarioRes.json()) as { nombre?: string };
-        nombreRemoto = perfilBo.nombre;
-      }
-    } catch {
-      // Si Backoffice no devuelve perfil extendido, se usa el identificador de email
-    }
+    // Perfil y saldo se piden en paralelo y con tope: un CORE o Backoffice lentos
+    // no deben demorar el ingreso (ambos se vuelven a cargar apenas hay sesión).
+    const conTope = <T,>(p: Promise<T>): Promise<T | null> =>
+      Promise.race([
+        p.catch(() => null),
+        new Promise<null>((resolver) => setTimeout(() => resolver(null), 4_000)),
+      ]);
 
-    const saldoRemoto = await fetchSaldoApi(data.accessToken).catch(() => null);
+    const [perfilBo, saldoRemoto] = await Promise.all([
+      conTope(
+        fetch(`${API_BASE_URL}/api/v1/usuarios/me`, {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${data.accessToken}`,
+          },
+        }).then((r) =>
+          r.ok ? (r.json() as Promise<{ nombre?: string }>) : null,
+        ),
+      ),
+      conTope(fetchSaldoApi(data.accessToken)),
+    ]);
+    const nombreRemoto = perfilBo?.nombre;
 
     return {
       rol,
@@ -281,35 +286,33 @@ export function SesionProvider({ children }: { children: ReactNode }) {
 
   const cargarTodoDesdeApi = useCallback(async (token: string | null) => {
     setCargandoDatos(true);
+    // Cada recurso se aplica apenas llega: un saldo o un catálogo lentos no
+    // deben dejar la cartelera esperando.
+    const tareas = [
+      fetchEventosApi(token).then(setEventos),
+      fetchInscripcionesApi(token).then(setInscripcionesDetalle),
+      fetchSedesApi(token).then((sedesRemotas) => {
+        if (sedesRemotas.length > 0) {
+          setSedes(sedesRemotas.map((s) => s.nombre));
+        }
+      }),
+      fetchLocacionesApi(token).then((locacionesRemotas) => {
+        setLocaciones(locacionesRemotas);
+        setSedes((actuales) =>
+          actuales.length > 0
+            ? actuales
+            : Array.from(new Set(locacionesRemotas.map((l) => l.sede))),
+        );
+      }),
+      fetchTarifasApi(token).then(setTarifas),
+      fetchSaldoApi(token).then((saldoRemoto) => {
+        if (saldoRemoto !== null) {
+          setSaldo(saldoRemoto);
+        }
+      }),
+    ];
     try {
-      const [
-        eventosRemotos,
-        inscripcionesRemotas,
-        sedesRemotas,
-        locacionesRemotas,
-        tarifasRemotas,
-        saldoRemoto,
-      ] = await Promise.all([
-        fetchEventosApi(token).catch(() => []),
-        fetchInscripcionesApi(token).catch(() => []),
-        fetchSedesApi(token).catch(() => []),
-        fetchLocacionesApi(token).catch(() => []),
-        fetchTarifasApi(token).catch(() => TARIFAS_DEFAULT),
-        fetchSaldoApi(token).catch(() => null),
-      ]);
-
-      setEventos(eventosRemotos);
-      setInscripcionesDetalle(inscripcionesRemotas);
-      if (sedesRemotas.length > 0) {
-        setSedes(sedesRemotas.map((s) => s.nombre));
-      } else if (locacionesRemotas.length > 0) {
-        setSedes(Array.from(new Set(locacionesRemotas.map((l) => l.sede))));
-      }
-      setLocaciones(locacionesRemotas);
-      setTarifas(tarifasRemotas);
-      if (saldoRemoto !== null) {
-        setSaldo(saldoRemoto);
-      }
+      await Promise.allSettled(tareas);
     } finally {
       setCargandoDatos(false);
     }
@@ -352,6 +355,16 @@ export function SesionProvider({ children }: { children: ReactNode }) {
               Authorization: `Bearer ${parsed.accessToken}`,
             },
           });
+          if (meRes.status === 401) {
+            // El token de CORE vence a los 15 min: sin sesión válida se vuelve al login.
+            try {
+              sessionStorage.removeItem(STORAGE_KEY_SESION);
+            } catch {
+              // Ignorar errores de sessionStorage
+            }
+            await cargarTodoDesdeApi(null);
+            return;
+          }
           if (meRes.ok) {
             const user = (await meRes.json()) as CoreAuthUserWeb;
             rolVerificado = mapearRolCore(
