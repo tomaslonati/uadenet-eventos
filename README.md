@@ -1,5 +1,9 @@
 # uadenet-eventos
 
+> **English summary.** Academic Events module of the UADEnet university system (university project, *Desarrollo de Aplicaciones II*, UADE, 2026). Administrators manage events (venue, capacity); students, teachers and staff browse and enroll, check attendance and receive automatic reminders. TypeScript monorepo: Next.js + NestJS + Drizzle + Supabase (Postgres), Turborepo + pnpm, deployed on Vercel, with shared Zod contracts and documented architecture decisions.
+>
+> **Live:** [web app](https://uadenet-eventos-web.vercel.app) · [API docs (Swagger)](https://uadenet-eventos-api.vercel.app/api/docs)
+
 Módulo **Eventos Académicos** del sistema UADEnet (TPO Desarrollo de Aplicaciones II, UADE, 2Q 2026). Administrativos gestionan eventos (locación, cupo); estudiantes/docentes/administrativos consultan e inscriben; verificación de asistencia; recordatorio automático. Contexto completo, fechas de entrega y dependencias con otros grupos: [`docs/01-proyecto/overview.md`](docs/01-proyecto/overview.md).
 
 ## Stack
