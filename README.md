@@ -4,6 +4,11 @@
 >
 > **Live:** [web app](https://uadenet-eventos-web.vercel.app) · [API docs (Swagger)](https://uadenet-eventos-api.vercel.app/api/docs)
 
+<p align="center">
+  <img src="docs/assets/login.png" alt="UADEnet Eventos — login" width="49%">
+  <img src="docs/assets/api-docs.png" alt="REST API documented with Swagger" width="49%">
+</p>
+
 Módulo **Eventos Académicos** del sistema UADEnet (TPO Desarrollo de Aplicaciones II, UADE, 2Q 2026). Administrativos gestionan eventos (locación, cupo); estudiantes/docentes/administrativos consultan e inscriben; verificación de asistencia; recordatorio automático. Contexto completo, fechas de entrega y dependencias con otros grupos: [`docs/01-proyecto/overview.md`](docs/01-proyecto/overview.md).
 
 ## Stack
